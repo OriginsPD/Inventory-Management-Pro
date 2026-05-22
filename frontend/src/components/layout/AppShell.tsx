@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Database, Cpu, Menu, X, Shield, AlertCircle, Settings, Truck, CheckSquare, RefreshCw, Users } from 'lucide-react';
+import { Home, Database, Cpu, Menu, X, Shield, AlertCircle, Settings, Truck, CheckSquare, RefreshCw, Users, FileSpreadsheet } from 'lucide-react';
 import { CommandMenu } from '../ui/command-menu';
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => {
@@ -36,6 +36,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
       label: 'Overview',
       items: [
         { name: 'Dashboard', path: '/', icon: Home },
+        { name: 'Reports Console', path: '/reports', icon: FileSpreadsheet },
       ]
     },
     {

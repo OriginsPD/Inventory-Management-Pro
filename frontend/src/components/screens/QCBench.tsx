@@ -257,12 +257,16 @@ export const QCBench = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              <div className={`px-2 py-1 rounded border text-[10px] font-bold uppercase tracking-wider ${
-                selectedDevice.status === 'IN_STOCK' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
-                selectedDevice.status === 'DAMAGED' ? 'bg-red-500/10 text-red-600 border-red-500/20' :
-                'bg-zinc-500/10 text-zinc-600 border-zinc-500/20'
-              }`}>
-                Current: {selectedDevice.status}
+              <div className="px-2 py-1 rounded border text-[10px] font-bold uppercase tracking-wider bg-muted/40 border-border/80 flex items-center gap-1">
+                <span className="text-muted-foreground mr-1">Current:</span>
+                {selectedDevice.status === 'IN_STOCK' && <span className="text-emerald-600 dark:text-emerald-500 font-bold">🟢 In Stock</span>}
+                {selectedDevice.status === 'DISPATCHED' && <span className="text-blue-600 dark:text-blue-400 font-bold">🔵 Dispatched</span>}
+                {selectedDevice.status === 'TESTING' && <span className="text-amber-500 font-bold">🟡 Testing</span>}
+                {selectedDevice.status === 'DAMAGED' && <span className="text-red-500 font-bold">🔴 Damaged</span>}
+                {selectedDevice.status === 'RMA' && <span className="text-amber-600 font-bold">🟠 RMA Swap</span>}
+                {!['IN_STOCK', 'DISPATCHED', 'TESTING', 'DAMAGED', 'RMA'].includes(selectedDevice.status) && (
+                  <span className="text-muted-foreground font-bold">{selectedDevice.status.replace('_', ' ')}</span>
+                )}
               </div>
             </div>
           </div>

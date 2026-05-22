@@ -2207,16 +2207,15 @@ export const DeviceInventory = () => {
                     )}
                     {visibleColumns.modelName && <TableCell className="text-muted-foreground">{device.modelName}</TableCell>}
                     {visibleColumns.status && (
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className={`h-2 w-2 rounded-full ${
-                            device.status === 'IN_STOCK' ? 'bg-emerald-500' :
-                            device.status === 'DISPATCHED' ? 'bg-blue-500' :
-                            device.status === 'TESTING' ? 'bg-amber-500' :
-                            'bg-destructive'
-                          }`} />
-                          <span className="text-xs font-medium text-foreground">{device.status.replace('_', ' ')}</span>
-                        </div>
+                      <TableCell className="text-xs font-semibold">
+                        {device.status === 'IN_STOCK' && <span className="text-emerald-600 dark:text-emerald-500 font-semibold">🟢 In Stock</span>}
+                        {device.status === 'DISPATCHED' && <span className="text-blue-600 dark:text-blue-400 font-semibold font-sans">🔵 Dispatched</span>}
+                        {device.status === 'TESTING' && <span className="text-amber-500 font-semibold">🟡 Testing</span>}
+                        {device.status === 'DAMAGED' && <span className="text-red-500 font-semibold">🔴 Damaged</span>}
+                        {device.status === 'RMA' && <span className="text-amber-600 font-semibold">🟠 RMA Swap</span>}
+                        {!['IN_STOCK', 'DISPATCHED', 'TESTING', 'DAMAGED', 'RMA'].includes(device.status) && (
+                          <span className="text-muted-foreground font-semibold">{device.status.replace('_', ' ')}</span>
+                        )}
                       </TableCell>
                     )}
                     {visibleColumns.metadata && (
@@ -2429,13 +2428,14 @@ export const DeviceInventory = () => {
                     <div className="flex flex-col justify-center py-1 border-b border-border/30">
                       <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Current Status</span>
                       <span className="inline-flex items-center gap-1.5">
-                        <span className={`h-1.5 w-1.5 rounded-full ${
-                          viewModalDevice.status === 'IN_STOCK' ? 'bg-emerald-500' :
-                          viewModalDevice.status === 'DISPATCHED' ? 'bg-blue-500' :
-                          viewModalDevice.status === 'TESTING' ? 'bg-amber-500' :
-                          'bg-destructive'
-                        }`} />
-                        <span className="font-semibold text-xs text-foreground uppercase tracking-tight">{viewModalDevice.status.replace('_', ' ')}</span>
+                        {viewModalDevice.status === 'IN_STOCK' && <span className="text-emerald-600 dark:text-emerald-500 font-semibold text-xs">🟢 In Stock</span>}
+                        {viewModalDevice.status === 'DISPATCHED' && <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">🔵 Dispatched</span>}
+                        {viewModalDevice.status === 'TESTING' && <span className="text-amber-500 font-semibold text-xs">🟡 Testing</span>}
+                        {viewModalDevice.status === 'DAMAGED' && <span className="text-red-500 font-semibold text-xs">🔴 Damaged</span>}
+                        {viewModalDevice.status === 'RMA' && <span className="text-amber-600 font-semibold text-xs">🟠 RMA Swap</span>}
+                        {!['IN_STOCK', 'DISPATCHED', 'TESTING', 'DAMAGED', 'RMA'].includes(viewModalDevice.status) && (
+                          <span className="text-muted-foreground font-semibold text-xs">{viewModalDevice.status.replace('_', ' ')}</span>
+                        )}
                       </span>
                     </div>
                     <div className="flex flex-col justify-center py-1 border-b border-border/30 col-span-2 last:border-0 font-sans">
