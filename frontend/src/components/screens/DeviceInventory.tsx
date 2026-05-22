@@ -60,6 +60,7 @@ interface DeviceModel {
   brand: string;
   assetType: string;
   allowedChildren?: string | string[];
+  identifierPattern?: string;
 }
 
 interface ParsedLink {
@@ -165,7 +166,7 @@ const playErrorBuzz = () => {
   }
 };
 
-const playPromptChirp = () => {
+const playChirp = () => {
   playAudioTone(950, 0.05, 'sine');
 };
 
@@ -188,10 +189,30 @@ export const DeviceInventory = () => {
   const [linkModalError, setLinkModalError] = useState<string>('');
   const [stagedLinks, setStagedLinks] = useState<any[]>([]);
   const [linkSearch, setLinkSearch] = useState<string>('');
+  const [linkParentSearch, setLinkParentSearch] = useState<string>('');
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+
+  // Tab & Audit Log details modal states
+  const [deviceDetailTab, setDeviceDetailTab] = useState<'info' | 'activity'>('info');
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [isAuditLogsLoading, setIsAuditLogsLoading] = useState(false);
+
+  // Keyboard Scanner / Browser Connectivity status
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [pendingSyncItems, setPendingSyncItems] = useState<any[]>([]);
+
+  // CSV Mapper State
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [csvRows, setCsvRows] = useState<string[][]>([]);
+  const [isCsvMapping, setIsCsvMapping] = useState(false);
+  const [csvMappings, setCsvMappings] = useState({
+    identifier: '',
+    meta1: '',
+    meta2: ''
+  });
 
   // Multi-Selection State
   const [selectedDeviceIds, setSelectedDeviceIds] = useState<string[]>([]);
@@ -326,6 +347,7 @@ export const DeviceInventory = () => {
   const [scanInputText, setScanInputText] = useState('');
   const [bulkIngestError, setBulkIngestError] = useState('');
   const [duplicateCountAlert, setDuplicateCountAlert] = useState<number>(0);
+  const [patternCountAlert, setPatternCountAlert] = useState<number>(0);
 
   // Bulk Linking state
   const [linkPairs, setLinkPairs] = useState<ParsedLink[]>([]);
@@ -344,6 +366,35 @@ export const DeviceInventory = () => {
   }, [search, statusFilter, modelFilter]);
 
   // -- GLOBAL KEYBOARD SCANNER LISTENER WEDGE --
+  const handleGlobalBarcodeScanned = (barcode: string) => {
+    if (activeModal === 'single') {
+      setValue('identifier', barcode);
+      playSuccessBeep();
+    } else if (activeModal === 'bulk') {
+      if (bulkSubTab === 'ingest') {
+        processIngestionList([{ identifier: barcode, metadata: {} }]);
+      } else if (bulkSubTab === 'link') {
+        if (!primaryScan) {
+          setPrimaryScan(barcode);
+          playChirp();
+        } else {
+          setChildScan(barcode);
+          triggerManualLinkScanWithParams(primaryScan, barcode);
+        }
+      }
+    } else {
+      playChirp();
+      setActiveModal('bulk');
+      setBulkSubTab('ingest');
+      processIngestionList([{ identifier: barcode, metadata: {} }]);
+    }
+  };
+
+  const handleGlobalBarcodeScannedRef = useRef(handleGlobalBarcodeScanned);
+  useEffect(() => {
+    handleGlobalBarcodeScannedRef.current = handleGlobalBarcodeScanned;
+  });
+
   useEffect(() => {
     let accumulatedKeys = '';
     let lastKeyTime = Date.now();
@@ -359,7 +410,7 @@ export const DeviceInventory = () => {
       // Enter key marks termination of a barcode scanner payload
       if (e.key === 'Enter') {
         if (accumulatedKeys.length >= 3) {
-          handleGlobalBarcodeScanned(accumulatedKeys.trim());
+          handleGlobalBarcodeScannedRef.current(accumulatedKeys.trim());
           accumulatedKeys = '';
           e.preventDefault();
         } else {
@@ -370,7 +421,7 @@ export const DeviceInventory = () => {
 
       if (e.key.length > 1) return;
 
-      // Wedge scanner types extremely fast (<30ms). Slow input is from a human typing.
+      // Wedge scanner types extremely fast (<35ms). Slow input is from a human typing.
       if (delay > 35 && isInput) {
         accumulatedKeys = '';
         return;
@@ -381,26 +432,131 @@ export const DeviceInventory = () => {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [bulkSubTab, bulkIngestList, devices, primaryScan, models, bulkSelectedModelId]);
+  }, []);
 
-  const handleGlobalBarcodeScanned = (barcode: string) => {
-    if (activeModal !== 'bulk') {
-      setActiveModal('bulk');
-    }
+  // -- OFFLINE BUFFER EFFECTS & UTILITIES --
+  const syncPendingItems = async (itemsToSync?: any[]) => {
+    const items = itemsToSync || pendingSyncItems;
+    if (items.length === 0) return;
 
-    if (bulkSubTab === 'ingest') {
-      processIngestionList([{ identifier: barcode, metadata: {} }]);
-    } else {
-      // Linking scan sequence logic
-      if (!primaryScan) {
-        setPrimaryScan(barcode);
-        playPromptChirp();
+    try {
+      const res = await fetch('http://localhost:3002/api/devices/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ devices: items })
+      });
+      const data = await res.json();
+      if (data.success) {
+        localStorage.removeItem('ims_pending_sync');
+        setPendingSyncItems([]);
+        playSuccessBeep();
+        fetchDevices();
       } else {
-        setChildScan(barcode);
-        triggerManualLinkScanWithParams(primaryScan, barcode);
+        throw new Error(data.error || 'Server validation failed during sync');
       }
+    } catch (e) {
+      console.error('Failed to sync queue:', e);
+      playErrorBuzz();
     }
   };
+
+  const bufferPendingSync = (payload: any[]) => {
+    const stored = localStorage.getItem('ims_pending_sync');
+    let existing: any[] = [];
+    if (stored) {
+      try {
+        existing = JSON.parse(stored);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    const merged = [...existing, ...payload];
+    // De-duplicate by identifier
+    const uniqueMerged = merged.filter((item, idx, self) =>
+      self.findIndex(t => t.identifier === item.identifier) === idx
+    );
+    localStorage.setItem('ims_pending_sync', JSON.stringify(uniqueMerged));
+    setPendingSyncItems(uniqueMerged);
+    playChirp();
+  };
+
+  useEffect(() => {
+    // Load pending queue from local storage
+    const stored = localStorage.getItem('ims_pending_sync');
+    if (stored) {
+      try {
+        setPendingSyncItems(JSON.parse(stored));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      // Auto-sync when online
+      const latestStored = localStorage.getItem('ims_pending_sync');
+      if (latestStored) {
+        try {
+          const items = JSON.parse(latestStored);
+          if (items && items.length > 0) {
+            syncPendingItems(items);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // -- DETAILS TAB & AUDIT LOG EFFECTS --
+  useEffect(() => {
+    if (viewModalDevice && deviceDetailTab === 'activity') {
+      const fetchAuditLogs = async () => {
+        setIsAuditLogsLoading(true);
+        try {
+          const res = await fetch(`http://localhost:3002/api/devices/${viewModalDevice.id}/audit-logs`);
+          if (res.ok) {
+            const data = await res.json();
+            setAuditLogs(data);
+          } else {
+            console.error('Failed to fetch audit logs');
+          }
+        } catch (err) {
+          console.error('Error fetching audit logs:', err);
+        } finally {
+          setIsAuditLogsLoading(false);
+        }
+      };
+      fetchAuditLogs();
+    }
+  }, [viewModalDevice?.id, deviceDetailTab]);
+
+  useEffect(() => {
+    if (!viewModalDevice) {
+      setDeviceDetailTab('info');
+      setAuditLogs([]);
+    }
+  }, [viewModalDevice]);
+
+  useEffect(() => {
+    if (activeModal === 'none') {
+      setIsCsvMapping(false);
+      setCsvHeaders([]);
+      setCsvRows([]);
+    }
+  }, [activeModal]);
 
   const fetchDevices = async () => {
     setIsLoading(true);
@@ -451,6 +607,24 @@ export const DeviceInventory = () => {
 
   // Create or Update Single Device via React Hook Form Submission
   const onSubmitSingle = async (values: any) => {
+    // Real-time client-side regex check
+    const selectedModel = models.find(m => m.id === values.modelId);
+    if (selectedModel && selectedModel.identifierPattern) {
+      try {
+        const regex = new RegExp(selectedModel.identifierPattern, 'i');
+        if (!regex.test(values.identifier)) {
+          setError('identifier', { 
+            type: 'manual', 
+            message: `Barcode format mismatch. Expected pattern: ${selectedModel.identifierPattern}` 
+          });
+          playErrorBuzz();
+          return;
+        }
+      } catch (e) {
+        console.error('Invalid model pattern regex:', selectedModel.identifierPattern);
+      }
+    }
+
     const type = getSelectedModelType(values.modelId);
     const metadata: Record<string, any> = {};
     
@@ -548,63 +722,158 @@ export const DeviceInventory = () => {
     }
   };
 
-  // Parse CSV for Ingestion
+  // Parse CSV for Ingestion & Transition to Column Mapper
   const handleIngestCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
     setDuplicateCountAlert(0);
+    setPatternCountAlert(0);
+    setBulkIngestError('');
     const reader = new FileReader();
-    const targetType = getSelectedModelType(bulkSelectedModelId);
 
     reader.onload = (event) => {
       const text = event.target?.result as string;
       const lines = text.split(/[\r\n]+/).map(s => s.trim()).filter(s => s.length > 0);
+      if (lines.length === 0) {
+        setBulkIngestError('The selected CSV file is empty.');
+        playErrorBuzz();
+        return;
+      }
+
+      // Parse headers from first line
+      const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
       
-      const parsedItems = lines.map(line => {
-        const parts = line.split(',').map(p => p.trim());
-        const serial = parts[0] || '';
-        const meta1 = parts[1] || '';
-        const meta2 = parts[2] || '';
+      // Parse rest of the lines
+      const rows = lines.slice(1).map(line => 
+        line.split(',').map(cell => cell.trim().replace(/^["']|["']$/g, ''))
+      ).filter(row => row.length > 0 && row.some(cell => cell.length > 0));
 
-        const metadata: Record<string, any> = {};
-        if (serial) {
-          if (targetType === 'SIM') {
-            metadata.phoneNumber = meta1;
-            metadata.carrier = meta2;
-          } else if (targetType === 'SD_CARD') {
-            metadata.capacity = meta1;
-            metadata.speedClass = meta2;
-          } else if (targetType === 'TRACKER') {
-            metadata.firmware = meta1;
-            metadata.hwRevision = meta2;
-          } else if (targetType === 'PANIC_BUTTON') {
-            metadata.rfFrequency = meta1;
-            metadata.buttonColor = meta2;
-          }
-        }
-        return { identifier: serial, metadata };
-      }).filter(p => p.identifier.length > 0);
+      if (rows.length === 0) {
+        setBulkIngestError('No data rows found in the CSV file.');
+        playErrorBuzz();
+        return;
+      }
 
-      processIngestionList(parsedItems);
+      setCsvHeaders(headers);
+      setCsvRows(rows);
+      setIsCsvMapping(true);
+      playChirp();
+
+      // Pre-populate mapping fields with best-guess defaults
+      setCsvMappings({
+        identifier: headers[0] || '',
+        meta1: headers[1] || '',
+        meta2: headers[2] || ''
+      });
     };
     reader.readAsText(e.target.files[0]);
+    e.target.value = '';
+  };
+
+  const handleCommitCsvMapping = () => {
+    if (!csvMappings.identifier) {
+      setBulkIngestError('Identifier / Serial mapping is required.');
+      playErrorBuzz();
+      return;
+    }
+
+    const idIndex = csvHeaders.indexOf(csvMappings.identifier);
+    const meta1Index = csvMappings.meta1 ? csvHeaders.indexOf(csvMappings.meta1) : -1;
+    const meta2Index = csvMappings.meta2 ? csvHeaders.indexOf(csvMappings.meta2) : -1;
+
+    const targetType = getSelectedModelType(bulkSelectedModelId);
+
+    const parsedItems = csvRows.map(row => {
+      const serial = idIndex !== -1 ? row[idIndex] || '' : '';
+      const meta1 = meta1Index !== -1 ? row[meta1Index] || '' : '';
+      const meta2 = meta2Index !== -1 ? row[meta2Index] || '' : '';
+
+      const metadata: Record<string, any> = {};
+      if (serial) {
+        if (targetType === 'SIM') {
+          metadata.phoneNumber = meta1;
+          metadata.carrier = meta2;
+        } else if (targetType === 'SD_CARD') {
+          metadata.capacity = meta1;
+          metadata.speedClass = meta2;
+        } else if (targetType === 'TRACKER') {
+          metadata.firmware = meta1;
+          metadata.hwRevision = meta2;
+        } else if (targetType === 'PANIC_BUTTON') {
+          metadata.rfFrequency = meta1;
+          metadata.buttonColor = meta2;
+        }
+      }
+      return { identifier: serial, metadata };
+    }).filter(p => p.identifier.length > 0);
+
+    processIngestionList(parsedItems);
+    
+    // Reset wizard state
+    setIsCsvMapping(false);
+    setCsvHeaders([]);
+    setCsvRows([]);
+    playSuccessBeep();
+  };
+
+  const getMappedPreviewRows = () => {
+    const idIndex = csvHeaders.indexOf(csvMappings.identifier);
+    const meta1Index = csvMappings.meta1 ? csvHeaders.indexOf(csvMappings.meta1) : -1;
+    const meta2Index = csvMappings.meta2 ? csvHeaders.indexOf(csvMappings.meta2) : -1;
+
+    return csvRows.slice(0, 3).map(row => {
+      const idValue = idIndex !== -1 ? row[idIndex] || '' : '';
+      const meta1Value = meta1Index !== -1 ? row[meta1Index] || '' : '';
+      const meta2Value = meta2Index !== -1 ? row[meta2Index] || '' : '';
+
+      return {
+        identifier: idValue,
+        meta1: meta1Value,
+        meta2: meta2Value
+      };
+    });
   };
 
   // Dedup and add lists of prepared ingestion items
   const processIngestionList = (list: IngestItem[]) => {
-    const uniqueIdentifiers = [...new Set(list.map(x => x.identifier))];
-    const duplicatesInBatch = list.length - uniqueIdentifiers.length;
+    // 1. Filter out items that do not match the selected model's barcode pattern template
+    const selectedModel = models.find(m => m.id === bulkSelectedModelId);
+    let invalidPatternCount = 0;
+    let patternMatchedList = list;
+
+    if (selectedModel && selectedModel.identifierPattern) {
+      try {
+        const regex = new RegExp(selectedModel.identifierPattern, 'i');
+        patternMatchedList = list.filter(item => {
+          const isValid = regex.test(item.identifier);
+          if (!isValid) {
+            invalidPatternCount++;
+          }
+          return isValid;
+        });
+      } catch (e) {
+        console.error('Invalid model pattern regex:', selectedModel.identifierPattern);
+      }
+    }
+
+    const uniqueIdentifiers = [...new Set(patternMatchedList.map(x => x.identifier))];
+    const duplicatesInBatch = patternMatchedList.length - uniqueIdentifiers.length;
 
     const existingIdentifiers = devices.map(d => d.identifier);
     const currentPreparedIdentifiers = bulkIngestList.map(b => b.identifier);
 
-    const finalUniqueList = list.filter((item, idx, self) => 
+    const finalUniqueList = patternMatchedList.filter((item, idx, self) => 
       self.findIndex(t => t.identifier === item.identifier) === idx &&
       !existingIdentifiers.includes(item.identifier) &&
       !currentPreparedIdentifiers.includes(item.identifier)
     );
 
-    const duplicatesInDb = list.length - finalUniqueList.length;
+    const duplicatesInDb = patternMatchedList.length - finalUniqueList.length;
     const totalFiltered = duplicatesInBatch + duplicatesInDb;
+
+    if (invalidPatternCount > 0) {
+      setPatternCountAlert(prev => prev + invalidPatternCount);
+      playErrorBuzz();
+    }
 
     if (totalFiltered > 0) {
       setDuplicateCountAlert(prev => prev + totalFiltered);
@@ -617,7 +886,7 @@ export const DeviceInventory = () => {
     }
   };
 
-  // Execute Bulk Ingestion commit
+  // Execute Bulk Ingestion commit (with local storage fallback)
   const handleBulkIngestSubmit = async () => {
     if (bulkIngestList.length === 0 || !bulkSelectedModelId) {
       setBulkIngestError('Please scan devices or upload a CSV first.');
@@ -629,8 +898,18 @@ export const DeviceInventory = () => {
       identifier: item.identifier,
       modelId: bulkSelectedModelId,
       status: 'IN_STOCK',
-      metadata: item.metadata
+      metadata: item.metadata,
+      type: bulkAssetType
     }));
+
+    if (!isOnline) {
+      bufferPendingSync(payload);
+      setBulkIngestList([]);
+      setDuplicateCountAlert(0);
+      setPatternCountAlert(0);
+      setActiveModal('none');
+      return;
+    }
 
     try {
       const res = await fetch('http://localhost:3002/api/devices/bulk', {
@@ -638,19 +917,32 @@ export const DeviceInventory = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ devices: payload })
       });
+      
+      if (!res.ok) {
+        throw new Error('Server returned non-ok status');
+      }
+
       const data = await res.json();
       if (data.success) {
         setBulkIngestList([]);
         setDuplicateCountAlert(0);
+        setPatternCountAlert(0);
         setActiveModal('none');
         playSuccessBeep();
         fetchDevices();
       } else {
-        playErrorBuzz();
+        bufferPendingSync(payload);
+        setBulkIngestList([]);
+        setDuplicateCountAlert(0);
+        setPatternCountAlert(0);
+        setActiveModal('none');
       }
     } catch (e) {
-      setBulkIngestError('Failed to commit bulk ingestion.');
-      playErrorBuzz();
+      bufferPendingSync(payload);
+      setBulkIngestList([]);
+      setDuplicateCountAlert(0);
+      setPatternCountAlert(0);
+      setActiveModal('none');
     }
   };
 
@@ -786,6 +1078,7 @@ export const DeviceInventory = () => {
     setBulkIngestError('');
     setLinkError('');
     setDuplicateCountAlert(0);
+    setPatternCountAlert(0);
     setActiveModal('bulk');
   };
 
@@ -795,6 +1088,31 @@ export const DeviceInventory = () => {
   return (
     <AppShell>
       <div className="flex flex-col gap-6 w-full">
+        {!isOnline && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-500 rounded-lg p-3 px-4 flex items-center gap-2 text-xs font-medium animate-in fade-in duration-200">
+            <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+            <span>Connection Offline: Operations will be cached locally until internet connectivity is restored.</span>
+          </div>
+        )}
+
+        {pendingSyncItems.length > 0 && (
+          <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-500 rounded-lg p-3 px-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-medium animate-in fade-in duration-200">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4.5 w-4.5 text-amber-500 shrink-0" />
+              <span>
+                Offline Sync: You have <strong>{pendingSyncItems.length}</strong> pending ingestion item(s) buffered locally in queue {isOnline ? "(Ready to Sync)" : "(Currently Offline)"}.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => syncPendingItems()}
+              disabled={!isOnline}
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white dark:text-black shadow h-8 px-3.5 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+            >
+              Sync Queue
+            </button>
+          </div>
+        )}
         
         {/* Header & Actions */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -1082,233 +1400,399 @@ export const DeviceInventory = () => {
                           <Info className="h-4 w-4 text-amber-600 dark:text-amber-500 shrink-0" />
                           <span>Filtered out {duplicateCountAlert} duplicate entries (already registered or in current list).</span>
                         </div>
-                        <button onClick={() => setDuplicateCountAlert(0)} className="text-[10px] underline hover:no-underline font-semibold ml-4">
+                        <button onClick={() => { setDuplicateCountAlert(0); }} className="text-[10px] underline hover:no-underline font-semibold ml-4">
                           Dismiss
                         </button>
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1">
-                      <div>
-                        <label className="text-xs font-semibold text-muted-foreground block mb-1">Target Template Model</label>
-                        <Select 
-                          value={bulkSelectedModelId}
-                          onValueChange={(val) => {
-                            setBulkSelectedModelId(val);
-                            setBulkIngestList([]);
-                            setDuplicateCountAlert(0);
-                          }}
-                        >
-                          <SelectTrigger className="w-full text-sm h-9 bg-card">
-                            <SelectValue placeholder="Select a model..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {models.map(m => (
-                              <SelectItem key={m.id} value={m.id}>{m.name} ({m.brand})</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="border border-border/80 rounded-lg p-4 bg-muted/10 flex flex-col justify-between space-y-4">
-                        <div className="text-center">
-                          <FileSpreadsheet className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                          <h4 className="text-xs font-semibold">CSV List Upload</h4>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">Drop a CSV file. Format: <span className="font-mono">serial, [meta1], [meta2]</span></p>
+                    {patternCountAlert > 0 && (
+                      <div className="bg-rose-50 border border-rose-200 dark:bg-rose-950/20 dark:border-rose-900/30 text-rose-800 dark:text-rose-500 text-xs p-2.5 rounded-lg flex items-center justify-between font-medium animate-pulse">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-rose-600 dark:text-rose-500 shrink-0" />
+                          <span>Filtered out {patternCountAlert} barcode(s) due to format mismatch with model pattern.</span>
                         </div>
-                        <label className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-semibold border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 cursor-pointer">
-                          Browse CSV File
-                          <input type="file" className="hidden" accept=".csv" onChange={handleIngestCSVUpload} />
-                        </label>
+                        <button onClick={() => setPatternCountAlert(0)} className="text-[10px] underline hover:no-underline font-semibold ml-4">
+                          Dismiss
+                        </button>
                       </div>
+                    )}
 
-                      <div className="border border-border/80 rounded-lg p-4 bg-muted/10 space-y-3">
-                        <div className="flex items-center gap-1.5 text-primary">
-                          <Scan className="h-4 w-4 animate-pulse" />
-                          <h4 className="text-xs font-semibold">Rapid Physical Scanner</h4>
-                        </div>
-                        <input 
-                          ref={scanIngestInputRef}
-                          type="text"
-                          placeholder="Focus & scan barcode strap-on..."
-                          value={scanInputText}
-                          onChange={(e) => setScanInputText(e.target.value)}
-                          onKeyDown={handleIngestScanKeyDown}
-                          className="flex h-9 w-full rounded-md border border-primary bg-transparent px-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 tracking-mono font-medium"
-                          autoFocus
-                        />
-                        <p className="text-[10px] text-muted-foreground">Duplicates are automatically parsed out.</p>
-                      </div>
-                    </div>
-
-                    {/* Reactive Form Ingestion Table */}
-                    <div className="border border-border rounded-lg bg-card overflow-hidden">
-                      <div className="bg-muted/40 p-2.5 px-4 text-xs font-semibold text-muted-foreground flex justify-between items-center border-b border-border sticky top-0 z-10">
-                        <span>Prepared Ingestion Table ({bulkIngestList.length})</span>
-                        {bulkIngestList.length > 0 && (
-                          <button 
-                            onClick={() => { setBulkIngestList([]); setDuplicateCountAlert(0); }}
-                            className="text-[10px] text-destructive hover:underline font-semibold"
-                          >
-                            Clear List
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="overflow-x-auto">
-                        {bulkIngestList.length > 0 ? (
-                          <table className="w-full text-xs text-left">
-                            <thead className="bg-muted/30 border-b border-border text-[10px] font-semibold text-muted-foreground uppercase sticky top-0 z-10">
-                              <tr className="bg-card">
-                                <th className="p-2 px-4">Serial / ISN</th>
-
-                                {/* Dynamic headers depending on asset type */}
-                                {bulkAssetType === 'SIM' && (
-                                  <>
-                                    <th className="p-2">Phone Number (MSISDN)</th>
-                                    <th className="p-2">Carrier</th>
-                                  </>
-                                )}
-                                {bulkAssetType === 'TRACKER' && (
-                                  <>
-                                    <th className="p-2">Firmware</th>
-                                    <th className="p-2">HW Revision</th>
-                                  </>
-                                )}
-                                {bulkAssetType === 'SD_CARD' && (
-                                  <>
-                                    <th className="p-2">Capacity</th>
-                                    <th className="p-2">Speed Class</th>
-                                  </>
-                                )}
-                                {bulkAssetType === 'PANIC_BUTTON' && (
-                                  <>
-                                    <th className="p-2">RF Frequency</th>
-                                    <th className="p-2">Color</th>
-                                  </>
-                                )}
-
-                                <th className="p-2 text-right">Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border font-mono">
-                              {bulkIngestList.map((item, idx) => (
-                                <tr key={idx} className="hover:bg-muted/30 transition-colors">
-                                  <td className="p-2 px-4 font-medium tracking-mono">{item.identifier}</td>
-
-                                  {bulkAssetType === 'SIM' && (
-                                    <>
-                                      <td className="p-1">
-                                        <input 
-                                          type="text" 
-                                          placeholder="Phone number" 
-                                          value={item.metadata.phoneNumber || ''} 
-                                          onChange={(e) => handleUpdateItemMeta(idx, 'phoneNumber', e.target.value)}
-                                          className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
-                                        />
-                                      </td>
-                                      <td className="p-1">
-                                        <input 
-                                          type="text" 
-                                          placeholder="Carrier" 
-                                          value={item.metadata.carrier || ''} 
-                                          onChange={(e) => handleUpdateItemMeta(idx, 'carrier', e.target.value)}
-                                          className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
-                                        />
-                                      </td>
-                                    </>
-                                  )}
-
-                                  {bulkAssetType === 'TRACKER' && (
-                                    <>
-                                      <td className="p-1">
-                                        <input 
-                                          type="text" 
-                                          placeholder="e.g. v1.2" 
-                                          value={item.metadata.firmware || ''} 
-                                          onChange={(e) => handleUpdateItemMeta(idx, 'firmware', e.target.value)}
-                                          className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
-                                        />
-                                      </td>
-                                      <td className="p-1">
-                                        <input 
-                                          type="text" 
-                                          placeholder="e.g. REV_A" 
-                                          value={item.metadata.hwRevision || ''} 
-                                          onChange={(e) => handleUpdateItemMeta(idx, 'hwRevision', e.target.value)}
-                                          className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
-                                        />
-                                      </td>
-                                    </>
-                                  )}
-
-                                  {bulkAssetType === 'SD_CARD' && (
-                                    <>
-                                      <td className="p-1">
-                                        <input 
-                                          type="text" 
-                                          placeholder="e.g. 64GB" 
-                                          value={item.metadata.capacity || ''} 
-                                          onChange={(e) => handleUpdateItemMeta(idx, 'capacity', e.target.value)}
-                                          className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
-                                        />
-                                      </td>
-                                      <td className="p-1">
-                                        <input 
-                                          type="text" 
-                                          placeholder="e.g. U3" 
-                                          value={item.metadata.speedClass || ''} 
-                                          onChange={(e) => handleUpdateItemMeta(idx, 'speedClass', e.target.value)}
-                                          className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
-                                        />
-                                      </td>
-                                    </>
-                                  )}
-
-                                  {bulkAssetType === 'PANIC_BUTTON' && (
-                                    <>
-                                      <td className="p-1">
-                                        <input 
-                                          type="text" 
-                                          placeholder="e.g. 433MHz" 
-                                          value={item.metadata.rfFrequency || ''} 
-                                          onChange={(e) => handleUpdateItemMeta(idx, 'rfFrequency', e.target.value)}
-                                          className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
-                                        />
-                                      </td>
-                                      <td className="p-1">
-                                        <input 
-                                          type="text" 
-                                          placeholder="e.g. Red" 
-                                          value={item.metadata.buttonColor || ''} 
-                                          onChange={(e) => handleUpdateItemMeta(idx, 'buttonColor', e.target.value)}
-                                          className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
-                                        />
-                                      </td>
-                                    </>
-                                  )}
-
-                                  <td className="p-2 text-right">
-                                    <button 
-                                      onClick={() => setBulkIngestList(bulkIngestList.filter((_, i) => i !== idx))} 
-                                      className="text-[10px] text-destructive hover:underline font-sans font-semibold"
-                                    >
-                                      Remove
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        ) : (
-                          <div className="text-center py-8 text-xs text-muted-foreground italic font-sans">
-                            No devices prepared yet. Scan barcodes or drop a CSV file to begin.
+                    {isCsvMapping ? (
+                      /* STRIPE-STYLE COLUMN MAPPER WIZARD */
+                      <div className="space-y-6 border border-border p-5 rounded-lg bg-muted/5">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="text-sm font-semibold text-foreground">CSV Column Import Wizard</h4>
+                            <p className="text-xs text-muted-foreground">Map your CSV column headers to the target model's database schema attributes.</p>
                           </div>
-                        )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsCsvMapping(false);
+                              setCsvHeaders([]);
+                              setCsvRows([]);
+                            }}
+                            className="text-xs text-muted-foreground hover:text-foreground font-semibold underline"
+                          >
+                            Cancel Mapping
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {/* Mapping Identifier */}
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-muted-foreground block">
+                              Identifier / Serial <span className="text-destructive">*</span>
+                            </label>
+                            <Select
+                              value={csvMappings.identifier}
+                              onValueChange={(val) => setCsvMappings(prev => ({ ...prev, identifier: val }))}
+                            >
+                              <SelectTrigger className="w-full text-xs h-9 bg-card">
+                                <SelectValue placeholder="Select identifier column" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {csvHeaders.map(h => (
+                                  <SelectItem key={h} value={h}>{h}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Mapping Meta 1 */}
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-muted-foreground block">
+                              {bulkAssetType === 'SIM' ? 'Phone Number (MSISDN)' :
+                               bulkAssetType === 'SD_CARD' ? 'Storage Capacity' :
+                               bulkAssetType === 'TRACKER' ? 'Firmware Version' :
+                               bulkAssetType === 'PANIC_BUTTON' ? 'RF Frequency' : 'Metadata Field 1'} (Optional)
+                            </label>
+                            <Select
+                              value={csvMappings.meta1}
+                              onValueChange={(val) => setCsvMappings(prev => ({ ...prev, meta1: val }))}
+                            >
+                              <SelectTrigger className="w-full text-xs h-9 bg-card">
+                                <SelectValue placeholder="Select column (or none)" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">-- None --</SelectItem>
+                                {csvHeaders.map(h => (
+                                  <SelectItem key={h} value={h}>{h}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Mapping Meta 2 */}
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-muted-foreground block">
+                              {bulkAssetType === 'SIM' ? 'Network Carrier' :
+                               bulkAssetType === 'SD_CARD' ? 'Speed Class' :
+                               bulkAssetType === 'TRACKER' ? 'Hardware Revision' :
+                               bulkAssetType === 'PANIC_BUTTON' ? 'Button Color' : 'Metadata Field 2'} (Optional)
+                            </label>
+                            <Select
+                              value={csvMappings.meta2}
+                              onValueChange={(val) => setCsvMappings(prev => ({ ...prev, meta2: val }))}
+                            >
+                              <SelectTrigger className="w-full text-xs h-9 bg-card">
+                                <SelectValue placeholder="Select column (or none)" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">-- None --</SelectItem>
+                                {csvHeaders.map(h => (
+                                  <SelectItem key={h} value={h}>{h}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        {/* Preview Section */}
+                        <div className="space-y-2">
+                          <div className="text-xs font-semibold text-muted-foreground">Preview Mapped Data (First 3 rows)</div>
+                          <div className="border border-border rounded-lg bg-card overflow-hidden">
+                            <table className="w-full text-left text-xs">
+                              <thead className="bg-muted/40 border-b border-border text-[10px] font-semibold text-muted-foreground uppercase">
+                                <tr>
+                                  <th className="p-2 px-3">Identifier / Serial</th>
+                                  <th className="p-2">
+                                    {bulkAssetType === 'SIM' ? 'Phone Number' :
+                                     bulkAssetType === 'SD_CARD' ? 'Capacity' :
+                                     bulkAssetType === 'TRACKER' ? 'Firmware' :
+                                     bulkAssetType === 'PANIC_BUTTON' ? 'RF Freq' : 'Meta 1'}
+                                  </th>
+                                  <th className="p-2">
+                                    {bulkAssetType === 'SIM' ? 'Carrier' :
+                                     bulkAssetType === 'SD_CARD' ? 'Speed' :
+                                     bulkAssetType === 'TRACKER' ? 'HW Rev' :
+                                     bulkAssetType === 'PANIC_BUTTON' ? 'Color' : 'Meta 2'}
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-border font-mono">
+                                {getMappedPreviewRows().map((row, idx) => (
+                                  <tr key={idx} className="hover:bg-muted/10 bg-card">
+                                    <td className="p-2 px-3 text-foreground font-semibold">{row.identifier || <span className="text-muted-foreground italic">empty</span>}</td>
+                                    <td className="p-2 text-foreground">{row.meta1 || <span className="text-muted-foreground italic">-</span>}</td>
+                                    <td className="p-2 text-foreground">{row.meta2 || <span className="text-muted-foreground italic">-</span>}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex justify-end gap-2 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsCsvMapping(false);
+                              setCsvHeaders([]);
+                              setCsvRows([]);
+                            }}
+                            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium transition-colors border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4"
+                          >
+                            Cancel Mapping
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCommitCsvMapping}
+                            disabled={!csvMappings.identifier}
+                            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-semibold bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 disabled:opacity-50"
+                          >
+                            Commit Ingestion
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-1">
+                          <div>
+                            <label className="text-xs font-semibold text-muted-foreground block mb-1">Target Template Model</label>
+                            <Select 
+                              value={bulkSelectedModelId}
+                              onValueChange={(val) => {
+                                setBulkSelectedModelId(val);
+                                setBulkIngestList([]);
+                                setDuplicateCountAlert(0);
+                                setPatternCountAlert(0);
+                              }}
+                            >
+                              <SelectTrigger className="w-full text-sm h-9 bg-card">
+                                <SelectValue placeholder="Select a model..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {models.map(m => (
+                                  <SelectItem key={m.id} value={m.id}>{m.name} ({m.brand})</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="border border-border/80 rounded-lg p-4 bg-muted/10 flex flex-col justify-between space-y-4">
+                            <div className="text-center">
+                              <FileSpreadsheet className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                              <h4 className="text-xs font-semibold">CSV List Upload</h4>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">Drop a CSV file. Headers will be mapped dynamically.</p>
+                            </div>
+                            <label className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-semibold border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 cursor-pointer">
+                              Browse CSV File
+                              <input type="file" className="hidden" accept=".csv" onChange={handleIngestCSVUpload} />
+                            </label>
+                          </div>
+
+                          <div className="border border-border/80 rounded-lg p-4 bg-muted/10 space-y-3">
+                            <div className="flex items-center gap-1.5 text-primary">
+                              <Scan className="h-4 w-4 animate-pulse" />
+                              <h4 className="text-xs font-semibold">Rapid Physical Scanner</h4>
+                            </div>
+                            <input 
+                              ref={scanIngestInputRef}
+                              type="text"
+                              placeholder="Focus & scan barcode strap-on..."
+                              value={scanInputText}
+                              onChange={(e) => setScanInputText(e.target.value)}
+                              onKeyDown={handleIngestScanKeyDown}
+                              className="flex h-9 w-full rounded-md border border-primary bg-transparent px-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 tracking-mono font-medium"
+                              autoFocus
+                            />
+                            <p className="text-[10px] text-muted-foreground">Duplicates are automatically parsed out.</p>
+                          </div>
+                        </div>
+
+                        {/* Reactive Form Ingestion Table */}
+                        <div className="border border-border rounded-lg bg-card overflow-hidden">
+                          <div className="bg-muted/40 p-2.5 px-4 text-xs font-semibold text-muted-foreground flex justify-between items-center border-b border-border sticky top-0 z-10">
+                            <span>Prepared Ingestion Table ({bulkIngestList.length})</span>
+                            {bulkIngestList.length > 0 && (
+                              <button 
+                                onClick={() => { setBulkIngestList([]); setDuplicateCountAlert(0); setPatternCountAlert(0); }}
+                                className="text-[10px] text-destructive hover:underline font-semibold"
+                              >
+                                Clear List
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="overflow-x-auto">
+                            {bulkIngestList.length > 0 ? (
+                              <table className="w-full text-xs text-left">
+                                <thead className="bg-muted/30 border-b border-border text-[10px] font-semibold text-muted-foreground uppercase sticky top-0 z-10">
+                                  <tr className="bg-card">
+                                    <th className="p-2 px-4">Serial / ISN</th>
+
+                                    {/* Dynamic headers depending on asset type */}
+                                    {bulkAssetType === 'SIM' && (
+                                      <>
+                                        <th className="p-2">Phone Number (MSISDN)</th>
+                                        <th className="p-2">Carrier</th>
+                                      </>
+                                    )}
+                                    {bulkAssetType === 'TRACKER' && (
+                                      <>
+                                        <th className="p-2">Firmware</th>
+                                        <th className="p-2">HW Revision</th>
+                                      </>
+                                    )}
+                                    {bulkAssetType === 'SD_CARD' && (
+                                      <>
+                                        <th className="p-2">Capacity</th>
+                                        <th className="p-2">Speed Class</th>
+                                      </>
+                                    )}
+                                    {bulkAssetType === 'PANIC_BUTTON' && (
+                                      <>
+                                        <th className="p-2">RF Frequency</th>
+                                        <th className="p-2">Color</th>
+                                      </>
+                                    )}
+
+                                    <th className="p-2 text-right">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border font-mono">
+                                  {bulkIngestList.map((item, idx) => (
+                                    <tr key={idx} className="hover:bg-muted/30 transition-colors">
+                                      <td className="p-2 px-4 font-medium tracking-mono">{item.identifier}</td>
+
+                                      {bulkAssetType === 'SIM' && (
+                                        <>
+                                          <td className="p-1">
+                                            <input 
+                                              type="text" 
+                                              placeholder="Phone number" 
+                                              value={item.metadata.phoneNumber || ''} 
+                                              onChange={(e) => handleUpdateItemMeta(idx, 'phoneNumber', e.target.value)}
+                                              className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
+                                            />
+                                          </td>
+                                          <td className="p-1">
+                                            <input 
+                                              type="text" 
+                                              placeholder="Carrier" 
+                                              value={item.metadata.carrier || ''} 
+                                              onChange={(e) => handleUpdateItemMeta(idx, 'carrier', e.target.value)}
+                                              className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
+                                            />
+                                          </td>
+                                        </>
+                                      )}
+
+                                      {bulkAssetType === 'TRACKER' && (
+                                        <>
+                                          <td className="p-1">
+                                            <input 
+                                              type="text" 
+                                              placeholder="e.g. v1.2" 
+                                              value={item.metadata.firmware || ''} 
+                                              onChange={(e) => handleUpdateItemMeta(idx, 'firmware', e.target.value)}
+                                              className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
+                                            />
+                                          </td>
+                                          <td className="p-1">
+                                            <input 
+                                              type="text" 
+                                              placeholder="e.g. REV_A" 
+                                              value={item.metadata.hwRevision || ''} 
+                                              onChange={(e) => handleUpdateItemMeta(idx, 'hwRevision', e.target.value)}
+                                              className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
+                                            />
+                                          </td>
+                                        </>
+                                      )}
+
+                                      {bulkAssetType === 'SD_CARD' && (
+                                        <>
+                                          <td className="p-1">
+                                            <input 
+                                              type="text" 
+                                              placeholder="e.g. 64GB" 
+                                              value={item.metadata.capacity || ''} 
+                                              onChange={(e) => handleUpdateItemMeta(idx, 'capacity', e.target.value)}
+                                              className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
+                                            />
+                                          </td>
+                                          <td className="p-1">
+                                            <input 
+                                              type="text" 
+                                              placeholder="e.g. U3" 
+                                              value={item.metadata.speedClass || ''} 
+                                              onChange={(e) => handleUpdateItemMeta(idx, 'speedClass', e.target.value)}
+                                              className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
+                                            />
+                                          </td>
+                                        </>
+                                      )}
+
+                                      {bulkAssetType === 'PANIC_BUTTON' && (
+                                        <>
+                                          <td className="p-1">
+                                            <input 
+                                              type="text" 
+                                              placeholder="e.g. 433MHz" 
+                                              value={item.metadata.rfFrequency || ''} 
+                                              onChange={(e) => handleUpdateItemMeta(idx, 'rfFrequency', e.target.value)}
+                                              className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
+                                            />
+                                          </td>
+                                          <td className="p-1">
+                                            <input 
+                                              type="text" 
+                                              placeholder="e.g. Red" 
+                                              value={item.metadata.buttonColor || ''} 
+                                              onChange={(e) => handleUpdateItemMeta(idx, 'buttonColor', e.target.value)}
+                                              className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
+                                            />
+                                          </td>
+                                        </>
+                                      )}
+
+                                      <td className="p-2 text-right">
+                                        <button 
+                                          onClick={() => setBulkIngestList(bulkIngestList.filter((_, i) => i !== idx))} 
+                                          className="text-[10px] text-destructive hover:underline font-sans font-semibold"
+                                        >
+                                          Remove
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            ) : (
+                              <div className="text-center py-8 text-xs text-muted-foreground italic font-sans">
+                                No devices prepared yet. Scan barcodes or drop a CSV file to begin.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -1424,32 +1908,34 @@ export const DeviceInventory = () => {
               </div>
 
               {/* Fixed Footer */}
-              <div className="p-6 pt-4 border-t border-border flex gap-2 justify-end bg-card rounded-b-xl">
-                <button 
-                  type="button" 
-                  onClick={() => setActiveModal('none')}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4"
-                >
-                  Cancel
-                </button>
-                {bulkSubTab === 'ingest' ? (
+              {!isCsvMapping && (
+                <div className="p-6 pt-4 border-t border-border flex gap-2 justify-end bg-card rounded-b-xl">
                   <button 
-                    onClick={handleBulkIngestSubmit}
-                    disabled={bulkIngestList.length === 0}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 disabled:opacity-50"
+                    type="button" 
+                    onClick={() => setActiveModal('none')}
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4"
                   >
-                    Commit Ingestion ({bulkIngestList.length})
+                    Cancel
                   </button>
-                ) : (
-                  <button 
-                    onClick={handleLinkCommit}
-                    disabled={linkPairs.filter(p => p.status === 'valid').length === 0}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 disabled:opacity-50"
-                  >
-                    Commit Relationships ({linkPairs.filter(p => p.status === 'valid').length})
-                  </button>
-                )}
-              </div>
+                  {bulkSubTab === 'ingest' ? (
+                    <button 
+                      onClick={handleBulkIngestSubmit}
+                      disabled={bulkIngestList.length === 0}
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 disabled:opacity-50"
+                    >
+                      Commit Ingestion ({bulkIngestList.length})
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={handleLinkCommit}
+                      disabled={linkPairs.filter(p => p.status === 'valid').length === 0}
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 disabled:opacity-50"
+                    >
+                      Commit Relationships ({linkPairs.filter(p => p.status === 'valid').length})
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1874,7 +2360,7 @@ export const DeviceInventory = () => {
             onClick={() => setViewModalDevice(null)}
           >
             <div 
-              className="border border-border p-6 rounded-xl bg-card shadow-lg max-w-md w-full relative space-y-4 animate-in fade-in zoom-in-95 duration-150"
+              className="border border-border p-6 rounded-xl bg-card shadow-lg max-w-lg w-full relative space-y-4 animate-in fade-in zoom-in-95 duration-150"
               onClick={(e) => e.stopPropagation()}
             >
               <button 
@@ -1890,60 +2376,123 @@ export const DeviceInventory = () => {
                 <p className="text-xs text-muted-foreground mt-0.5">Comprehensive view of inventory entry details.</p>
               </div>
 
-              <div className="space-y-3.5 text-sm text-left">
-                <div className="grid grid-cols-3 py-1 border-b border-border/40">
-                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Identifier</span>
-                  <span className="col-span-2 font-mono font-semibold text-foreground tracking-mono">{viewModalDevice.identifier}</span>
-                </div>
-                <div className="grid grid-cols-3 py-1 border-b border-border/40">
-                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Asset Class</span>
-                  <span className="col-span-2">
-                    <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-secondary text-secondary-foreground border-border">
-                      {viewModalDevice.type}
-                    </span>
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 py-1 border-b border-border/40">
-                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Template Model</span>
-                  <span className="col-span-2 font-medium text-foreground">{viewModalDevice.modelName}</span>
-                </div>
-                <div className="grid grid-cols-3 py-1 border-b border-border/40">
-                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Current Status</span>
-                  <span className="col-span-2 font-semibold">
-                    <span className="inline-flex items-center gap-2">
-                      <span className={`h-2 w-2 rounded-full ${
-                        viewModalDevice.status === 'IN_STOCK' ? 'bg-emerald-500' :
-                        viewModalDevice.status === 'DISPATCHED' ? 'bg-blue-500' :
-                        viewModalDevice.status === 'TESTING' ? 'bg-amber-500' :
-                        'bg-destructive'
-                      }`} />
-                      <span className="text-xs font-semibold">{viewModalDevice.status.replace('_', ' ')}</span>
-                    </span>
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 py-1 border-b border-border/40">
-                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Paired Linkages</span>
-                  <span className="col-span-2 font-medium text-foreground">
-                    {viewModalDevice.linked > 0 ? `${viewModalDevice.linked} active links` : 'Stand-alone'}
-                  </span>
-                </div>
+              <div className="flex border-b border-border pb-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setDeviceDetailTab('info')}
+                  className={`text-sm font-semibold pb-1 border-b-2 transition-colors ${deviceDetailTab === 'info' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+                >
+                  Information
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeviceDetailTab('activity')}
+                  className={`text-sm font-semibold pb-1 border-b-2 transition-colors ${deviceDetailTab === 'activity' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+                >
+                  Activity History
+                </button>
+              </div>
 
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider block mb-1">Device Attributes</span>
-                  {viewModalDevice.metadata && Object.keys(viewModalDevice.metadata).length > 0 ? (
-                    <div className="bg-muted/40 border border-border/80 rounded-lg p-3 text-xs space-y-2">
-                      {Object.entries(viewModalDevice.metadata).map(([k, v]) => (
-                        <div key={k} className="flex justify-between py-0.5 border-b border-border/30 last:border-0">
-                          <span className="font-semibold text-muted-foreground capitalize">{k.replace(/([A-Z])/g, ' $1')}:</span>
-                          <span className="font-mono text-foreground font-semibold">{String(v)}</span>
-                        </div>
-                      ))}
+              {deviceDetailTab === 'info' ? (
+                <div className="space-y-3.5 text-sm text-left">
+                  <div className="grid grid-cols-3 py-1 border-b border-border/40">
+                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Identifier</span>
+                    <span className="col-span-2 font-mono font-semibold text-foreground tracking-mono">{viewModalDevice.identifier}</span>
+                  </div>
+                  <div className="grid grid-cols-3 py-1 border-b border-border/40">
+                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Asset Class</span>
+                    <span className="col-span-2">
+                      <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-secondary text-secondary-foreground border-border">
+                        {viewModalDevice.type}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 py-1 border-b border-border/40">
+                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Template Model</span>
+                    <span className="col-span-2 font-medium text-foreground">{viewModalDevice.modelName}</span>
+                  </div>
+                  <div className="grid grid-cols-3 py-1 border-b border-border/40">
+                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Current Status</span>
+                    <span className="col-span-2 font-semibold">
+                      <span className="inline-flex items-center gap-2">
+                        <span className={`h-2 w-2 rounded-full ${
+                          viewModalDevice.status === 'IN_STOCK' ? 'bg-emerald-500' :
+                          viewModalDevice.status === 'DISPATCHED' ? 'bg-blue-500' :
+                          viewModalDevice.status === 'TESTING' ? 'bg-amber-500' :
+                          'bg-destructive'
+                        }`} />
+                        <span className="text-xs font-semibold">{viewModalDevice.status.replace('_', ' ')}</span>
+                      </span>
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 py-1 border-b border-border/40">
+                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Paired Linkages</span>
+                    <span className="col-span-2 font-medium text-foreground">
+                      {viewModalDevice.linked > 0 ? `${viewModalDevice.linked} active links` : 'Stand-alone'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider block mb-1">Device Attributes</span>
+                    {viewModalDevice.metadata && Object.keys(viewModalDevice.metadata).length > 0 ? (
+                      <div className="bg-muted/40 border border-border/80 rounded-lg p-3 text-xs space-y-2">
+                        {Object.entries(viewModalDevice.metadata).map(([k, v]) => (
+                          <div key={k} className="flex justify-between py-0.5 border-b border-border/30 last:border-0">
+                            <span className="font-semibold text-muted-foreground capitalize">{k.replace(/([A-Z])/g, ' $1')}:</span>
+                            <span className="font-mono text-foreground font-semibold">{String(v)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">No custom attributes populated.</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="max-h-[350px] overflow-y-auto pr-2 py-2">
+                  {isAuditLogsLoading ? (
+                    <div className="space-y-3">
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                  ) : auditLogs.length === 0 ? (
+                    <div className="text-center py-8 text-xs text-muted-foreground italic">
+                      No activity logs found for this device.
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground italic">No custom attributes populated.</p>
+                    <div className="relative border-l border-border pl-6 ml-3 space-y-6 text-left">
+                      {auditLogs.map((log) => {
+                        let dotColor = 'bg-zinc-400 border-zinc-500';
+                        if (log.actionType === 'INGEST') dotColor = 'bg-emerald-500 border-emerald-600';
+                        else if (log.actionType === 'STATUS_CHANGE') dotColor = 'bg-blue-500 border-blue-600';
+                        else if (log.actionType === 'TELEMETRY_CHECK') dotColor = 'bg-emerald-500 border-emerald-600';
+                        else if (log.actionType === 'DELETE') dotColor = 'bg-red-500 border-red-600';
+                        else if (log.actionType === 'SWAP') dotColor = 'bg-amber-500 border-amber-600';
+                        else if (log.actionType === 'LINK') dotColor = 'bg-blue-500 border-blue-600';
+                        else if (log.actionType === 'UNLINK') dotColor = 'bg-zinc-500 border-zinc-600';
+
+                        return (
+                          <div key={log.id} className="relative">
+                            <span className={`absolute -left-[30px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-card ${dotColor} shadow`} />
+                            <div className="flex flex-col gap-1 text-left">
+                              <div className="flex items-center justify-between">
+                                <span className="font-mono text-[10px] font-bold uppercase bg-muted px-1.5 py-0.5 rounded text-muted-foreground border border-border">
+                                  {log.actionType}
+                                </span>
+                                <span className="font-mono text-[10px] text-muted-foreground">
+                                  {new Date(log.createdAt).toLocaleString()}
+                                </span>
+                              </div>
+                              <p className="text-xs text-foreground/90 font-sans">{log.details}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
-              </div>
+              )}
 
               <div className="flex justify-end pt-2 border-t border-border">
                 <button
@@ -1960,10 +2509,24 @@ export const DeviceInventory = () => {
 
         {/* DIALOG MODAL: Manual Single Link */}
         {linkModalDevice && (() => {
-          const activeLinksForThisDevice = relationships.filter(r => 
-            r.primaryDeviceId === linkModalDevice.id || 
-            r.linkedDeviceId === linkModalDevice.id
-          );
+          // Frontend cycle check helper
+          const isAncestor = (possibleAncestorId: string, currentDeviceId: string): boolean => {
+            const rel = relationships.find(r => r.linkedDeviceId === currentDeviceId);
+            let parentId = rel?.primaryDeviceId;
+            
+            if (!parentId) {
+              const staged = stagedLinks.find(s => s.childId === currentDeviceId);
+              parentId = staged?.primaryId;
+            }
+            
+            if (!parentId) return false;
+            if (parentId === possibleAncestorId) return true;
+            return isAncestor(possibleAncestorId, parentId);
+          };
+
+          const parentRel = relationships.find(r => r.linkedDeviceId === linkModalDevice.id);
+          const parentDev = parentRel ? devices.find(d => d.id === parentRel.primaryDeviceId) : null;
+          const stagedParent = stagedLinks.find(s => s.childId === linkModalDevice.id);
 
           return (
             <div 
@@ -1971,7 +2534,7 @@ export const DeviceInventory = () => {
               onClick={() => setLinkModalDevice(null)}
             >
               <div 
-                className="border border-border p-6 rounded-xl bg-card shadow-lg max-w-md w-full relative space-y-4 animate-in fade-in zoom-in-95 duration-150"
+                className="border border-border p-6 rounded-xl bg-card shadow-lg max-w-lg w-full max-h-[90vh] overflow-y-auto relative space-y-6 animate-in fade-in zoom-in-95 duration-150"
                 onClick={(e) => e.stopPropagation()}
               >
                 <button 
@@ -1993,169 +2556,214 @@ export const DeviceInventory = () => {
                   </div>
                 )}
 
-                <div className="space-y-4 text-left">
+                <div className="space-y-6 text-left">
                   <div className="text-xs border border-border p-3 rounded-lg bg-muted/20 space-y-1">
                     <div className="font-semibold text-foreground">Selected Device:</div>
                     <div className="font-mono text-foreground font-semibold">{linkModalDevice.identifier}</div>
                     <div className="text-muted-foreground">{linkModalDevice.modelName} ({linkModalDevice.type}) — Status: {linkModalDevice.status}</div>
                   </div>
 
-                  {/* Active Relationships list */}
-                  <div className="space-y-2">
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Current Links</h4>
-                    {activeLinksForThisDevice.length > 0 ? (
-                      <div className="border border-border rounded-lg bg-card overflow-hidden divide-y divide-border">
-                        {activeLinksForThisDevice.map((link) => {
-                          const isPrimary = linkModalDevice.id === link.primaryDeviceId;
-                          const otherId = isPrimary ? link.linkedDeviceId : link.primaryDeviceId;
-                          const otherDev = devices.find(d => d.id === otherId);
-                          
-                          if (!otherDev) return null;
-                          
-                          return (
-                            <div key={link.id} className="p-2.5 px-3 flex justify-between items-center text-xs">
-                              <div>
-                                <div className="font-semibold text-foreground font-mono">{otherDev.identifier}</div>
-                                <div className="text-muted-foreground text-[10px]">{otherDev.modelName} ({otherDev.type})</div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  const primaryISN = isPrimary ? linkModalDevice.identifier : otherDev.identifier;
-                                  const childISN = isPrimary ? otherDev.identifier : linkModalDevice.identifier;
-                                  try {
-                                    const res = await fetch('http://localhost:3002/api/device-links/unlink', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({
-                                        links: [{ primaryISN, childISN }]
-                                      })
-                                    });
-                                    const data = await res.json();
-                                    if (data.success) {
-                                      playSuccessBeep();
-                                      fetchRelationships();
-                                      fetchDevices();
-                                    } else {
-                                      setLinkModalError(data.errors?.[0] || 'Unlinking failed.');
-                                      playErrorBuzz();
-                                    }
-                                  } catch (e) {
-                                    setLinkModalError('Network error during unlinking.');
-                                    playErrorBuzz();
-                                  }
-                                }}
-                                className="text-xs text-destructive hover:bg-destructive/10 p-1.5 rounded transition-colors"
-                                title="Unlink relationship"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          );
-                        })}
+                  {/* Section 1: Parent Device Connection */}
+                  <div className="space-y-2 border-t border-border pt-4">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Parent Connection</h4>
+                    
+                    {parentDev ? (
+                      <div className="border border-border rounded-lg bg-card overflow-hidden p-2.5 px-3 flex justify-between items-center text-xs">
+                        <div>
+                          <div className="font-semibold text-foreground font-mono">{parentDev.identifier}</div>
+                          <div className="text-muted-foreground text-[10px]">{parentDev.modelName} ({parentDev.type})</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const res = await fetch('http://localhost:3002/api/device-links/unlink', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  links: [{ primaryISN: parentDev.identifier, childISN: linkModalDevice.identifier }]
+                                })
+                              });
+                              const data = await res.json();
+                              if (data.success) {
+                                playSuccessBeep();
+                                fetchRelationships();
+                                fetchDevices();
+                              } else {
+                                setLinkModalError(data.errors?.[0] || 'Unlinking parent failed.');
+                                playErrorBuzz();
+                              }
+                            } catch (e) {
+                              setLinkModalError('Network error during unlinking.');
+                              playErrorBuzz();
+                            }
+                          }}
+                          className="text-xs text-destructive hover:bg-destructive/10 p-1.5 rounded transition-colors"
+                          title="Unlink from parent"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ) : stagedParent ? (
+                      <div className="border border-primary/25 rounded-lg bg-primary/5 p-2.5 px-3 flex justify-between items-center text-xs">
+                        <div>
+                          <div className="font-semibold text-foreground font-mono flex items-center gap-1.5">
+                            <span className="text-primary text-[10px] font-semibold bg-primary/10 px-1.5 py-0.5 rounded">Staged Parent</span>
+                            {stagedParent.primaryISN}
+                          </div>
+                          <div className="text-muted-foreground text-[10px]">{stagedParent.primaryModelName}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStagedLinks(stagedLinks.filter(s => s.childId !== linkModalDevice.id));
+                          }}
+                          className="text-xs text-muted-foreground hover:text-destructive p-1 rounded transition-colors"
+                          title="Remove staged parent link"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     ) : (
-                      <div className="text-xs text-muted-foreground italic p-2 border border-dashed border-border rounded-lg text-center">
-                        No active links established.
-                      </div>
+                      // Display search input to link parent
+                      (() => {
+                        const parentCandidates = devices.filter(d => {
+                          if (d.status !== 'IN_STOCK') return false;
+                          if (d.id === linkModalDevice.id) return false;
+                          const m = models.find(x => x.id === d.modelId);
+                          if (!m) return false;
+                          
+                          // Model allowedChildren must contain linkModalDevice.type
+                          let allowed: string[] = [];
+                          if (m.allowedChildren) {
+                            try {
+                              allowed = Array.isArray(m.allowedChildren)
+                                ? m.allowedChildren
+                                : JSON.parse(m.allowedChildren as string);
+                            } catch (e) {
+                              console.error(e);
+                            }
+                          }
+                          if (!allowed.includes(linkModalDevice.type)) return false;
+
+                          // Cycle check: current device is not ancestor of possible parent
+                          if (isAncestor(linkModalDevice.id, d.id)) return false;
+
+                          return true;
+                        });
+
+                        if (parentCandidates.length === 0) {
+                          return (
+                            <div className="text-xs text-muted-foreground italic p-2.5 border border-dashed border-border rounded-lg text-center bg-muted/5">
+                              No compatible in-stock parent hardware available.
+                            </div>
+                          );
+                        }
+
+                        const filteredParentCandidates = parentCandidates.filter(d => 
+                          linkParentSearch.trim() === '' ||
+                          d.identifier.toLowerCase().includes(linkParentSearch.toLowerCase()) ||
+                          d.modelName.toLowerCase().includes(linkParentSearch.toLowerCase()) ||
+                          d.type.toLowerCase().includes(linkParentSearch.toLowerCase())
+                        );
+
+                        return (
+                          <div className="space-y-2">
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
+                                <Search className="h-3.5 w-3.5" />
+                              </div>
+                              <input
+                                type="text"
+                                placeholder="Search compatible parent devices..."
+                                value={linkParentSearch}
+                                onChange={(e) => setLinkParentSearch(e.target.value)}
+                                className="flex h-9 w-full rounded-md border border-input bg-card pl-9 pr-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-sans"
+                              />
+                            </div>
+
+                            <div className="border border-border rounded-lg max-h-32 overflow-y-auto bg-card divide-y divide-border">
+                              {filteredParentCandidates.length > 0 ? (
+                                filteredParentCandidates.map(d => (
+                                  <button
+                                    key={d.id}
+                                    type="button"
+                                    onClick={() => {
+                                      // Staged link: parent is primary (d.id), child is linkModalDevice.id
+                                      const exists = stagedLinks.some(s => s.primaryId === d.id && s.childId === linkModalDevice.id);
+                                      if (exists) {
+                                        setLinkModalError('This parent link is already staged.');
+                                        return;
+                                      }
+
+                                      setStagedLinks([...stagedLinks, {
+                                        primaryISN: d.identifier,
+                                        childISN: linkModalDevice.identifier,
+                                        primaryId: d.id,
+                                        childId: linkModalDevice.id,
+                                        primaryModelName: d.modelName,
+                                        childModelName: linkModalDevice.modelName,
+                                        childType: linkModalDevice.type
+                                      }]);
+                                      setLinkParentSearch('');
+                                      setLinkModalError('');
+                                      playSuccessBeep();
+                                    }}
+                                    className="w-full text-left px-3 py-2 hover:bg-muted/80 transition-colors font-medium flex flex-col gap-0.5"
+                                  >
+                                    <div className="font-semibold text-foreground font-mono text-xs">{d.identifier}</div>
+                                    <div className="text-muted-foreground text-[10px]">{d.modelName} ({d.type})</div>
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="p-3 text-center text-muted-foreground italic text-xs">
+                                  No matching compatible parent devices.
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()
                     )}
                   </div>
 
-                  {/* Staged Links (Pending Commit) */}
-                  {stagedLinks.length > 0 && (
-                    <div className="space-y-2 animate-in fade-in duration-150">
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Staged Links (Pending Commit)</h4>
-                      <div className="border border-primary/20 rounded-lg bg-primary/5 overflow-hidden divide-y divide-primary/10">
-                        {stagedLinks.map((staged, idx) => (
-                          <div key={idx} className="p-2.5 px-3 flex justify-between items-center text-xs">
-                            <div>
-                              <div className="font-semibold text-foreground font-mono flex items-center gap-1.5">
-                                <span className="text-muted-foreground text-[10px]">Link:</span> 
-                                {staged.primaryISN} ↔ {staged.childISN}
-                              </div>
-                              <div className="text-muted-foreground text-[10px]">
-                                {staged.childModelName} ({staged.childType})
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setStagedLinks(stagedLinks.filter((_, i) => i !== idx));
-                              }}
-                              className="text-xs text-muted-foreground hover:text-destructive p-1 rounded transition-colors"
-                              title="Remove staged link"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Create New Link Section */}
+                  {/* Section 2: Child Components (Accessories) */}
                   {(() => {
-                    // If it is a child device (not a tracker) and is already linked OR has a staged link, prevent another link
-                    if (linkModalDevice.type !== 'TRACKER' && (activeLinksForThisDevice.length > 0 || stagedLinks.length > 0)) {
-                      return (
-                        <div className="text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg border border-border italic text-center">
-                          {stagedLinks.length > 0 
-                            ? "A pending link is already staged for this component." 
-                            : "This component is already linked. Unlink it above to re-pair it."}
-                        </div>
-                      );
-                    }
-
-                    let allowedTypes: string[] = [];
-                    if (linkModalDevice.type === 'TRACKER') {
-                      const primaryModel = models.find(m => m.id === linkModalDevice.modelId);
-                      if (primaryModel?.allowedChildren) {
-                        try {
-                          allowedTypes = Array.isArray(primaryModel.allowedChildren)
-                            ? primaryModel.allowedChildren
-                            : JSON.parse(primaryModel.allowedChildren as string);
-                        } catch (e) {
-                          console.error(e);
-                        }
+                    const model = models.find(m => m.id === linkModalDevice.modelId);
+                    let allowedChildTypes: string[] = [];
+                    if (model?.allowedChildren) {
+                      try {
+                        allowedChildTypes = Array.isArray(model.allowedChildren)
+                          ? model.allowedChildren
+                          : JSON.parse(model.allowedChildren as string);
+                      } catch (e) {
+                        console.error(e);
                       }
-                      if (allowedTypes.length === 0) {
-                        allowedTypes = ['SIM', 'SD_CARD', 'PERIPHERAL', 'PANIC_BUTTON'];
-                      }
-                    } else {
-                      allowedTypes = ['TRACKER'];
                     }
 
-                    // Find types already linked to filter out from option list (for trackers)
-                    const linkedTypes = activeLinksForThisDevice.map(link => {
-                      const isPrimary = linkModalDevice.id === link.primaryDeviceId;
-                      const otherId = isPrimary ? link.linkedDeviceId : link.primaryDeviceId;
-                      const otherDev = devices.find(d => d.id === otherId);
-                      return otherDev ? otherDev.type : '';
-                    }).filter(Boolean);
+                    if (allowedChildTypes.length === 0) return null;
 
-                    const stagedChildIds = stagedLinks.map(s => s.childId);
-                    const stagedPrimaryIds = stagedLinks.map(s => s.primaryId);
+                    const childRels = relationships.filter(r => r.primaryDeviceId === linkModalDevice.id);
+                    const stagedChildren = stagedLinks.filter(s => s.primaryId === linkModalDevice.id);
 
-                    const linkableDevices = devices.filter(d => 
-                      d.status === 'IN_STOCK' && 
-                      d.id !== linkModalDevice.id &&
-                      allowedTypes.includes(d.type) &&
-                      (linkModalDevice.type === 'TRACKER' 
-                        ? (!linkedTypes.includes(d.type) && !stagedChildIds.includes(d.id))
-                        : (!stagedPrimaryIds.includes(d.id))
-                      )
-                    );
+                    // A child candidate: IN_STOCK, compatible type, no parent in DB or staged, no cycle
+                    const childCandidates = devices.filter(d => {
+                      if (d.status !== 'IN_STOCK') return false;
+                      if (d.id === linkModalDevice.id) return false;
+                      if (!allowedChildTypes.includes(d.type)) return false;
 
-                    if (linkableDevices.length === 0) {
-                      return (
-                        <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/5 p-3 rounded border border-amber-500/10 font-medium">
-                          No compatible in-stock devices available to link.<br />
-                          Allowed: {allowedTypes.filter(t => !linkedTypes.includes(t)).join(', ') || 'None (All slots filled)'}
-                        </div>
-                      );
-                    }
+                      // Single parent constraint: must not have an active parent
+                      const hasParentDb = relationships.some(r => r.linkedDeviceId === d.id);
+                      const hasParentStaged = stagedLinks.some(s => s.childId === d.id);
+                      if (hasParentDb || hasParentStaged) return false;
 
-                    const filteredCandidates = linkableDevices.filter(d => 
+                      // Cycle check: candidate child must not be ancestor of current device
+                      if (isAncestor(d.id, linkModalDevice.id)) return false;
+
+                      return true;
+                    });
+
+                    const filteredChildCandidates = childCandidates.filter(d => 
                       linkSearch.trim() === '' ||
                       d.identifier.toLowerCase().includes(linkSearch.toLowerCase()) ||
                       d.modelName.toLowerCase().includes(linkSearch.toLowerCase()) ||
@@ -2163,67 +2771,139 @@ export const DeviceInventory = () => {
                     );
 
                     return (
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
-                          Search & Stage Compatible Device
-                        </label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
-                            <Search className="h-3.5 w-3.5" />
+                      <div className="space-y-2 border-t border-border pt-4">
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Child Components (Accessories)</h4>
+                        
+                        {/* Current Active & Staged Children */}
+                        {(childRels.length > 0 || stagedChildren.length > 0) ? (
+                          <div className="border border-border rounded-lg bg-card overflow-hidden divide-y divide-border mb-3">
+                            {childRels.map(rel => {
+                              const childDev = devices.find(d => d.id === rel.linkedDeviceId);
+                              if (!childDev) return null;
+                              return (
+                                <div key={rel.id} className="p-2.5 px-3 flex justify-between items-center text-xs">
+                                  <div>
+                                    <div className="font-semibold text-foreground font-mono">{childDev.identifier}</div>
+                                    <div className="text-muted-foreground text-[10px]">{childDev.modelName} ({childDev.type})</div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      try {
+                                        const res = await fetch('http://localhost:3002/api/device-links/unlink', {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            links: [{ primaryISN: linkModalDevice.identifier, childISN: childDev.identifier }]
+                                          })
+                                        });
+                                        const data = await res.json();
+                                        if (data.success) {
+                                          playSuccessBeep();
+                                          fetchRelationships();
+                                          fetchDevices();
+                                        } else {
+                                          setLinkModalError(data.errors?.[0] || 'Unlinking child failed.');
+                                          playErrorBuzz();
+                                        }
+                                      } catch (e) {
+                                        setLinkModalError('Network error during unlinking.');
+                                        playErrorBuzz();
+                                      }
+                                    }}
+                                    className="text-xs text-destructive hover:bg-destructive/10 p-1.5 rounded transition-colors"
+                                    title="Unlink child component"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                            
+                            {stagedChildren.map((staged, idx) => (
+                              <div key={`staged-${idx}`} className="p-2.5 px-3 bg-primary/5 flex justify-between items-center text-xs">
+                                <div>
+                                  <div className="font-semibold text-foreground font-mono flex items-center gap-1.5">
+                                    <span className="text-primary text-[10px] font-semibold bg-primary/10 px-1.5 py-0.5 rounded">Staged Child</span>
+                                    {staged.childISN}
+                                  </div>
+                                  <div className="text-muted-foreground text-[10px]">{staged.childModelName} ({staged.childType})</div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setStagedLinks(stagedLinks.filter(s => s.childId !== staged.childId));
+                                  }}
+                                  className="text-xs text-muted-foreground hover:text-destructive p-1 rounded transition-colors"
+                                  title="Remove staged child link"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            ))}
                           </div>
-                          <input
-                            type="text"
-                            placeholder="Type to filter compatible devices..."
-                            value={linkSearch}
-                            onChange={(e) => setLinkSearch(e.target.value)}
-                            className="flex h-9 w-full rounded-md border border-input bg-card pl-9 pr-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-sans"
-                          />
-                        </div>
+                        ) : null}
 
-                        {/* List of candidates */}
-                        <div className="border border-border rounded-lg max-h-40 overflow-y-auto bg-card divide-y divide-border">
-                          {filteredCandidates.length > 0 ? (
-                            filteredCandidates.map(d => (
-                              <button
-                                key={d.id}
-                                type="button"
-                                onClick={() => {
-                                  const isPrimary = linkModalDevice.type === 'TRACKER';
-                                  const primaryDevice = isPrimary ? linkModalDevice : d;
-                                  const childDevice = isPrimary ? d : linkModalDevice;
-
-                                  // Prevent duplicates in staged list
-                                  const exists = stagedLinks.some(s => s.primaryISN === primaryDevice.identifier && s.childISN === childDevice.identifier);
-                                  if (exists) {
-                                    setLinkModalError('This link is already staged.');
-                                    return;
-                                  }
-
-                                  setStagedLinks([...stagedLinks, {
-                                    primaryISN: primaryDevice.identifier,
-                                    childISN: childDevice.identifier,
-                                    primaryId: primaryDevice.id,
-                                    childId: childDevice.id,
-                                    primaryModelName: primaryDevice.modelName,
-                                    childModelName: childDevice.modelName,
-                                    childType: childDevice.type
-                                  }]);
-                                  setLinkSearch('');
-                                  setLinkModalError('');
-                                  playSuccessBeep();
-                                }}
-                                className="w-full text-left px-3 py-2 hover:bg-muted/80 transition-colors font-medium flex flex-col gap-0.5"
-                              >
-                                <div className="font-semibold text-foreground font-mono text-xs">{d.identifier}</div>
-                                <div className="text-muted-foreground text-[10px]">{d.modelName} ({d.type})</div>
-                              </button>
-                            ))
-                          ) : (
-                            <div className="p-3 text-center text-muted-foreground italic text-xs">
-                              No matching compatible devices found.
+                        {/* Search Input for Child Candidates */}
+                        {childCandidates.length > 0 ? (
+                          <div className="space-y-2">
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
+                                <Search className="h-3.5 w-3.5" />
+                              </div>
+                              <input
+                                type="text"
+                                placeholder="Search compatible child components..."
+                                value={linkSearch}
+                                onChange={(e) => setLinkSearch(e.target.value)}
+                                className="flex h-9 w-full rounded-md border border-input bg-card pl-9 pr-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-sans"
+                              />
                             </div>
-                          )}
-                        </div>
+
+                            <div className="border border-border rounded-lg max-h-32 overflow-y-auto bg-card divide-y divide-border">
+                              {filteredChildCandidates.length > 0 ? (
+                                filteredChildCandidates.map(d => (
+                                  <button
+                                    key={d.id}
+                                    type="button"
+                                    onClick={() => {
+                                      const exists = stagedLinks.some(s => s.primaryId === linkModalDevice.id && s.childId === d.id);
+                                      if (exists) {
+                                        setLinkModalError('This child link is already staged.');
+                                        return;
+                                      }
+
+                                      setStagedLinks([...stagedLinks, {
+                                        primaryISN: linkModalDevice.identifier,
+                                        childISN: d.identifier,
+                                        primaryId: linkModalDevice.id,
+                                        childId: d.id,
+                                        primaryModelName: linkModalDevice.modelName,
+                                        childModelName: d.modelName,
+                                        childType: d.type
+                                      }]);
+                                      setLinkSearch('');
+                                      setLinkModalError('');
+                                      playSuccessBeep();
+                                    }}
+                                    className="w-full text-left px-3 py-2 hover:bg-muted/80 transition-colors font-medium flex flex-col gap-0.5"
+                                  >
+                                    <div className="font-semibold text-foreground font-mono text-xs">{d.identifier}</div>
+                                    <div className="text-muted-foreground text-[10px]">{d.modelName} ({d.type})</div>
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="p-3 text-center text-muted-foreground italic text-xs">
+                                  No matching compatible child components.
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-muted-foreground italic p-2.5 border border-dashed border-border rounded-lg text-center bg-muted/5">
+                            No compatible in-stock child components available.
+                          </div>
+                        )}
                       </div>
                     );
                   })()}

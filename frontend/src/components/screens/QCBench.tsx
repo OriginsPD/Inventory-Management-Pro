@@ -9,7 +9,8 @@ import {
   Info,
   Save,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  Activity
 } from 'lucide-react';
 import { AppShell } from '../layout/AppShell';
 import { Skeleton } from '../ui/skeleton';
@@ -18,6 +19,50 @@ import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { DEFAULT_QC_CHECKS, QCCheckStatus } from '@ims-pro/shared';
 import type { QCCheckItem } from '@ims-pro/shared';
+
+// Browser HTML5 synthesised beep/buzz generators
+const playAudioTone = (frequency: number, duration: number, type: 'sine' | 'square' | 'sawtooth' | 'triangle' = 'sine') => {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = type;
+    osc.frequency.value = frequency;
+    
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch (e) {
+    console.warn("AudioContext failed to play beep", e);
+  }
+};
+
+const playSuccessBeep = () => {
+  playAudioTone(850, 0.08, 'sine');
+  setTimeout(() => playAudioTone(1250, 0.1, 'sine'), 70);
+  if (window.navigator && window.navigator.vibrate) {
+    window.navigator.vibrate([50, 30, 50]);
+  }
+};
+
+const playErrorBuzz = () => {
+  playAudioTone(170, 0.25, 'triangle');
+  if (window.navigator && window.navigator.vibrate) {
+    window.navigator.vibrate(200);
+  }
+};
+
+const playChirp = () => {
+  playAudioTone(950, 0.05, 'sine');
+};
 
 interface Device {
   id: string;
@@ -38,6 +83,10 @@ export const QCBench = () => {
 
   // Checklist State
   const [results, setResults] = useState<Record<string, { status: QCCheckStatus; notes: string }>>({});
+
+  // Telemetry Diagnostics State
+  const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false);
+  const [diagnosticsResult, setDiagnosticsResult] = useState<any>(null);
 
   useEffect(() => {
     fetchDevices();
@@ -68,6 +117,8 @@ export const QCBench = () => {
 
   const handleSelectDevice = (device: Device) => {
     setSelectedDevice(device);
+    setDiagnosticsResult(null);
+    setIsRunningDiagnostics(false);
     // Initialize results
     const initialResults: Record<string, { status: QCCheckStatus; notes: string }> = {};
     DEFAULT_QC_CHECKS.forEach((check) => {
@@ -77,6 +128,7 @@ export const QCBench = () => {
   };
 
   const handleUpdateStatus = (checkId: string, status: QCCheckStatus) => {
+    playChirp();
     setResults(prev => ({
       ...prev,
       [checkId]: { ...prev[checkId], status }
@@ -94,6 +146,41 @@ export const QCBench = () => {
     return Object.values(results).every(r => r.status !== 'UNTESTED');
   }, [results]);
 
+  const runLiveDiagnostics = async () => {
+    if (!selectedDevice) return;
+    setIsRunningDiagnostics(true);
+    setDiagnosticsResult(null);
+    playChirp();
+    try {
+      const res = await fetch(`http://localhost:3002/api/devices/${selectedDevice.id}/telemetry-check`);
+      const data = await res.json();
+      if (data.success && data.telemetry) {
+        const tel = data.telemetry;
+        setDiagnosticsResult(tel);
+        playSuccessBeep();
+        
+        // Auto-fill physical/power/battery/sim/gps depending on telemetry
+        const cellStatus = tel.status === 'PASSED' || (tel.signalDbm > -105 && tel.gpsSatellites >= 4) ? 'PASSED' : 'FAILED';
+        const powerStatus = tel.status === 'PASSED' || tel.voltage >= 3.6 ? 'PASSED' : 'FAILED';
+
+        setResults(prev => ({
+          ...prev,
+          power: { status: powerStatus, notes: `Auto-verified via Telemetry (Voltage: ${tel.voltage}V)` },
+          battery: { status: powerStatus, notes: `Auto-verified via Telemetry (Voltage: ${tel.voltage}V)` },
+          sim: { status: cellStatus, notes: `Auto-verified via Telemetry (${tel.network}, ${tel.signalDbm} dBm)` },
+          gps: { status: cellStatus, notes: `Auto-verified via Telemetry (${tel.gpsSatellites} satellites)` }
+        }));
+      } else {
+        playErrorBuzz();
+      }
+    } catch (e) {
+      console.error(e);
+      playErrorBuzz();
+    } finally {
+      setIsRunningDiagnostics(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!selectedDevice || !isComplete) return;
 
@@ -107,6 +194,12 @@ export const QCBench = () => {
 
       const hasCriticalFailure = items.some(item => item.critical && item.status === 'FAILED');
       const overallStatus = hasCriticalFailure ? 'FAILED' : 'PASSED';
+
+      if (overallStatus === 'PASSED') {
+        playSuccessBeep();
+      } else {
+        playErrorBuzz();
+      }
 
       const updatedMetadata = {
         ...(selectedDevice.metadata || {}),
@@ -135,6 +228,7 @@ export const QCBench = () => {
       setSelectedDevice(null);
     } catch (e) {
       console.error('Failed to submit QC report', e);
+      playErrorBuzz();
     } finally {
       setIsSubmitting(false);
     }
@@ -171,6 +265,66 @@ export const QCBench = () => {
                 Current: {selectedDevice.status}
               </div>
             </div>
+          </div>
+
+          {/* Automated Telemetry Diagnostics Bench */}
+          <div className="border border-border rounded-xl bg-card overflow-hidden shadow-sm p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-primary" />
+                  Automated Telemetry Diagnostics Bench
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Query active IoT cellular gateways, voltages, and GPS locks to auto-fill checklist fields.
+                </p>
+              </div>
+              <Button
+                onClick={runLiveDiagnostics}
+                disabled={isRunningDiagnostics}
+                variant="outline"
+                className="h-9 px-4 text-xs font-semibold shrink-0 gap-1.5"
+              >
+                {isRunningDiagnostics ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Querying Gateway...
+                  </>
+                ) : (
+                  <>
+                    <Activity className="h-3.5 w-3.5" />
+                    Run Diagnostics
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {diagnosticsResult && (
+              <div className="border border-border/80 rounded-lg bg-muted/10 p-3.5 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                <div className="space-y-1">
+                  <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Diagnostics Status</span>
+                  <span className={`inline-flex items-center gap-1 font-semibold text-[10px] uppercase px-1.5 py-0.5 rounded border ${
+                    diagnosticsResult.status === 'PASSED' 
+                      ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' 
+                      : 'bg-red-500/10 text-red-600 border-red-500/20'
+                  }`}>
+                    {diagnosticsResult.status}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Cellular Network</span>
+                  <span className="font-mono text-foreground font-semibold">{diagnosticsResult.network}</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Signal Strength</span>
+                  <span className="font-mono text-foreground font-semibold">{diagnosticsResult.signalDbm} dBm</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Calibration Voltage</span>
+                  <span className="font-mono text-foreground font-semibold">{diagnosticsResult.voltage}V</span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="border border-border rounded-xl bg-card overflow-hidden shadow-sm">
