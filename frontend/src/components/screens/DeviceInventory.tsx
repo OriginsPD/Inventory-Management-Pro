@@ -25,6 +25,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Skeleton } from '../ui/skeleton';
 import { Input } from '../ui/input';
+import { ScrollArea } from '../ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
 import {
@@ -1379,7 +1380,8 @@ export const DeviceInventory = () => {
               </div>
 
               {/* Scrollable Content Area */}
-              <div className="flex-1 overflow-y-auto p-6 pt-4 space-y-6">
+              <ScrollArea className="flex-1 p-6 pt-4">
+                <div className="space-y-6">
                 {/* TAB CONTENT: Bulk Ingestion */}
                 {bulkSubTab === 'ingest' && (
                   <div className="space-y-4">
@@ -1905,7 +1907,8 @@ export const DeviceInventory = () => {
                     </div>
                   </div>
                 )}
-              </div>
+                </div>
+              </ScrollArea>
 
               {/* Fixed Footer */}
               {!isCsvMapping && (
@@ -2449,7 +2452,7 @@ export const DeviceInventory = () => {
                   </div>
                 </div>
               ) : (
-                <div className="max-h-[350px] overflow-y-auto pr-2 py-2">
+                <ScrollArea className="max-h-[350px] pr-2 py-2">
                   {isAuditLogsLoading ? (
                     <div className="space-y-3">
                       <Skeleton className="h-12 w-full" />
@@ -2491,7 +2494,7 @@ export const DeviceInventory = () => {
                       })}
                     </div>
                   )}
-                </div>
+                </ScrollArea>
               )}
 
               <div className="flex justify-end pt-2 border-t border-border">
@@ -2682,7 +2685,8 @@ export const DeviceInventory = () => {
                               />
                             </div>
 
-                            <div className="border border-border rounded-lg max-h-32 overflow-y-auto bg-card divide-y divide-border">
+                            <ScrollArea className="border border-border rounded-lg max-h-32 bg-card">
+                              <div className="divide-y divide-border">
                               {filteredParentCandidates.length > 0 ? (
                                 filteredParentCandidates.map(d => (
                                   <button
@@ -2720,7 +2724,8 @@ export const DeviceInventory = () => {
                                   No matching compatible parent devices.
                                 </div>
                               )}
-                            </div>
+                              </div>
+                            </ScrollArea>
                           </div>
                         );
                       })()
@@ -2860,7 +2865,8 @@ export const DeviceInventory = () => {
                               />
                             </div>
 
-                            <div className="border border-border rounded-lg max-h-32 overflow-y-auto bg-card divide-y divide-border">
+                            <ScrollArea className="border border-border rounded-lg max-h-32 bg-card">
+                              <div className="divide-y divide-border">
                               {filteredChildCandidates.length > 0 ? (
                                 filteredChildCandidates.map(d => (
                                   <button
@@ -2897,7 +2903,8 @@ export const DeviceInventory = () => {
                                   No matching compatible child components.
                                 </div>
                               )}
-                            </div>
+                              </div>
+                            </ScrollArea>
                           </div>
                         ) : (
                           <div className="text-xs text-muted-foreground italic p-2.5 border border-dashed border-border rounded-lg text-center bg-muted/5">

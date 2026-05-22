@@ -17,6 +17,7 @@ import {
 import { AppShell } from '../layout/AppShell';
 import { Skeleton } from '../ui/skeleton';
 import { Checkbox } from '../ui/checkbox';
+import { ScrollArea } from '../ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -529,48 +530,50 @@ export const CustomerDispatch = () => {
                   No hardware units staged for dispatch.<br />Click "Stage Devices" to select from inventory.
                 </div>
               ) : (
-                <div className="space-y-2 max-h-80 overflow-y-auto pr-1 scrollbar-custom">
-                  {stagedDevices.map(d => {
-                    const childLinks = relationships
-                      .filter(r => r.primaryDeviceId === d.id)
-                      .map(r => devices.find(dev => dev.id === r.linkedDeviceId))
-                      .filter(Boolean) as Device[];
+                <ScrollArea className="max-h-80 pr-1">
+                  <div className="space-y-2">
+                    {stagedDevices.map(d => {
+                      const childLinks = relationships
+                        .filter(r => r.primaryDeviceId === d.id)
+                        .map(r => devices.find(dev => dev.id === r.linkedDeviceId))
+                        .filter(Boolean) as Device[];
 
-                    const parentRel = relationships.find(r => r.linkedDeviceId === d.id);
-                    const parentDev = parentRel ? devices.find(dev => dev.id === parentRel.primaryDeviceId) : null;
+                      const parentRel = relationships.find(r => r.linkedDeviceId === d.id);
+                      const parentDev = parentRel ? devices.find(dev => dev.id === parentRel.primaryDeviceId) : null;
 
-                    return (
-                      <div key={d.id} className="text-xs border border-border bg-card rounded-md p-3 space-y-1.5 shadow-sm relative pr-10">
-                        <button
-                          type="button"
-                          onClick={() => onRemoveFromQueue(d.id)}
-                          className="absolute top-3 right-3 text-muted-foreground hover:text-foreground hover:bg-muted p-0.5 rounded transition-colors"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                        
-                        <div className="font-semibold text-foreground font-mono text-sm">{d.identifier}</div>
-                        <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{d.type} — {d.modelName}</div>
-                        
-                        {childLinks.length > 0 && (
-                          <div className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-500/5 p-2 rounded border border-amber-500/10 space-y-1 mt-1.5">
-                            <span className="font-bold uppercase tracking-wider text-[8px] block">Includes Linked Cascade:</span>
-                            {childLinks.map(c => (
-                              <div key={c.id} className="font-mono">• {c.identifier} ({c.type})</div>
-                            ))}
-                          </div>
-                        )}
+                      return (
+                        <div key={d.id} className="text-xs border border-border bg-card rounded-md p-3 space-y-1.5 shadow-sm relative pr-10">
+                          <button
+                            type="button"
+                            onClick={() => onRemoveFromQueue(d.id)}
+                            className="absolute top-3 right-3 text-muted-foreground hover:text-foreground hover:bg-muted p-0.5 rounded transition-colors"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                          
+                          <div className="font-semibold text-foreground font-mono text-sm">{d.identifier}</div>
+                          <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{d.type} — {d.modelName}</div>
+                          
+                          {childLinks.length > 0 && (
+                            <div className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-500/5 p-2 rounded border border-amber-500/10 space-y-1 mt-1.5">
+                              <span className="font-bold uppercase tracking-wider text-[8px] block">Includes Linked Cascade:</span>
+                              {childLinks.map(c => (
+                                <div key={c.id} className="font-mono">• {c.identifier} ({c.type})</div>
+                              ))}
+                            </div>
+                          )}
 
-                        {parentDev && (
-                          <div className="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-500/5 p-2 rounded border border-blue-500/10 space-y-1 mt-1.5">
-                            <span className="font-bold uppercase tracking-wider text-[8px] block">Tied Component Linkage:</span>
-                            <div className="font-mono">Tied to Parent: {parentDev.identifier} ({parentDev.modelName})</div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                          {parentDev && (
+                            <div className="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-500/5 p-2 rounded border border-blue-500/10 space-y-1 mt-1.5">
+                              <span className="font-bold uppercase tracking-wider text-[8px] block">Tied Component Linkage:</span>
+                              <div className="font-mono">Tied to Parent: {parentDev.identifier} ({parentDev.modelName})</div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
               )}
 
               {/* Summary cue badge */}
@@ -638,7 +641,7 @@ export const CustomerDispatch = () => {
 
             {/* Batches Table wrapper */}
             <div className="border border-border rounded-lg bg-card overflow-hidden">
-              <div className="scrollbar-custom overflow-x-auto w-full">
+              <ScrollArea className="w-full">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -730,7 +733,7 @@ export const CustomerDispatch = () => {
                     )}
                   </TableBody>
                 </Table>
-              </div>
+              </ScrollArea>
 
               {/* Pagination Controls */}
               {filteredBatches.length > 0 && (
@@ -845,7 +848,7 @@ export const CustomerDispatch = () => {
               </div>
 
               {/* Table List (Scrollable) */}
-              <div className="flex-1 overflow-y-auto p-4 scrollbar-custom">
+              <ScrollArea className="flex-1 p-4">
                 <div className="border border-border rounded-lg bg-card">
                   <Table>
                     <TableHeader className="bg-muted/40">
@@ -926,7 +929,7 @@ export const CustomerDispatch = () => {
                     </TableBody>
                   </Table>
                 </div>
-              </div>
+              </ScrollArea>
 
               {/* Footer */}
               <div className="p-4 border-t border-border flex justify-between items-center bg-muted/10">
@@ -986,21 +989,23 @@ export const CustomerDispatch = () => {
               </div>
 
               {/* Scrollable Tree */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-custom">
-                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
-                  <Layers className="h-3.5 w-3.5" />
-                  Hierarchical Component Breakdown
+              <ScrollArea className="flex-1 p-6">
+                <div className="space-y-4">
+                  <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
+                    <Layers className="h-3.5 w-3.5" />
+                    Hierarchical Component Breakdown
+                  </div>
+                  <div className="space-y-3 bg-muted/20 p-4 border border-border/80 rounded-lg">
+                    {buildHierarchy(viewBatch.devices).length > 0 ? (
+                      buildHierarchy(viewBatch.devices).map(rootNode => renderDeviceNode(rootNode))
+                    ) : (
+                      <div className="text-center py-6 text-xs text-muted-foreground">
+                        No device records found in this batch.
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-3 bg-muted/20 p-4 border border-border/80 rounded-lg">
-                  {buildHierarchy(viewBatch.devices).length > 0 ? (
-                    buildHierarchy(viewBatch.devices).map(rootNode => renderDeviceNode(rootNode))
-                  ) : (
-                    <div className="text-center py-6 text-xs text-muted-foreground">
-                      No device records found in this batch.
-                    </div>
-                  )}
-                </div>
-              </div>
+              </ScrollArea>
 
               {/* Footer */}
               <div className="p-4 border-t border-border flex justify-between items-center bg-muted/10">
