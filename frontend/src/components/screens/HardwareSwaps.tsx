@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { RefreshCw, Search, AlertTriangle, Calendar, User, CheckCircle2 } from 'lucide-react';
+import { RefreshCw, Search, AlertTriangle, Calendar, User, CheckCircle2, ArrowRight } from 'lucide-react';
 import { AppShell } from '../layout/AppShell';
 import { Skeleton } from '../ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
@@ -76,6 +76,7 @@ type SwapFormValues = z.infer<typeof swapSchema>;
 
 export const HardwareSwaps = () => {
   const [devices, setDevices] = useState<Device[]>([]);
+  const [relationships, setRelationships] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [swapSuccess, setSwapSuccess] = useState(false);
@@ -84,7 +85,7 @@ export const HardwareSwaps = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  const { handleSubmit, control, formState: { errors }, reset } = useForm<SwapFormValues>({
+  const { handleSubmit, control, formState: { errors }, reset, watch } = useForm<SwapFormValues>({
     resolver: zodResolver(swapSchema),
     defaultValues: {
       oldDeviceId: '',
@@ -102,6 +103,12 @@ export const HardwareSwaps = () => {
       const res = await fetch('http://localhost:3002/api/devices');
       const data = await res.json();
       setDevices(data);
+
+      const relRes = await fetch('http://localhost:3002/api/device-links');
+      if (relRes.ok) {
+        const relData = await relRes.json();
+        setRelationships(relData);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -109,67 +116,33 @@ export const HardwareSwaps = () => {
     }
   };
 
+  const oldDeviceId = watch("oldDeviceId");
+  const linkedRelationships = relationships.filter(r => r.primaryDeviceId === oldDeviceId);
+  const inheritedComponents = linkedRelationships
+    .map(r => devices.find(d => d.id === r.linkedDeviceId))
+    .filter(Boolean) as Device[];
+
   const onSubmit = async (values: SwapFormValues) => {
     try {
-      const oldDevice = devices.find(d => d.id === values.oldDeviceId);
-      const newDevice = devices.find(d => d.id === values.newDeviceId);
-      if (!oldDevice || !newDevice) {
-        playErrorBuzz();
-        return;
-      }
-
-      const customerName = oldDevice.metadata?.customerName || 'RMA Replacement Client';
-
-      // Step 1: Set old device status to DAMAGED
-      const updatedOldMetadata = {
-        ...(oldDevice.metadata || {}),
-        replacedBy: newDevice.identifier,
-        swappedAt: new Date().toISOString()
-      };
-      
-      const resOld = await fetch(`http://localhost:3002/api/devices/${oldDevice.id}`, {
-        method: 'PUT',
+      const res = await fetch('http://localhost:3002/api/devices/swap', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          identifier: oldDevice.identifier,
-          modelId: oldDevice.modelId,
-          status: 'DAMAGED',
-          metadata: updatedOldMetadata
+          oldDeviceId: values.oldDeviceId,
+          newDeviceId: values.newDeviceId
         })
       });
 
-      if (!resOld.ok) {
-        playErrorBuzz();
-        return;
-      }
+      const responseData = await res.json();
 
-      // Step 2: Set new device status to DISPATCHED and copy customer details
-      const updatedNewMetadata = {
-        ...(newDevice.metadata || {}),
-        customerName,
-        replacesUnit: oldDevice.identifier,
-        dispatchedAt: new Date().toISOString(),
-        swappedAt: new Date().toISOString()
-      };
-
-      const resNew = await fetch(`http://localhost:3002/api/devices/${newDevice.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          identifier: newDevice.identifier,
-          modelId: newDevice.modelId,
-          status: 'DISPATCHED',
-          metadata: updatedNewMetadata
-        })
-      });
-
-      if (resNew.ok) {
+      if (res.ok && !responseData.error) {
         setSwapSuccess(true);
         playSuccessBeep();
         reset();
         setTimeout(() => setSwapSuccess(false), 3000);
         fetchDevices();
       } else {
+        console.error("Swap endpoint returned error:", responseData?.error);
         playErrorBuzz();
       }
     } catch (e) {
@@ -257,6 +230,33 @@ export const HardwareSwaps = () => {
                       <p className="text-[10px] text-destructive mt-1 font-semibold">{errors.oldDeviceId.message}</p>
                     )}
                   </div>
+
+                  {inheritedComponents.length > 0 && (
+                    <div className="bg-muted/30 border border-border rounded-md p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                          Inherited Components ({inheritedComponents.length})
+                        </span>
+                        <ArrowRight className="h-3.5 w-3.5 text-primary animate-pulse" />
+                      </div>
+                      <div className="space-y-1.5">
+                        {inheritedComponents.map((comp) => (
+                          <div key={comp.id} className="flex items-center justify-between text-xs bg-background/50 border border-border/60 px-2 py-1 rounded">
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-foreground tracking-mono">{comp.identifier}</span>
+                              <span className="text-[9px] text-muted-foreground">{comp.modelName}</span>
+                            </div>
+                            <span className="text-[9px] font-mono uppercase bg-muted border border-border px-1.5 py-0.5 rounded text-muted-foreground">
+                              {comp.type}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[9px] text-muted-foreground italic leading-normal">
+                        These child devices will be automatically transferred and linked to the replacement tracker.
+                      </p>
+                    </div>
+                  )}
 
                   <div>
                     <label className="text-xs font-semibold text-muted-foreground block mb-1">

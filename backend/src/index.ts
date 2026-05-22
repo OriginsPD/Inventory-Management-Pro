@@ -304,16 +304,18 @@ async function cascadeDeviceStatusDb(
   deviceId: string,
   status: string,
   customerId: string | null,
-  metadata: any
+  metadata: any,
+  tx?: any
 ): Promise<void> {
   try {
-    const relationships = await db
+    const client = tx || db;
+    const relationships = await client
       .select()
       .from(schema.deviceRelationships)
       .where(eq(schema.deviceRelationships.primaryDeviceId, deviceId));
 
     for (const rel of relationships) {
-      const childRes = await db
+      const childRes = await client
         .select()
         .from(schema.devices)
         .where(eq(schema.devices.id, rel.linkedDeviceId))
@@ -332,7 +334,7 @@ async function cascadeDeviceStatusDb(
         if (!metadata.customerName) delete childMetadata.customerName;
         if (!metadata.dispatchedAt) delete childMetadata.dispatchedAt;
 
-        await db
+        await client
           .update(schema.devices)
           .set({
             status: status as any,
@@ -342,13 +344,14 @@ async function cascadeDeviceStatusDb(
           })
           .where(eq(schema.devices.id, rel.linkedDeviceId));
 
-        await cascadeDeviceStatusDb(rel.linkedDeviceId, status, customerId, metadata);
+        await cascadeDeviceStatusDb(rel.linkedDeviceId, status, customerId, metadata, client);
       }
     }
   } catch (e) {
     console.error("Error cascading status in DB:", e);
   }
 }
+
 
 function cascadeDeviceStatusMemory(
   deviceId: string,
@@ -1034,6 +1037,248 @@ const app = new Elysia()
         status: t.Optional(t.String()),
         customerId: t.Optional(t.Nullable(t.String())),
         metadata: t.Optional(t.Any())
+      })
+    })
+
+    .post("/swap", async ({ body }) => {
+      if (useDb) {
+        try {
+          return await db.transaction(async (tx) => {
+            const oldDeviceRes = await tx
+              .select()
+              .from(schema.devices)
+              .where(eq(schema.devices.id, body.oldDeviceId))
+              .limit(1);
+            const oldDevice = oldDeviceRes[0];
+
+            const newDeviceRes = await tx
+              .select()
+              .from(schema.devices)
+              .where(eq(schema.devices.id, body.newDeviceId))
+              .limit(1);
+            const newDevice = newDeviceRes[0];
+
+            if (!oldDevice) {
+              return { error: "Faulty device not found" };
+            }
+            if (!newDevice) {
+              return { error: "Replacement device not found" };
+            }
+            if (newDevice.status !== "IN_STOCK") {
+              return { error: `Replacement device is not in stock (current status: ${newDevice.status})` };
+            }
+
+            const customerId = oldDevice.customerId;
+            const customerName = (oldDevice.metadata as Record<string, any>)?.customerName || "RMA Replacement Client";
+
+            // 1. Get child relationships that need to be transferred
+            const childRels = await tx
+              .select()
+              .from(schema.deviceRelationships)
+              .where(eq(schema.deviceRelationships.primaryDeviceId, body.oldDeviceId));
+
+            // 2. Transfer relationships
+            if (childRels.length > 0) {
+              await tx
+                .update(schema.deviceRelationships)
+                .set({ primaryDeviceId: body.newDeviceId })
+                .where(eq(schema.deviceRelationships.primaryDeviceId, body.oldDeviceId));
+            }
+
+            // 3. Update old device: status DAMAGED, customerId null
+            const updatedOldMetadata = {
+              ...(oldDevice.metadata as Record<string, any> || {}),
+              replacedBy: newDevice.identifier,
+              swappedAt: new Date().toISOString()
+            };
+
+            await tx
+              .update(schema.devices)
+              .set({
+                status: "DAMAGED",
+                customerId: null,
+                metadata: updatedOldMetadata,
+                updatedAt: new Date()
+              })
+              .where(eq(schema.devices.id, body.oldDeviceId));
+
+            // 4. Update new device: status DISPATCHED, customerId oldDevice.customerId
+            const updatedNewMetadata = {
+              ...(newDevice.metadata as Record<string, any> || {}),
+              customerName,
+              replacesUnit: oldDevice.identifier,
+              dispatchedAt: new Date().toISOString(),
+              swappedAt: new Date().toISOString()
+            };
+
+            await tx
+              .update(schema.devices)
+              .set({
+                status: "DISPATCHED",
+                customerId: customerId,
+                metadata: updatedNewMetadata,
+                updatedAt: new Date()
+              })
+              .where(eq(schema.devices.id, body.newDeviceId));
+
+            // 5. Cascade status recursively to inherited child devices
+            await cascadeDeviceStatusDb(body.newDeviceId, "DISPATCHED", customerId, updatedNewMetadata, tx);
+
+            // 6. Write Audit Logs inside transaction
+            await tx.insert(schema.deviceAuditLogs).values({
+              actionType: "SWAP",
+              details: `Hardware Swap: Unit replaced by '${newDevice.identifier}' (Status updated to DAMAGED)`,
+              deviceId: oldDevice.id,
+              deviceIdentifier: oldDevice.identifier
+            });
+
+            await tx.insert(schema.deviceAuditLogs).values({
+              actionType: "SWAP",
+              details: `Hardware Swap: Unit deployed as replacement for '${oldDevice.identifier}'`,
+              deviceId: newDevice.id,
+              deviceIdentifier: newDevice.identifier
+            });
+
+            for (const rel of childRels) {
+              const childRes = await tx
+                .select()
+                .from(schema.devices)
+                .where(eq(schema.devices.id, rel.linkedDeviceId))
+                .limit(1);
+              const child = childRes[0];
+              if (child) {
+                await tx.insert(schema.deviceAuditLogs).values({
+                  actionType: "LINK",
+                  details: `Inherited child asset '${child.identifier}' from faulty unit '${oldDevice.identifier}' during swap`,
+                  deviceId: newDevice.id,
+                  deviceIdentifier: newDevice.identifier
+                });
+                await tx.insert(schema.deviceAuditLogs).values({
+                  actionType: "LINK",
+                  details: `Linked to replacement unit '${newDevice.identifier}' due to swap from '${oldDevice.identifier}'`,
+                  deviceId: child.id,
+                  deviceIdentifier: child.identifier
+                });
+              }
+            }
+
+            return { success: true };
+          });
+        } catch (e: any) {
+          console.error("Database transaction swap failed", e);
+          return { error: e.message || "Database execution failed" };
+        }
+      }
+
+      // Memory Mode fallback
+      const oldIdx = mockDevices.findIndex(d => d.id === body.oldDeviceId);
+      const newIdx = mockDevices.findIndex(d => d.id === body.newDeviceId);
+      if (oldIdx === -1) return { error: "Faulty device not found" };
+      if (newIdx === -1) return { error: "Replacement device not found" };
+
+      const oldDevice = mockDevices[oldIdx];
+      const newDevice = mockDevices[newIdx];
+
+      if (newDevice.status !== "IN_STOCK") {
+        return { error: `Replacement device is not in stock (current status: ${newDevice.status})` };
+      }
+
+      const customerId = oldDevice.customerId;
+      const customerName = oldDevice.metadata?.customerName || "RMA Replacement Client";
+
+      // 1. Get child relationships that need to be transferred
+      const childRels = mockDeviceRelationships.filter(r => r.primaryDeviceId === body.oldDeviceId);
+
+      // 2. Transfer relationships in memory
+      for (const rel of childRels) {
+        rel.primaryDeviceId = body.newDeviceId;
+      }
+
+      // 3. Update old device
+      const updatedOldMetadata = {
+        ...(oldDevice.metadata || {}),
+        replacedBy: newDevice.identifier,
+        swappedAt: new Date().toISOString()
+      };
+      const updatedOldDevice = {
+        ...oldDevice,
+        status: "DAMAGED",
+        customerId: undefined,
+        metadata: updatedOldMetadata,
+        updatedAt: new Date().toISOString()
+      };
+      mockDevices[oldIdx] = updatedOldDevice;
+
+      // 4. Update new device
+      const updatedNewMetadata = {
+        ...(newDevice.metadata || {}),
+        customerName,
+        replacesUnit: oldDevice.identifier,
+        dispatchedAt: new Date().toISOString(),
+        swappedAt: new Date().toISOString()
+      };
+      const updatedNewDevice = {
+        ...newDevice,
+        status: "DISPATCHED",
+        customerId: customerId,
+        metadata: updatedNewMetadata,
+        updatedAt: new Date().toISOString()
+      };
+      mockDevices[newIdx] = updatedNewDevice;
+
+      // 5. Cascade status recursively to inherited child devices in memory
+      cascadeDeviceStatusMemory(body.newDeviceId, "DISPATCHED", customerId, updatedNewMetadata);
+
+      // 6. Write Audit Logs in memory
+      mockDeviceAuditLogs.unshift({
+        id: randomUUID(),
+        actionType: "SWAP",
+        details: `Hardware Swap: Unit replaced by '${newDevice.identifier}' (Status updated to DAMAGED)`,
+        deviceId: oldDevice.id,
+        deviceIdentifier: oldDevice.identifier,
+        createdAt: new Date().toISOString()
+      });
+
+      mockDeviceAuditLogs.unshift({
+        id: randomUUID(),
+        actionType: "SWAP",
+        details: `Hardware Swap: Unit deployed as replacement for '${oldDevice.identifier}'`,
+        deviceId: newDevice.id,
+        deviceIdentifier: newDevice.identifier,
+        createdAt: new Date().toISOString()
+      });
+
+      for (const rel of childRels) {
+        const child = mockDevices.find(d => d.id === rel.linkedDeviceId);
+        if (child) {
+          mockDeviceAuditLogs.unshift({
+            id: randomUUID(),
+            actionType: "LINK",
+            details: `Inherited child asset '${child.identifier}' from faulty unit '${oldDevice.identifier}' during swap`,
+            deviceId: newDevice.id,
+            deviceIdentifier: newDevice.identifier,
+            createdAt: new Date().toISOString()
+          });
+          mockDeviceAuditLogs.unshift({
+            id: randomUUID(),
+            actionType: "LINK",
+            details: `Linked to replacement unit '${newDevice.identifier}' due to swap from '${oldDevice.identifier}'`,
+            deviceId: child.id,
+            deviceIdentifier: child.identifier,
+            createdAt: new Date().toISOString()
+          });
+        }
+      }
+
+      if (mockDeviceAuditLogs.length > 200) {
+        mockDeviceAuditLogs.splice(200);
+      }
+
+      return { success: true };
+    }, {
+      body: t.Object({
+        oldDeviceId: t.String(),
+        newDeviceId: t.String()
       })
     })
 
