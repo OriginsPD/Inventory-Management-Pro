@@ -8,6 +8,7 @@ import { QCBench } from './components/screens/QCBench';
 import { HardwareSwaps } from './components/screens/HardwareSwaps';
 import { Customers } from './components/screens/Customers';
 import { SettingsScreen } from './components/screens/SettingsScreen';
+import { ReportsScreen } from './components/screens/Reports';
 import { ThemeProvider } from 'next-themes';
 import './index.css';
 
@@ -69,6 +70,10 @@ const App = () => {
 
   if (path === '/settings') {
     return <SettingsScreen />;
+  }
+
+  if (path === '/reports') {
+    return <ReportsScreen />;
   }
   
   return <DashboardScreen />;
