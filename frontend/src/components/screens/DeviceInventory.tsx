@@ -210,8 +210,8 @@ export const DeviceInventory = () => {
   const [isCsvMapping, setIsCsvMapping] = useState(false);
   const [csvMappings, setCsvMappings] = useState({
     identifier: '',
-    meta1: '',
-    meta2: ''
+    meta1: '__none__',
+    meta2: '__none__'
   });
 
   // Multi-Selection State
@@ -761,8 +761,8 @@ export const DeviceInventory = () => {
       // Pre-populate mapping fields with best-guess defaults
       setCsvMappings({
         identifier: headers[0] || '',
-        meta1: headers[1] || '',
-        meta2: headers[2] || ''
+        meta1: headers[1] || '__none__',
+        meta2: headers[2] || '__none__'
       });
     };
     reader.readAsText(e.target.files[0]);
@@ -777,8 +777,8 @@ export const DeviceInventory = () => {
     }
 
     const idIndex = csvHeaders.indexOf(csvMappings.identifier);
-    const meta1Index = csvMappings.meta1 ? csvHeaders.indexOf(csvMappings.meta1) : -1;
-    const meta2Index = csvMappings.meta2 ? csvHeaders.indexOf(csvMappings.meta2) : -1;
+    const meta1Index = csvMappings.meta1 && csvMappings.meta1 !== '__none__' ? csvHeaders.indexOf(csvMappings.meta1) : -1;
+    const meta2Index = csvMappings.meta2 && csvMappings.meta2 !== '__none__' ? csvHeaders.indexOf(csvMappings.meta2) : -1;
 
     const targetType = getSelectedModelType(bulkSelectedModelId);
 
@@ -817,8 +817,8 @@ export const DeviceInventory = () => {
 
   const getMappedPreviewRows = () => {
     const idIndex = csvHeaders.indexOf(csvMappings.identifier);
-    const meta1Index = csvMappings.meta1 ? csvHeaders.indexOf(csvMappings.meta1) : -1;
-    const meta2Index = csvMappings.meta2 ? csvHeaders.indexOf(csvMappings.meta2) : -1;
+    const meta1Index = csvMappings.meta1 && csvMappings.meta1 !== '__none__' ? csvHeaders.indexOf(csvMappings.meta1) : -1;
+    const meta2Index = csvMappings.meta2 && csvMappings.meta2 !== '__none__' ? csvHeaders.indexOf(csvMappings.meta2) : -1;
 
     return csvRows.slice(0, 3).map(row => {
       const idValue = idIndex !== -1 ? row[idIndex] || '' : '';
@@ -1476,7 +1476,7 @@ export const DeviceInventory = () => {
                                 <SelectValue placeholder="Select column (or none)" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">-- None --</SelectItem>
+                                <SelectItem value="__none__">-- None --</SelectItem>
                                 {csvHeaders.map(h => (
                                   <SelectItem key={h} value={h}>{h}</SelectItem>
                                 ))}
@@ -1500,7 +1500,7 @@ export const DeviceInventory = () => {
                                 <SelectValue placeholder="Select column (or none)" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">-- None --</SelectItem>
+                                <SelectItem value="__none__">-- None --</SelectItem>
                                 {csvHeaders.map(h => (
                                   <SelectItem key={h} value={h}>{h}</SelectItem>
                                 ))}
