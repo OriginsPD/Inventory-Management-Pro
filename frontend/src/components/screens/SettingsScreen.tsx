@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { AppShell } from '../layout/AppShell';
-import { Sun, Moon, Laptop, Volume2, Shield, Plus, Settings, Link2, Monitor } from 'lucide-react';
+import { Sun, Moon, Laptop, Volume2, Shield, Plus, Settings, Link2, Monitor, Palette, Check } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 export const SettingsScreen = () => {
   const { theme, setTheme } = useTheme();
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [activeSection, setActiveSection] = useState<'general' | 'polymorphic' | 'system'>('general');
+  const [activeSection, setActiveSection] = useState<'general' | 'appearance' | 'polymorphic' | 'system'>('general');
+  const [accentColor, setAccentColor] = useState('zinc');
+  const [density, setDensity] = useState('default');
 
   // Polymorphic Links Config CRUD States
   const [polymorphicOptions, setPolymorphicOptions] = useState<string[]>([]);
@@ -20,7 +22,33 @@ export const SettingsScreen = () => {
     if (storedSound !== null) {
       setSoundEnabled(storedSound === 'true');
     }
+
+    const savedAccent = localStorage.getItem('ims_theme_accent') || 'zinc';
+    setAccentColor(savedAccent);
+    
+    const savedDensity = localStorage.getItem('ims_layout_density') || 'default';
+    setDensity(savedDensity);
   }, []);
+
+  const handleSelectAccent = (color: string) => {
+    setAccentColor(color);
+    localStorage.setItem('ims_theme_accent', color);
+    if (color !== 'zinc') {
+      document.documentElement.setAttribute('data-accent', color);
+    } else {
+      document.documentElement.removeAttribute('data-accent');
+    }
+  };
+
+  const handleSelectDensity = (mode: string) => {
+    setDensity(mode);
+    localStorage.setItem('ims_layout_density', mode);
+    if (mode === 'compact') {
+      document.documentElement.classList.add('density-compact');
+    } else {
+      document.documentElement.classList.remove('density-compact');
+    }
+  };
 
   const handleToggleSound = () => {
     const nextVal = !soundEnabled;
@@ -112,6 +140,17 @@ export const SettingsScreen = () => {
                 General Settings
               </button>
               <button
+                onClick={() => setActiveSection('appearance')}
+                className={`w-full text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-md transition-all flex items-center gap-2 ${
+                  activeSection === 'appearance'
+                    ? 'bg-primary/10 text-primary border border-primary/20'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/40 border border-transparent'
+                }`}
+              >
+                <Palette className="h-3.5 w-3.5" />
+                Appearance Settings
+              </button>
+              <button
                 onClick={() => setActiveSection('polymorphic')}
                 className={`w-full text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-md transition-all flex items-center gap-2 ${
                   activeSection === 'polymorphic'
@@ -149,6 +188,17 @@ export const SettingsScreen = () => {
                 General
               </button>
               <button
+                onClick={() => setActiveSection('appearance')}
+                className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-md whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                  activeSection === 'appearance'
+                    ? 'bg-primary/10 text-primary border border-primary/20'
+                    : 'text-muted-foreground border border-transparent'
+                }`}
+              >
+                <Palette className="h-3.5 w-3.5" />
+                Appearance
+              </button>
+              <button
                 onClick={() => setActiveSection('polymorphic')}
                 className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-md whitespace-nowrap transition-all flex items-center gap-1.5 ${
                   activeSection === 'polymorphic'
@@ -178,7 +228,7 @@ export const SettingsScreen = () => {
             {activeSection === 'general' && (
               <div className="space-y-6">
                 {/* Theme Settings */}
-                <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
+                <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
                   <div>
                     <h3 className="font-semibold text-sm">Theme Preference</h3>
                     <p className="text-xs text-muted-foreground mt-0.5">Toggle the visual style of the application workspace.</p>
@@ -227,7 +277,7 @@ export const SettingsScreen = () => {
                 </div>
 
                 {/* Audio/Haptic Warnings */}
-                <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
+                <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-semibold text-sm">Audio & Haptic Feedback</h3>
@@ -260,8 +310,81 @@ export const SettingsScreen = () => {
               </div>
             )}
 
+            {activeSection === 'appearance' && (
+              <div className="space-y-6">
+                {/* Accent Color Section */}
+                <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-sm">Theme Accent Color</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Select a custom accent color theme for buttons, active items, and alerts.</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
+                    {[
+                      { name: 'Default (Zinc)', value: 'zinc', bg: 'bg-zinc-500' },
+                      { name: 'Orange', value: 'orange', bg: 'bg-orange-500' },
+                      { name: 'Amber', value: 'amber', bg: 'bg-amber-500' },
+                      { name: 'Emerald', value: 'emerald', bg: 'bg-emerald-500' },
+                      { name: 'Indigo', value: 'indigo', bg: 'bg-indigo-500' }
+                    ].map((accent) => {
+                      const isSelected = accentColor === accent.value;
+                      return (
+                        <button
+                          key={accent.value}
+                          onClick={() => handleSelectAccent(accent.value)}
+                          className={`flex flex-col items-center justify-between p-3.5 rounded-lg border text-center transition-all ${
+                            isSelected
+                              ? 'border-primary bg-primary/5 ring-1 ring-ring text-foreground'
+                              : 'border-border bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                          }`}
+                        >
+                          <span className={`h-4 w-4 rounded-full ${accent.bg} mb-2 shrink-0 flex items-center justify-center`}>
+                            {isSelected && <Check className="h-2.5 w-2.5 text-white" />}
+                          </span>
+                          <span className="text-[10px] font-semibold">{accent.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Density Section */}
+                <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold text-sm">Workspace Spacing & Density</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Adjust density layout for optimized data-density vs visual breathing room.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 bg-muted p-1 rounded-md border border-border">
+                    <button
+                      onClick={() => handleSelectDensity('default')}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded transition-all ${
+                        density === 'default'
+                          ? 'bg-card text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Standard Layout
+                    </button>
+                    <button
+                      onClick={() => handleSelectDensity('compact')}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded transition-all ${
+                        density === 'compact'
+                          ? 'bg-card text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      High Density (Compact)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {activeSection === 'polymorphic' && (
-              <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
+              <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
                 <div>
                   <h3 className="font-semibold text-sm">Polymorphic Link Templates</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">Manage custom secondary asset component types that can be selected in Device Models relationship rules.</p>
@@ -342,7 +465,7 @@ export const SettingsScreen = () => {
             )}
 
             {activeSection === 'system' && (
-              <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-3">
+              <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-3">
                 <div className="flex items-center gap-2 text-primary">
                   <Shield className="h-4 w-4" />
                   <h3 className="font-semibold text-xs uppercase tracking-wider">Workspace Verification</h3>
