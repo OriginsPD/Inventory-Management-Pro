@@ -51,6 +51,24 @@ export const DeviceModels = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
+  // Load polymorphic options from localStorage
+  const [polymorphicOptions, setPolymorphicOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('ims_polymorphic_link_options');
+    if (stored) {
+      try {
+        setPolymorphicOptions(JSON.parse(stored));
+      } catch (e) {
+        setPolymorphicOptions(['SIM', 'SD_CARD', 'PANIC_BUTTON', 'KEYFOB']);
+      }
+    } else {
+      const defaults = ['SIM', 'SD_CARD', 'PANIC_BUTTON', 'KEYFOB'];
+      localStorage.setItem('ims_polymorphic_link_options', JSON.stringify(defaults));
+      setPolymorphicOptions(defaults);
+    }
+  }, [isAdding]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [models.length]);
@@ -484,7 +502,7 @@ export const DeviceModels = () => {
                     Allowed Components (Polymorphic Links)
                   </label>
                   <div className="flex flex-wrap gap-4 p-3 border border-border rounded-lg bg-muted/10">
-                    {['SIM', 'SD_CARD', 'PANIC_BUTTON', 'KEYFOB'].map((type) => (
+                    {polymorphicOptions.map((type) => (
                       <div key={type} className="flex items-center space-x-2">
                         <Checkbox 
                           id={`type-${type}`}

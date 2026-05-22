@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { RefreshCw, Search, AlertTriangle, Calendar, User, CheckCircle2 } from 'lucide-react';
 import { AppShell } from '../layout/AppShell';
 import { Skeleton } from '../ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import {
   Select,
   SelectContent,
@@ -308,79 +309,78 @@ export const HardwareSwaps = () => {
             </div>
 
             <div className="border border-border rounded-lg bg-card overflow-visible">
-              <div className="w-full overflow-visible">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50 border-b border-border">
-                    <tr>
-                      <th className="h-10 px-4 text-left font-medium text-muted-foreground">Faulty Serial</th>
-                      <th className="h-10 px-4 text-left font-medium text-muted-foreground">Model Template</th>
-                      <th className="h-10 px-4 text-left font-medium text-muted-foreground">Former Customer</th>
-                      <th className="h-10 px-4 text-left font-medium text-muted-foreground">Replacement Unit</th>
-                      <th className="h-10 px-4 text-left font-medium text-muted-foreground">Swap Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {isLoading ? (
-                      Array.from({ length: 4 }).map((_, index) => (
-                        <tr key={index} className="animate-pulse">
-                          <td className="p-4 align-middle"><Skeleton className="h-4 w-24" /></td>
-                          <td className="p-4 align-middle"><Skeleton className="h-4 w-24" /></td>
-                          <td className="p-4 align-middle"><Skeleton className="h-4 w-32" /></td>
-                          <td className="p-4 align-middle"><Skeleton className="h-4 w-28" /></td>
-                          <td className="p-4 align-middle"><Skeleton className="h-4 w-20" /></td>
-                        </tr>
-                      ))
-                    ) : paginatedDamaged.length > 0 ? (
-                      paginatedDamaged.map((device) => (
-                        <tr key={device.id} className="transition-colors hover:bg-muted/50">
-                          <td className="p-4 align-middle font-medium tracking-mono text-foreground">{device.identifier}</td>
-                          <td className="p-4 align-middle text-muted-foreground">{device.modelName}</td>
-                          <td className="p-4 align-middle">
-                            <div className="flex items-center gap-1.5 font-semibold text-foreground text-xs">
-                              <User className="h-3 w-3 text-muted-foreground" />
-                              <span>{device.metadata?.customerName || 'Internal Inventory'}</span>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Faulty Serial</TableHead>
+                    <TableHead>Model Template</TableHead>
+                    <TableHead>Former Customer</TableHead>
+                    <TableHead>Replacement Unit</TableHead>
+                    <TableHead>Swap Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    Array.from({ length: 4 }).map((_, index) => (
+                      <TableRow key={index} className="animate-pulse">
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : paginatedDamaged.length > 0 ? (
+                    paginatedDamaged.map((device) => (
+                      <TableRow key={device.id}>
+                        <TableCell className="font-medium tracking-mono text-foreground">{device.identifier}</TableCell>
+                        <TableCell className="text-muted-foreground">{device.modelName}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5 font-semibold text-foreground text-xs">
+                            <User className="h-3 w-3 text-muted-foreground" />
+                            <span>{device.metadata?.customerName || 'Internal Inventory'}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {device.metadata?.replacedBy ? (
+                            <span className="inline-flex items-center gap-1 font-mono font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
+                              <CheckCircle2 className="h-3 w-3" /> {device.metadata.replacedBy}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                              <AlertTriangle className="h-3 w-3" /> Awaiting Swap
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {device.metadata?.swappedAt ? (
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="h-3 w-3" />
+                              <span>
+                                {new Date(device.metadata.swappedAt).toLocaleDateString(undefined, {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
                             </div>
-                          </td>
-                          <td className="p-4 align-middle text-xs">
-                            {device.metadata?.replacedBy ? (
-                              <span className="inline-flex items-center gap-1 font-mono font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
-                                <CheckCircle2 className="h-3 w-3" /> {device.metadata.replacedBy}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
-                                <AlertTriangle className="h-3 w-3" /> Awaiting Swap
-                              </span>
-                            )}
-                          </td>
-                          <td className="p-4 align-middle text-muted-foreground text-xs">
-                            {device.metadata?.swappedAt ? (
-                              <div className="flex items-center gap-1.5">
-                                <Calendar className="h-3 w-3" />
-                                <span>
-                                  {new Date(device.metadata.swappedAt).toLocaleDateString(undefined, {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="italic text-muted-foreground/60">-</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="text-center p-8 text-sm text-muted-foreground">
-                          No damaged or RMA-swapped hardware units on record.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                          ) : (
+                            <span className="italic text-muted-foreground/60">-</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center p-8 text-sm text-muted-foreground">
+                        No damaged or RMA-swapped hardware units on record.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
               {/* Pagination Controls */}
               {damagedUnits.length > 0 && (
@@ -442,7 +442,6 @@ export const HardwareSwaps = () => {
                   </div>
                 </div>
               )}
-            </div>
           </div>
         </div>
       </div>
