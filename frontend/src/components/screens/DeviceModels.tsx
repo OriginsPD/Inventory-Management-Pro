@@ -13,6 +13,14 @@ import {
   SelectValue,
 } from "../ui/select"
 import { Checkbox } from "../ui/checkbox"
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../ui/table"
 
 const modelSchema = z.object({
   name: z.string()
@@ -191,45 +199,45 @@ export const DeviceModels = () => {
         {/* DATA REGION: Data Table View */}
         <div className="border border-border rounded-lg bg-card overflow-visible">
           <div className="w-full overflow-visible">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 border-b border-border">
-                <tr>
-                  <th className="h-10 px-4 text-left font-medium text-muted-foreground">Template Name</th>
-                  <th className="h-10 px-4 text-left font-medium text-muted-foreground">Brand / Manufacturer</th>
-                  <th className="h-10 px-4 text-left font-medium text-muted-foreground">Classification</th>
-                  <th className="h-10 px-4 text-left font-medium text-muted-foreground">Allowed Secondary Components</th>
-                  <th className="h-10 px-4 text-right font-medium text-muted-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
+            <Table>
+              <TableHeader className="bg-muted/50 border-b border-border">
+                <TableRow>
+                  <TableHead className="px-4">Template Name</TableHead>
+                  <TableHead className="px-4">Brand / Manufacturer</TableHead>
+                  <TableHead className="px-4">Classification</TableHead>
+                  <TableHead className="px-4">Allowed Secondary Components</TableHead>
+                  <TableHead className="px-4 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {isLoading ? (
                   Array.from({ length: 4 }).map((_, index) => (
-                    <tr key={index} className="animate-pulse">
-                      <td className="p-4 align-middle"><Skeleton className="h-4 w-36" /></td>
-                      <td className="p-4 align-middle"><Skeleton className="h-4 w-28" /></td>
-                      <td className="p-4 align-middle"><Skeleton className="h-5 w-16 rounded" /></td>
-                      <td className="p-4 align-middle"><Skeleton className="h-4 w-44" /></td>
-                      <td className="p-4 align-middle text-right"><Skeleton className="h-4 w-4 ml-auto" /></td>
-                    </tr>
+                    <TableRow key={index} className="animate-pulse">
+                      <TableCell className="p-4 align-middle"><Skeleton className="h-4 w-36" /></TableCell>
+                      <TableCell className="p-4 align-middle"><Skeleton className="h-4 w-28" /></TableCell>
+                      <TableCell className="p-4 align-middle"><Skeleton className="h-5 w-16 rounded" /></TableCell>
+                      <TableCell className="p-4 align-middle"><Skeleton className="h-4 w-44" /></TableCell>
+                      <TableCell className="p-4 align-middle text-right"><Skeleton className="h-4 w-4 ml-auto" /></TableCell>
+                    </TableRow>
                   ))
                 ) : paginatedModels.length > 0 ? (
                   paginatedModels.map((model, index) => (
-                    <tr key={model.id} className="transition-colors hover:bg-muted/50">
-                      <td className="p-4 align-middle font-semibold text-foreground">
+                    <TableRow key={model.id} className="transition-colors hover:bg-muted/50">
+                      <TableCell className="p-4 align-middle font-semibold text-foreground">
                         <div>{model.name}</div>
                         {model.identifierPattern && (
                           <div className="text-[10px] text-amber-600 dark:text-amber-500 font-mono mt-0.5 font-normal">
                             Pattern: {model.identifierPattern}
                           </div>
                         )}
-                      </td>
-                      <td className="p-4 align-middle text-muted-foreground">{model.brand}</td>
-                      <td className="p-4 align-middle">
-                        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-secondary text-secondary-foreground border-border">
+                      </TableCell>
+                      <TableCell className="p-4 align-middle text-muted-foreground">{model.brand}</TableCell>
+                      <TableCell className="p-4 align-middle">
+                        <span className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold bg-secondary text-secondary-foreground border-border">
                           {model.assetType}
                         </span>
-                      </td>
-                      <td className="p-4 align-middle">
+                      </TableCell>
+                      <TableCell className="p-4 align-middle">
                         <div className="flex flex-wrap gap-1">
                           {model.allowedChildren.length > 0 ? (
                             model.allowedChildren.map((child) => (
@@ -244,8 +252,8 @@ export const DeviceModels = () => {
                             <span className="text-xs text-muted-foreground/60 italic">None (Stand-alone)</span>
                           )}
                         </div>
-                      </td>
-                      <td className="p-4 align-middle text-right overflow-visible relative">
+                      </TableCell>
+                      <TableCell className="p-4 align-middle text-right overflow-visible relative">
                         <div className="inline-block text-left">
                           <button 
                             onClick={(e) => {
@@ -299,18 +307,18 @@ export const DeviceModels = () => {
                             </>
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))
                 ) : (
-                  <tr>
-                    <td colSpan={5} className="text-center p-8 text-sm text-muted-foreground">
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center p-8 text-sm text-muted-foreground">
                       No hardware templates registered.
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           {/* Pagination Controls */}
@@ -394,7 +402,7 @@ export const DeviceModels = () => {
             onClick={() => { setIsAdding(false); setEditingModelId(null); }}
           >
             <div 
-              className="border border-border p-6 rounded-xl bg-card shadow-lg max-w-xl w-full relative space-y-4 animate-in fade-in zoom-in-95 duration-150"
+              className="border border-border p-6 rounded-lg bg-card shadow-lg max-w-xl w-full relative space-y-4 animate-in fade-in zoom-in-95 duration-150"
               onClick={(e) => e.stopPropagation()}
             >
               <button 
@@ -550,7 +558,7 @@ export const DeviceModels = () => {
             onClick={() => setViewModalModel(null)}
           >
             <div 
-              className="border border-border p-6 rounded-xl bg-card shadow-lg max-w-md w-full relative space-y-4 animate-in fade-in zoom-in-95 duration-150"
+              className="border border-border p-6 rounded-lg bg-card shadow-lg max-w-md w-full relative space-y-4 animate-in fade-in zoom-in-95 duration-150"
               onClick={(e) => e.stopPropagation()}
             >
               <button 
@@ -566,39 +574,43 @@ export const DeviceModels = () => {
                 <p className="text-xs text-muted-foreground mt-0.5">Read-only configuration profile for this device template.</p>
               </div>
 
-              <div className="space-y-3.5 text-sm">
-                <div className="grid grid-cols-3 py-1 border-b border-border/40">
-                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Model Name</span>
-                  <span className="col-span-2 font-semibold text-foreground">{viewModalModel.name}</span>
-                </div>
-                <div className="grid grid-cols-3 py-1 border-b border-border/40">
-                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Brand</span>
-                  <span className="col-span-2 font-medium text-foreground">{viewModalModel.brand}</span>
-                </div>
-                <div className="grid grid-cols-3 py-1 border-b border-border/40">
-                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Classification</span>
-                  <span className="col-span-2">
-                    <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold bg-secondary text-secondary-foreground border-border">
-                      {viewModalModel.assetType}
+              <div className="space-y-4 text-xs">
+                {/* High Density Grid */}
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2 border border-border/60 rounded-md bg-muted/20 p-3">
+                  <div className="flex flex-col justify-center py-1 border-b border-border/30">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Model Name</span>
+                    <span className="font-semibold text-foreground text-xs truncate">{viewModalModel.name}</span>
+                  </div>
+                  <div className="flex flex-col justify-center py-1 border-b border-border/30">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Brand</span>
+                    <span className="font-medium text-foreground text-xs truncate">{viewModalModel.brand}</span>
+                  </div>
+                  <div className="flex flex-col justify-center py-1 border-b border-border/30">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Classification</span>
+                    <span>
+                      <span className="inline-flex items-center rounded-md border px-1.5 py-0.25 text-[10px] font-bold bg-secondary text-secondary-foreground border-border">
+                        {viewModalModel.assetType}
+                      </span>
                     </span>
-                  </span>
+                  </div>
+                  <div className="flex flex-col justify-center py-1 border-b border-border/30">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Max Stock Target</span>
+                    <span className="font-medium text-foreground text-xs">{viewModalModel.maxStock || 'None'}</span>
+                  </div>
+                  <div className="flex flex-col justify-center py-1 border-b border-border/30 col-span-2 last:border-0 font-mono">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5 font-sans">Barcode Regex</span>
+                    <span className="text-[11px] bg-muted/60 px-1.5 py-0.5 rounded border border-border/50 text-amber-600 dark:text-amber-400 break-all">{viewModalModel.identifierPattern || 'None'}</span>
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 py-1 border-b border-border/40">
-                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Max Stock Target</span>
-                  <span className="col-span-2 font-medium text-foreground">{viewModalModel.maxStock || 'None'}</span>
-                </div>
-                <div className="grid grid-cols-3 py-1 border-b border-border/40">
-                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Barcode Regex</span>
-                  <span className="col-span-2 font-mono text-xs bg-muted/60 px-1.5 py-0.5 rounded border border-border/50 text-amber-600 dark:text-amber-400 break-all">{viewModalModel.identifierPattern || 'None'}</span>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider block mb-1">Allowed Sub-Components</span>
-                  <div className="flex flex-wrap gap-1.5">
+
+                <div className="space-y-1.5 text-left">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">Allowed Sub-Components</span>
+                  <div className="flex flex-wrap gap-1.5 font-sans">
                     {viewModalModel.allowedChildren && viewModalModel.allowedChildren.length > 0 ? (
                       viewModalModel.allowedChildren.map((child: string) => (
                         <span
                           key={child}
-                          className="bg-muted px-2 py-0.5 rounded text-[10px] text-muted-foreground font-semibold border border-border"
+                          className="bg-muted px-2 py-0.5 rounded-md text-[10px] text-muted-foreground font-semibold border border-border"
                         >
                           {child}
                         </span>

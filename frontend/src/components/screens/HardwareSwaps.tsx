@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { RefreshCw, Search, AlertTriangle, Calendar, User, CheckCircle2, ArrowRight } from 'lucide-react';
 import { AppShell } from '../layout/AppShell';
 import { Skeleton } from '../ui/skeleton';
+import { EmptyState } from '../ui/empty-state';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import {
   Select,
@@ -373,8 +374,13 @@ export const HardwareSwaps = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center p-8 text-sm text-muted-foreground">
-                        No damaged or RMA-swapped hardware units on record.
+                      <TableCell colSpan={5} className="h-auto p-0">
+                        <EmptyState
+                          icon={AlertTriangle}
+                          title="No Damaged or Swapped Units"
+                          description="There are currently no active damaged units or completed RMA swaps registered in the log."
+                          className="border-0 bg-transparent py-12"
+                        />
                       </TableCell>
                     </TableRow>
                   )}

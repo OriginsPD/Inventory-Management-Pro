@@ -268,7 +268,7 @@ export const QCBench = () => {
           </div>
 
           {/* Automated Telemetry Diagnostics Bench */}
-          <div className="border border-border rounded-xl bg-card overflow-hidden shadow-sm p-5 space-y-4">
+          <div className="border border-border rounded-lg bg-card overflow-hidden shadow-sm p-5 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
@@ -327,8 +327,8 @@ export const QCBench = () => {
             )}
           </div>
 
-          <div className="border border-border rounded-xl bg-card overflow-hidden shadow-sm">
-            <div className="bg-muted/30 p-4 border-b border-border flex items-center justify-between">
+          <div className="border border-border rounded-lg bg-card overflow-hidden shadow-sm">
+            <div className="bg-muted/30 p-3 px-4 border-b border-border flex items-center justify-between">
               <h3 className="text-sm font-semibold flex items-center gap-2">
                 <CheckSquare className="h-4 w-4 text-primary" />
                 Hardware Test Matrix
@@ -342,7 +342,7 @@ export const QCBench = () => {
               {DEFAULT_QC_CHECKS.map((check) => {
                 const result = results[check.id];
                 return (
-                  <div key={check.id} className="p-4 grid grid-cols-1 md:grid-cols-12 gap-6 items-center hover:bg-muted/10 transition-colors">
+                  <div key={check.id} className="p-3 md:py-2.5 grid grid-cols-1 md:grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors">
                     <div className="md:col-span-4 space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">{check.label}</span>
@@ -359,7 +359,7 @@ export const QCBench = () => {
                       <Button
                         size="sm"
                         variant={result.status === 'PASSED' ? 'default' : 'outline'}
-                        className={`h-9 flex-1 gap-1.5 ${result.status === 'PASSED' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}`}
+                        className={`h-8 flex-1 gap-1.5 ${result.status === 'PASSED' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}`}
                         onClick={() => handleUpdateStatus(check.id, 'PASSED')}
                       >
                         <Check className="h-4 w-4" />
@@ -368,7 +368,7 @@ export const QCBench = () => {
                       <Button
                         size="sm"
                         variant={result.status === 'FAILED' ? 'destructive' : 'outline'}
-                        className={`h-9 flex-1 gap-1.5 ${result.status === 'FAILED' ? 'bg-red-600 hover:bg-red-700 text-white' : ''}`}
+                        className={`h-8 flex-1 gap-1.5 ${result.status === 'FAILED' ? 'bg-red-600 hover:bg-red-700 text-white' : ''}`}
                         onClick={() => handleUpdateStatus(check.id, 'FAILED')}
                       >
                         {/* Red Check Mark as requested by user instead of X */}
@@ -380,7 +380,7 @@ export const QCBench = () => {
                     <div className="md:col-span-4">
                       <Input 
                         placeholder="Add notes (optional)..." 
-                        className="h-9 text-xs"
+                        className="h-8 text-xs"
                         value={result.notes}
                         onChange={(e) => handleUpdateNotes(check.id, e.target.value)}
                       />
@@ -390,7 +390,7 @@ export const QCBench = () => {
               })}
             </div>
 
-            <div className="p-6 bg-muted/20 border-t border-border flex items-center justify-between">
+            <div className="p-4 px-6 bg-muted/20 border-t border-border flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Info className="h-4 w-4" />
                 <span>Submit only after all items have been verified.</span>
@@ -435,7 +435,7 @@ export const QCBench = () => {
           </div>
         </div>
 
-        <div className="border border-border rounded-xl bg-card overflow-hidden shadow-sm">
+        <div className="border border-border rounded-lg bg-card overflow-hidden shadow-sm">
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
