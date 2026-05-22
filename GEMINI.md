@@ -10,31 +10,30 @@
 - **Hardware-First**: Optimize for physical barcode scanners (`useHotScanner`) with auditory feedback loops.
 
 ## 3. Critical Files & Source of Truth
-- **Domain Layer (`/packages/shared/src/domain`)**: The absolute source of truth for all schemas (Device, Customer, QC, Model). All TS types must be inferred from these Zod schemas.
-- **API Engine (`/backend/src/index.ts`)**: The unified service layer using Elysia.js. No protocol-specific logic; both REST and internal handlers must call the same domain logic.
-- **Database Schema (`/backend/src/db/schema.ts`)**: Drizzle models that strictly mirror the shared domain layer.
+- **Domain Layer (`/packages/shared/src/domain`)**: 
+    - `device.ts`: Asset definitions.
+    - `qc.ts`: Diagnostic checklist logic and default test matrix.
+    - `customer.ts`: Formal Company and Individual Operator schemas.
+    - `deviceModel.ts`: Capability matrices and asset classification.
+- **API Engine (`/backend/src/index.ts`)**: The unified service layer using Elysia.js. No protocol-specific logic.
+- **Database Schema (`/backend/src/db/schema.ts`)**: Drizzle models mirroring the domain. Includes `customers` and `device_audit_logs`.
 - **Technical Workbench (`/frontend/src/components/screens`)**: 
     - `QCBench.tsx`: Manual diagnostic checklist workflow.
     - `DeviceInventory.tsx`: Virtualized list with hierarchy management.
-    - `CustomerDispatch.tsx`: Atomic scan-to-stage dispatch logic.
+    - `CustomerDispatch.tsx`: Relational dispatching to registered customers.
+    - `Customers.tsx`: Registry and device distribution history.
 
 ## 4. Design System & Visual Identity
 - **Aesthetic DNA**: "SaaS-Elite" (NeoBase). High-density, minimalist, and utilitarian.
-- **Color Tokens (Zinc Scale)**:
-    - Neutral Background: `bg-background` (Zinc-950)
-    - Border/Surface: `border-border` (Zinc-800)
-    - Action/Intent: Primary Orange (Action), Emerald (Passed), Red (Failed/Damaged), Amber (Critical).
-- **Typography Hierarchy**:
-    - **Sans**: `Geist` / `Inter` for interface copy and labels.
-    - **Mono**: `Geist Mono` for all hardware identifiers (IMEI, ISN, ICCID, Serial).
-- **Component Rules**:
-    - **Portals Only**: All dropdowns, tooltips, and popovers MUST use Radix UI Portals to escape table/modal clipping.
-    - **Fixed Modals**: Modals for data ingestion must have fixed heights (`90vh`) with independent internal scroll areas.
-    - **Sticky Headers**: All data tables must use sticky headers to maintain context during deep scrolling.
+- **Color Tokens**: Zinc-based background (#09090b), Orange (Action), Emerald (Pass), Red (Fail/Damage).
+- **Component Mandates**:
+    - **Portals Only**: ALL dropdowns, selects, and tooltips must use portals to escape table/modal clipping.
+    - **Fixed Modals**: Ingestion modals are locked to `90vh` with internal scrolling for visual stability.
+    - **No Manual Status**: Device status is system-managed. Technicians cannot manually set status during ingestion (defaults to `IN_STOCK`).
 
 ## 5. Domain Terminology
-- **Staging**: The temporary holding area for devices before an atomic dispatch.
-- **Capability Matrix**: Rules defining which child assets (SIM, SD) can be linked to which parent models.
-- **Technical Workbench**: The environment for physical hardware QC and evaluation.
-- **Atomic Swap**: The simultaneous return of a faulty unit and deployment of its replacement.
-- **Identifier**: Universal term for Serial, IMEI, or ISN.
+- **Staging**: Temporary holding area for devices before an atomic dispatch.
+- **Capability Matrix**: Rules defining allowed child assets (SIM, SD) for specific parent models.
+- **Technical Workbench**: Physical environment for hardware QC.
+- **Atomic Swap**: Simultaneous return and deployment of replacement hardware.
+- **Identifier**: Universal term for Serial, IMEI, or ISN (displayed in `Geist Mono`).

@@ -17,6 +17,7 @@ export const deviceModels = pgTable('device_models', {
   assetType: assetTypeEnum('asset_type').default('TRACKER').notNull(),
   allowedChildren: jsonb('allowed_children').default('[]').notNull(),
   maxStock: integer('max_stock').default(0).notNull(),
+  identifierPattern: varchar('identifier_pattern', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -56,10 +57,15 @@ export const deviceRelationships = pgTable('device_relationships', {
 
 export const deviceAuditLogs = pgTable('device_audit_logs', {
   id: uuid('id').defaultRandom().primaryKey(),
+  deviceId: uuid('device_id').references(() => devices.id, { onDelete: 'set null' }),
+  deviceIdentifier: varchar('device_identifier', { length: 255 }),
   actionType: varchar('action_type', { length: 50 }).notNull(), // 'INGEST', 'LINK', 'DELETE', 'STATUS_CHANGE'
   details: text('details').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (table) => ({
+  deviceIdIdx: index('device_audit_logs_device_id_idx').on(table.deviceId),
+  deviceIdentifierIdx: index('device_audit_logs_device_identifier_idx').on(table.deviceIdentifier),
+}));
 
 export const customerTypeEnum = pgEnum('customer_type', ['PERSON', 'COMPANY']);
 

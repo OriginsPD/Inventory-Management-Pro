@@ -7,6 +7,8 @@ export const DeviceModelSchema = z.object({
   brand: z.string().min(1, 'Brand is required'),
   assetType: AssetType.default('TRACKER'),
   allowedChildren: z.array(AssetType).default([]),
+  maxStock: z.number().int().nonnegative().default(0),
+  identifierPattern: z.string().optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
 });

@@ -1,55 +1,47 @@
 # IMS Pro: Design System & User Experience Guide
 
-## 1. Product Identity
-**Product Name:** IMS Pro  
-**Tagline:** Asset Intelligence System  
-**Mission:** High-performance hardware lifecycle management for enterprise fleet operations.
+## 1. Product Identity: Asset Intelligence
+**IMS Pro** is an **Asset Intelligence System** designed for enterprise fleet and hardware operations. It is built for high-speed technician workflows where visual precision and operational velocity are the primary "North Stars."
 
-## 2. Native Shape: The Hardware Pipeline
-The design of IMS Pro is not a collection of sections, but a **Pipeline**. Every screen represents a specific state in the hardware's existence within the system:
-- **INGESTION**: Physical registration (Single or Bulk).
-- **EVALUATION**: The Technical Workbench (QC Bench).
-- **SYNTHESIS**: Polymorphic Linking (Bundle Building).
+## 2. Native Shape: The Hardware Lifecycle Pipeline
+The application does not follow a generic section-based layout. Instead, it is organized around the **Native Shape of Hardware**: a linear, high-integrity pipeline.
+- **INGESTION**: Physical registration (Single, CSV Mass Upload, or Rapid Scanner).
+- **EVALUATION**: The Technical Workbench (QC matrix validation).
+- **SYNTHESIS**: Hierarchy Building (Polymorphic Linking via the Capability Matrix).
 - **DEPLOYMENT**: Atomic Scan-to-Stage Dispatch.
-- **MAINTENANCE**: Unit Swaps & RMA.
+- **MAINTENANCE**: Unit Swaps & RMA History.
 
-## 3. Visual Identity & Tokens
+## 3. Visual Weight: Central Command
+The **Asset Dashboard & Bundle Building** feature dominates the system. 
+- **Primary Weight**: The virtualized device list, supporting 1,000+ rows with nested "Linked Children."
+- **Focus Pattern**: Large, high-contrast **Identifiers** (IMEI, ISN, ICCID) rendered in `Geist Mono` to distinguish hardware data from interface labels.
+- **Interactive Staging**: Complex transactions (Dispatch/Link) use a "Staging Area" visual pattern to ensure atomic commits.
 
-### Color Palette (Zinc Scale)
-- **Background**: `bg-background` (#09090b) - Deep Zinc.
-- **Surface**: `bg-card` (#09090b) / `bg-muted` (#18181b).
-- **Border**: `border-border` (#27272a).
-- **Foreground**: `text-foreground` (#fafafa) / `text-muted-foreground` (#a1a1aa).
+## 4. Visual DNA & Tokens
+Derived from the project's CSS and component implementation.
 
-### Intentional Accents
-- **Action/Primary**: Orange (Action items, Active states).
-- **Success/Pass**: Emerald (QC Passed, Valid Links).
-- **Error/Fail**: Red (QC Failed, Damaged Stock).
-- **Warning/Critical**: Amber (Stock Alerts, Critical QC Items).
+### The Zinc Scale (Structural)
+- **Background**: `#09090b` (Deep Zinc) - Zero-distraction dark mode.
+- **Surface/Card**: `#09090b` (Primary) / `#18181b` (Secondary).
+- **Borders**: `#27272a` (Subtle definition).
 
-### Typography Scale
-- **Interface Label**: Geist / Inter (Sans-serif) - Tracking tight for professional density.
-- **Hardware Identifier**: Geist Mono - Essential for IMEI, ISN, and Serial differentiation.
-- **Hierarchy**: Use uppercase tracking-widest for secondary headers (e.g., `TECHNICIAN CHECKLIST`).
+### Intentional Accents (Status-Driven)
+- **Action**: Primary Orange (Interactive intent only).
+- **Passed**: Emerald (QC success, Valid relationships).
+- **Failed**: Red (Damaged units, Diagnostic failures).
+- **Critical**: Amber (Stock alerts, Critical test items).
 
-## 4. Component Blueprints
+### Typography
+- **UI Labels**: `Geist` / `Inter` (Tight tracking, high density).
+- **Hardware Data**: `Geist Mono` (IMEI, ISN, Serial, MSISDN).
+- **Metadata**: Condensed uppercase for technical classifications (e.g., `HW REVISION`, `SPEED CLASS`).
 
-### The "SaaS-Elite" Table
-- **Layout**: `table-fixed` with explicit percentage-based widths.
-- **Interaction**: Row-hover states using `hover:bg-muted/30`.
-- **Safety**: Horizontal scrolling container with `overflow-x-auto` but `overflow-y-visible` to allow portal menus.
-- **Density**: Compact rows with high-contrast text.
+## 5. Component Blueprints & Portals
+- **Portal-Only Popups**: To prevent clipping in virtualized tables and fixed modals, ALL floating UI (Dropdowns, Selects) render via **Radix Portals** to the document `<body>`.
+- **Fixed-Height Ingestion**: Bulk operation modals are locked to `90vh`. Only the data table scrolls, while the **Target Template Model** and **Commit Bar** remain fixed.
+- **Sticky Matrix Headers**: Table headers are always visible to maintain context for field labels like `Phone Number (MSISDN)` and `Carrier`.
 
-### The Technician Modal
-- **Constraints**: Locked to `max-h-[90vh]`.
-- **Structure**: Fixed Header (Tabs), Scrollable Content (Data Table), Fixed Footer (Action Bar).
-- **Focus**: Auto-focus on primary scanner input fields.
-
-### Floating UI
-- **Mechanism**: MUST use **Radix Portals**.
-- **Strategy**: Floating above the container to prevent clipping in scrollable areas.
-
-## 5. Interaction Vocabulary
-- **Scan-to-Stage**: Every physical scan should provide auditory feedback (Success beep / Error buzz).
-- **Atomic Commit**: Actions that move state (Dispatch, Swap) should be grouped and reviewed in a "Staging Area" before final execution.
-- **Audit-First**: Every destructive or state-changing action must have a visible confirmation or an immediate entry in the Audit History.
+## 6. High-Velocity Interaction
+- **Scan-to-Stage**: Every input supports physical barcode scanners with auditory feedback hooks.
+- **System-Managed Status**: Status logic is locked to the system. Technicians influence status through **Evaluation** results (Pass/Fail) rather than manual selection.
+- **Atomic Commits**: No state-change happens without a reviewable staging list, preventing data drift in high-volume environments.
