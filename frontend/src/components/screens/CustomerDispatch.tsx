@@ -18,6 +18,7 @@ import { AppShell } from '../layout/AppShell';
 import { Skeleton } from '../ui/skeleton';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
+import { EmptyState } from '../ui/empty-state';
 import {
   Select,
   SelectContent,
@@ -392,7 +393,7 @@ export const CustomerDispatch = () => {
               <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{node.device.type} — {node.device.modelName}</div>
             </div>
           </div>
-          <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-bold bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
+          <span className="inline-flex items-center rounded-md border px-2 py-0.5 text-[9px] font-bold bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
             {node.device.status}
           </span>
         </div>
@@ -526,9 +527,21 @@ export const CustomerDispatch = () => {
               </div>
 
               {stagedDevices.length === 0 ? (
-                <div className="text-center py-12 border-2 border-dashed border-border rounded-lg text-xs text-muted-foreground leading-normal">
-                  No hardware units staged for dispatch.<br />Click "Stage Devices" to select from inventory.
-                </div>
+                <EmptyState
+                  icon={Truck}
+                  title="No Devices Staged"
+                  description="There are currently no hardware tracking units staged for dispatch. Click Stage Devices to select units."
+                  action={
+                    <button
+                      type="button"
+                      onClick={handleOpenSelectModal}
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-semibold transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/90 h-8 px-3 flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Stage Devices
+                    </button>
+                  }
+                  className="py-12"
+                />
               ) : (
                 <ScrollArea className="max-h-80 pr-1">
                   <div className="space-y-2">
@@ -726,8 +739,13 @@ export const CustomerDispatch = () => {
                       })
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center p-12 text-sm text-muted-foreground">
-                          No dispatched batches found matching search criteria.
+                        <TableCell colSpan={5} className="h-auto p-0">
+                          <EmptyState
+                            icon={Truck}
+                            title="No Batches Found"
+                            description="No dispatched hardware batches match your search queries or client selection filters."
+                            className="border-0 bg-transparent py-16"
+                          />
                         </TableCell>
                       </TableRow>
                     )}
@@ -802,7 +820,7 @@ export const CustomerDispatch = () => {
         {/* MODAL 1: Stage Devices Selection (Checkboxes, 90vh Max, scrollable) */}
         {isSelectModalOpen && (
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="border border-border rounded-xl bg-card shadow-lg max-w-2xl w-full max-h-[90vh] flex flex-col relative animate-in fade-in zoom-in-95 duration-150">
+            <div className="border border-border rounded-lg bg-card shadow-lg max-w-2xl w-full max-h-[90vh] flex flex-col relative animate-in fade-in zoom-in-95 duration-150">
               {/* Header */}
               <div className="p-6 border-b border-border flex justify-between items-start">
                 <div>
@@ -921,8 +939,13 @@ export const CustomerDispatch = () => {
                         })
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center p-8 text-xs text-muted-foreground">
-                            No in-stock hardware matches filters.
+                          <TableCell colSpan={4} className="h-auto p-0">
+                            <EmptyState
+                              icon={Search}
+                              title="No Matching Devices"
+                              description="No certified in-stock hardware templates match your current filter parameters."
+                              className="border-0 bg-transparent py-10"
+                            />
                           </TableCell>
                         </TableRow>
                       )}
@@ -960,7 +983,7 @@ export const CustomerDispatch = () => {
         {/* MODAL 2: Batch Detail Hierarchy Breakdown (Locked to 90vh, scrollable) */}
         {viewBatch && (
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="border border-border rounded-xl bg-card shadow-lg max-w-xl w-full max-h-[90vh] flex flex-col relative animate-in fade-in zoom-in-95 duration-150">
+            <div className="border border-border rounded-lg bg-card shadow-lg max-w-xl w-full max-h-[90vh] flex flex-col relative animate-in fade-in zoom-in-95 duration-150">
               {/* Header */}
               <div className="p-6 border-b border-border flex justify-between items-start">
                 <div>
@@ -999,9 +1022,12 @@ export const CustomerDispatch = () => {
                     {buildHierarchy(viewBatch.devices).length > 0 ? (
                       buildHierarchy(viewBatch.devices).map(rootNode => renderDeviceNode(rootNode))
                     ) : (
-                      <div className="text-center py-6 text-xs text-muted-foreground">
-                        No device records found in this batch.
-                      </div>
+                      <EmptyState
+                        icon={Layers}
+                        title="Empty Dispatch Batch"
+                        description="No hardware records or linked components are registered within this dispatch transaction."
+                        className="border-0 bg-transparent py-6"
+                      />
                     )}
                   </div>
                 </div>

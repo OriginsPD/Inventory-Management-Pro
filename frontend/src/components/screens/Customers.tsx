@@ -24,6 +24,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Skeleton } from '../ui/skeleton';
+import { EmptyState } from '../ui/empty-state';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CreateCustomerSchema, CustomerType } from '@ims-pro/shared';
@@ -203,7 +204,7 @@ export const Customers = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1 space-y-6">
-              <div className="border border-border rounded-xl bg-card p-6 space-y-4 shadow-sm">
+              <div className="border border-border rounded-lg bg-card p-6 space-y-4 shadow-sm">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
                   <UserIcon className="h-4 w-4 text-primary" />
                   Contact Information
@@ -235,7 +236,7 @@ export const Customers = () => {
             </div>
 
             <div className="md:col-span-2 space-y-6">
-              <div className="border border-border rounded-xl bg-card overflow-hidden shadow-sm">
+              <div className="border border-border rounded-lg bg-card overflow-hidden shadow-sm">
                 <div className="bg-muted/30 p-4 border-b border-border flex items-center justify-between">
                   <h3 className="text-sm font-semibold flex items-center gap-2">
                     <History className="h-4 w-4 text-primary" />
@@ -282,9 +283,13 @@ export const Customers = () => {
                         </div>
                       ))
                     ) : (
-                      <div className="p-12 text-center space-y-2 text-muted-foreground">
-                        <Package className="h-8 w-8 mx-auto opacity-20" />
-                        <p className="text-sm">No devices currently dispatched to this customer.</p>
+                      <div className="p-4">
+                        <EmptyState
+                          icon={Package}
+                          title="No Active Dispatches"
+                          description="There are currently no active hardware devices assigned to this customer fleet."
+                          className="border-0 bg-transparent py-8"
+                        />
                       </div>
                     )}
                   </div>
@@ -323,7 +328,7 @@ export const Customers = () => {
           </div>
         </div>
 
-        <div className="border border-border rounded-xl bg-card shadow-sm overflow-x-auto overflow-y-visible">
+        <div className="border border-border rounded-lg bg-card shadow-sm overflow-x-auto overflow-y-visible">
           <Table className="table-fixed w-full min-w-[800px]">
             <TableHeader className="bg-muted/50">
               <TableRow>
@@ -411,8 +416,18 @@ export const Customers = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic">
-                    No customers found. Click "Add Customer" to register a new client.
+                  <TableCell colSpan={5} className="h-auto p-0">
+                    <EmptyState
+                      icon={UserIcon}
+                      title="No Customers Registered"
+                      description="No client accounts or enterprise fleets match your current search query."
+                      action={
+                        <Button onClick={() => handleOpenModal()} size="sm" className="gap-2">
+                          <Plus className="h-3.5 w-3.5" /> Add Customer
+                        </Button>
+                      }
+                      className="border-0 bg-transparent py-12"
+                    />
                   </TableCell>
                 </TableRow>
               )}
@@ -427,7 +442,7 @@ export const Customers = () => {
           onClick={() => setIsModalOpen(false)}
         >
           <div 
-            className="border border-border rounded-xl bg-card shadow-lg max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+            className="border border-border rounded-lg bg-card shadow-lg max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-border bg-muted/30 flex items-center justify-between">
