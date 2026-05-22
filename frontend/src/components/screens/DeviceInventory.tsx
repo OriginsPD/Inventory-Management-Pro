@@ -17,7 +17,8 @@ import {
   Edit2, 
   Link as LinkIcon, 
   ChevronDown, 
-  ArrowUpDown 
+  ArrowUpDown,
+  History
 } from 'lucide-react';
 import { AppShell } from '../layout/AppShell';
 import { useForm, Controller } from 'react-hook-form';
@@ -28,6 +29,7 @@ import { Input } from '../ui/input';
 import { ScrollArea } from '../ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
+import { EmptyState } from '../ui/empty-state';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1158,7 +1160,7 @@ export const DeviceInventory = () => {
             onClick={() => { setActiveModal('none'); setEditingDeviceId(null); }}
           >
             <div 
-              className="border border-border p-6 rounded-xl bg-card shadow-lg max-w-md w-full relative space-y-4 animate-in fade-in zoom-in-95 duration-150"
+              className="border border-border p-6 rounded-lg bg-card shadow-lg max-w-md w-full relative space-y-4 animate-in fade-in zoom-in-95 duration-150"
               onClick={(e) => e.stopPropagation()}
             >
               <button 
@@ -1354,7 +1356,7 @@ export const DeviceInventory = () => {
             onClick={() => setActiveModal('none')}
           >
             <div 
-              className="border border-border rounded-xl bg-card shadow-lg max-w-4xl w-full max-h-[90vh] flex flex-col relative animate-in fade-in zoom-in-95 duration-150"
+              className="border border-border rounded-lg bg-card shadow-lg max-w-4xl w-full max-h-[90vh] flex flex-col relative animate-in fade-in zoom-in-95 duration-150"
               onClick={(e) => e.stopPropagation()}
             >
               <button onClick={() => setActiveModal('none')} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground z-10">
@@ -1515,34 +1517,34 @@ export const DeviceInventory = () => {
                         <div className="space-y-2">
                           <div className="text-xs font-semibold text-muted-foreground">Preview Mapped Data (First 3 rows)</div>
                           <div className="border border-border rounded-lg bg-card overflow-hidden">
-                            <table className="w-full text-left text-xs">
-                              <thead className="bg-muted/40 border-b border-border text-[10px] font-semibold text-muted-foreground uppercase">
-                                <tr>
-                                  <th className="p-2 px-3">Identifier / Serial</th>
-                                  <th className="p-2">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="px-3 text-[10px] font-semibold text-muted-foreground uppercase">Identifier / Serial</TableHead>
+                                  <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">
                                     {bulkAssetType === 'SIM' ? 'Phone Number' :
                                      bulkAssetType === 'SD_CARD' ? 'Capacity' :
                                      bulkAssetType === 'TRACKER' ? 'Firmware' :
                                      bulkAssetType === 'PANIC_BUTTON' ? 'RF Freq' : 'Meta 1'}
-                                  </th>
-                                  <th className="p-2">
+                                  </TableHead>
+                                  <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">
                                     {bulkAssetType === 'SIM' ? 'Carrier' :
                                      bulkAssetType === 'SD_CARD' ? 'Speed' :
                                      bulkAssetType === 'TRACKER' ? 'HW Rev' :
                                      bulkAssetType === 'PANIC_BUTTON' ? 'Color' : 'Meta 2'}
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-border font-mono">
+                                  </TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody className="font-mono">
                                 {getMappedPreviewRows().map((row, idx) => (
-                                  <tr key={idx} className="hover:bg-muted/10 bg-card">
-                                    <td className="p-2 px-3 text-foreground font-semibold">{row.identifier || <span className="text-muted-foreground italic">empty</span>}</td>
-                                    <td className="p-2 text-foreground">{row.meta1 || <span className="text-muted-foreground italic">-</span>}</td>
-                                    <td className="p-2 text-foreground">{row.meta2 || <span className="text-muted-foreground italic">-</span>}</td>
-                                  </tr>
+                                  <TableRow key={idx}>
+                                    <TableCell className="px-3 text-foreground font-semibold">{row.identifier || <span className="text-muted-foreground italic">empty</span>}</TableCell>
+                                    <TableCell className="text-foreground">{row.meta1 || <span className="text-muted-foreground italic">-</span>}</TableCell>
+                                    <TableCell className="text-foreground">{row.meta2 || <span className="text-muted-foreground italic">-</span>}</TableCell>
+                                  </TableRow>
                                 ))}
-                              </tbody>
-                            </table>
+                              </TableBody>
+                            </Table>
                           </div>
                         </div>
 
@@ -1643,48 +1645,48 @@ export const DeviceInventory = () => {
 
                           <div className="overflow-x-auto">
                             {bulkIngestList.length > 0 ? (
-                              <table className="w-full text-xs text-left">
-                                <thead className="bg-muted/30 border-b border-border text-[10px] font-semibold text-muted-foreground uppercase sticky top-0 z-10">
-                                  <tr className="bg-card">
-                                    <th className="p-2 px-4">Serial / ISN</th>
+                              <Table>
+                                <TableHeader>
+                                  <TableRow className="bg-card hover:bg-transparent">
+                                    <TableHead className="px-4 text-[10px] font-semibold text-muted-foreground uppercase">Serial / ISN</TableHead>
 
                                     {/* Dynamic headers depending on asset type */}
                                     {bulkAssetType === 'SIM' && (
                                       <>
-                                        <th className="p-2">Phone Number (MSISDN)</th>
-                                        <th className="p-2">Carrier</th>
+                                        <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">Phone Number (MSISDN)</TableHead>
+                                        <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">Carrier</TableHead>
                                       </>
                                     )}
                                     {bulkAssetType === 'TRACKER' && (
                                       <>
-                                        <th className="p-2">Firmware</th>
-                                        <th className="p-2">HW Revision</th>
+                                        <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">Firmware</TableHead>
+                                        <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">HW Revision</TableHead>
                                       </>
                                     )}
                                     {bulkAssetType === 'SD_CARD' && (
                                       <>
-                                        <th className="p-2">Capacity</th>
-                                        <th className="p-2">Speed Class</th>
+                                        <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">Capacity</TableHead>
+                                        <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">Speed Class</TableHead>
                                       </>
                                     )}
                                     {bulkAssetType === 'PANIC_BUTTON' && (
                                       <>
-                                        <th className="p-2">RF Frequency</th>
-                                        <th className="p-2">Color</th>
+                                        <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">RF Frequency</TableHead>
+                                        <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">Color</TableHead>
                                       </>
                                     )}
 
-                                    <th className="p-2 text-right">Actions</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-border font-mono">
+                                    <TableHead className="px-2 text-right text-[10px] font-semibold text-muted-foreground uppercase">Actions</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody className="font-mono">
                                   {bulkIngestList.map((item, idx) => (
-                                    <tr key={idx} className="hover:bg-muted/30 transition-colors">
-                                      <td className="p-2 px-4 font-medium tracking-mono">{item.identifier}</td>
+                                    <TableRow key={idx} className="hover:bg-muted/30 transition-colors">
+                                      <TableCell className="px-4 font-medium tracking-mono text-xs">{item.identifier}</TableCell>
 
                                       {bulkAssetType === 'SIM' && (
                                         <>
-                                          <td className="p-1">
+                                          <TableCell className="p-1">
                                             <input 
                                               type="text" 
                                               placeholder="Phone number" 
@@ -1692,8 +1694,8 @@ export const DeviceInventory = () => {
                                               onChange={(e) => handleUpdateItemMeta(idx, 'phoneNumber', e.target.value)}
                                               className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
                                             />
-                                          </td>
-                                          <td className="p-1">
+                                          </TableCell>
+                                          <TableCell className="p-1">
                                             <input 
                                               type="text" 
                                               placeholder="Carrier" 
@@ -1701,13 +1703,13 @@ export const DeviceInventory = () => {
                                               onChange={(e) => handleUpdateItemMeta(idx, 'carrier', e.target.value)}
                                               className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
                                             />
-                                          </td>
+                                          </TableCell>
                                         </>
                                       )}
 
                                       {bulkAssetType === 'TRACKER' && (
                                         <>
-                                          <td className="p-1">
+                                          <TableCell className="p-1">
                                             <input 
                                               type="text" 
                                               placeholder="e.g. v1.2" 
@@ -1715,8 +1717,8 @@ export const DeviceInventory = () => {
                                               onChange={(e) => handleUpdateItemMeta(idx, 'firmware', e.target.value)}
                                               className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
                                             />
-                                          </td>
-                                          <td className="p-1">
+                                          </TableCell>
+                                          <TableCell className="p-1">
                                             <input 
                                               type="text" 
                                               placeholder="e.g. REV_A" 
@@ -1724,13 +1726,13 @@ export const DeviceInventory = () => {
                                               onChange={(e) => handleUpdateItemMeta(idx, 'hwRevision', e.target.value)}
                                               className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
                                             />
-                                          </td>
+                                          </TableCell>
                                         </>
                                       )}
 
                                       {bulkAssetType === 'SD_CARD' && (
                                         <>
-                                          <td className="p-1">
+                                          <TableCell className="p-1">
                                             <input 
                                               type="text" 
                                               placeholder="e.g. 64GB" 
@@ -1738,8 +1740,8 @@ export const DeviceInventory = () => {
                                               onChange={(e) => handleUpdateItemMeta(idx, 'capacity', e.target.value)}
                                               className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
                                             />
-                                          </td>
-                                          <td className="p-1">
+                                          </TableCell>
+                                          <TableCell className="p-1">
                                             <input 
                                               type="text" 
                                               placeholder="e.g. U3" 
@@ -1747,13 +1749,13 @@ export const DeviceInventory = () => {
                                               onChange={(e) => handleUpdateItemMeta(idx, 'speedClass', e.target.value)}
                                               className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
                                             />
-                                          </td>
+                                          </TableCell>
                                         </>
                                       )}
 
                                       {bulkAssetType === 'PANIC_BUTTON' && (
                                         <>
-                                          <td className="p-1">
+                                          <TableCell className="p-1">
                                             <input 
                                               type="text" 
                                               placeholder="e.g. 433MHz" 
@@ -1761,8 +1763,8 @@ export const DeviceInventory = () => {
                                               onChange={(e) => handleUpdateItemMeta(idx, 'rfFrequency', e.target.value)}
                                               className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
                                             />
-                                          </td>
-                                          <td className="p-1">
+                                          </TableCell>
+                                          <TableCell className="p-1">
                                             <input 
                                               type="text" 
                                               placeholder="e.g. Red" 
@@ -1770,26 +1772,28 @@ export const DeviceInventory = () => {
                                               onChange={(e) => handleUpdateItemMeta(idx, 'buttonColor', e.target.value)}
                                               className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
                                             />
-                                          </td>
+                                          </TableCell>
                                         </>
                                       )}
 
-                                      <td className="p-2 text-right">
+                                      <TableCell className="px-2 text-right">
                                         <button 
                                           onClick={() => setBulkIngestList(bulkIngestList.filter((_, i) => i !== idx))} 
                                           className="text-[10px] text-destructive hover:underline font-sans font-semibold"
                                         >
                                           Remove
                                         </button>
-                                      </td>
-                                    </tr>
+                                      </TableCell>
+                                    </TableRow>
                                   ))}
-                                </tbody>
-                              </table>
+                                </TableBody>
+                              </Table>
                             ) : (
-                              <div className="text-center py-8 text-xs text-muted-foreground italic font-sans">
-                                No devices prepared yet. Scan barcodes or drop a CSV file to begin.
-                              </div>
+                              <EmptyState
+                                icon={Scan}
+                                title="No devices prepared"
+                                description="Scan barcodes or drop a CSV file to begin."
+                              />
                             )}
                           </div>
                         </div>
@@ -1899,9 +1903,11 @@ export const DeviceInventory = () => {
                             </div>
                           ))
                         ) : (
-                          <div className="text-center py-8 text-xs text-muted-foreground italic font-sans">
-                            No linking relationships prepared. Scan pairs or upload CSV schema matrix.
-                          </div>
+                          <EmptyState
+                            icon={LinkIcon}
+                            title="No relationships prepared"
+                            description="Scan parent/child barcode pairs or upload a CSV schema mapping matrix."
+                          />
                         )}
                       </div>
                     </div>
@@ -2311,9 +2317,13 @@ export const DeviceInventory = () => {
                   </TableRow>
                 ))
               ) : (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center p-8 text-sm text-muted-foreground">
-                    No matching devices in inventory database.
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={8} className="p-8">
+                    <EmptyState
+                      icon={Search}
+                      title="No devices found"
+                      description="No matching devices in inventory database. Try modifying your filters or search query."
+                    />
                   </TableCell>
                 </TableRow>
               )}
@@ -2363,7 +2373,7 @@ export const DeviceInventory = () => {
             onClick={() => setViewModalDevice(null)}
           >
             <div 
-              className="border border-border p-6 rounded-xl bg-card shadow-lg max-w-lg w-full relative space-y-4 animate-in fade-in zoom-in-95 duration-150"
+              className="border border-border p-6 rounded-lg bg-card shadow-lg max-w-lg w-full relative space-y-4 animate-in fade-in zoom-in-95 duration-150"
               onClick={(e) => e.stopPropagation()}
             >
               <button 
@@ -2397,52 +2407,53 @@ export const DeviceInventory = () => {
               </div>
 
               {deviceDetailTab === 'info' ? (
-                <div className="space-y-3.5 text-sm text-left">
-                  <div className="grid grid-cols-3 py-1 border-b border-border/40">
-                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Identifier</span>
-                    <span className="col-span-2 font-mono font-semibold text-foreground tracking-mono">{viewModalDevice.identifier}</span>
-                  </div>
-                  <div className="grid grid-cols-3 py-1 border-b border-border/40">
-                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Asset Class</span>
-                    <span className="col-span-2">
-                      <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-secondary text-secondary-foreground border-border">
-                        {viewModalDevice.type}
+                <div className="space-y-4 text-xs text-left">
+                  {/* High Density Grid */}
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 border border-border/60 rounded-md bg-muted/20 p-3">
+                    <div className="flex flex-col justify-center py-1 border-b border-border/30">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Identifier</span>
+                      <span className="font-mono font-semibold text-foreground tracking-mono text-xs truncate">{viewModalDevice.identifier}</span>
+                    </div>
+                    <div className="flex flex-col justify-center py-1 border-b border-border/30">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Asset Class</span>
+                      <span>
+                        <span className="inline-flex items-center rounded-md border px-1.5 py-0.25 text-[10px] font-bold bg-secondary text-secondary-foreground border-border">
+                          {viewModalDevice.type}
+                        </span>
                       </span>
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 py-1 border-b border-border/40">
-                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Template Model</span>
-                    <span className="col-span-2 font-medium text-foreground">{viewModalDevice.modelName}</span>
-                  </div>
-                  <div className="grid grid-cols-3 py-1 border-b border-border/40">
-                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Current Status</span>
-                    <span className="col-span-2 font-semibold">
-                      <span className="inline-flex items-center gap-2">
-                        <span className={`h-2 w-2 rounded-full ${
+                    </div>
+                    <div className="flex flex-col justify-center py-1 border-b border-border/30">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Template Model</span>
+                      <span className="font-medium text-foreground text-xs truncate">{viewModalDevice.modelName}</span>
+                    </div>
+                    <div className="flex flex-col justify-center py-1 border-b border-border/30">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Current Status</span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className={`h-1.5 w-1.5 rounded-full ${
                           viewModalDevice.status === 'IN_STOCK' ? 'bg-emerald-500' :
                           viewModalDevice.status === 'DISPATCHED' ? 'bg-blue-500' :
                           viewModalDevice.status === 'TESTING' ? 'bg-amber-500' :
                           'bg-destructive'
                         }`} />
-                        <span className="text-xs font-semibold">{viewModalDevice.status.replace('_', ' ')}</span>
+                        <span className="font-semibold text-xs text-foreground uppercase tracking-tight">{viewModalDevice.status.replace('_', ' ')}</span>
                       </span>
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 py-1 border-b border-border/40">
-                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Paired Linkages</span>
-                    <span className="col-span-2 font-medium text-foreground">
-                      {viewModalDevice.linked > 0 ? `${viewModalDevice.linked} active links` : 'Stand-alone'}
-                    </span>
+                    </div>
+                    <div className="flex flex-col justify-center py-1 border-b border-border/30 col-span-2 last:border-0 font-sans">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Paired Linkages</span>
+                      <span className="font-medium text-foreground text-xs">
+                        {viewModalDevice.linked > 0 ? `${viewModalDevice.linked} active links` : 'Stand-alone'}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider block mb-1">Device Attributes</span>
+                  <div className="space-y-1 font-sans">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">Device Attributes</span>
                     {viewModalDevice.metadata && Object.keys(viewModalDevice.metadata).length > 0 ? (
-                      <div className="bg-muted/40 border border-border/80 rounded-lg p-3 text-xs space-y-2">
+                      <div className="bg-muted/40 border border-border/60 rounded-md p-3 text-xs grid grid-cols-2 gap-x-6 gap-y-2">
                         {Object.entries(viewModalDevice.metadata).map(([k, v]) => (
-                          <div key={k} className="flex justify-between py-0.5 border-b border-border/30 last:border-0">
-                            <span className="font-semibold text-muted-foreground capitalize">{k.replace(/([A-Z])/g, ' $1')}:</span>
-                            <span className="font-mono text-foreground font-semibold">{String(v)}</span>
+                          <div key={k} className="flex flex-col justify-center py-1 border-b border-border/20 last:border-0">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{k.replace(/([A-Z])/g, ' $1')}:</span>
+                            <span className="font-mono text-foreground font-semibold text-xs truncate">{String(v)}</span>
                           </div>
                         ))}
                       </div>
@@ -2460,8 +2471,12 @@ export const DeviceInventory = () => {
                       <Skeleton className="h-12 w-full" />
                     </div>
                   ) : auditLogs.length === 0 ? (
-                    <div className="text-center py-8 text-xs text-muted-foreground italic">
-                      No activity logs found for this device.
+                    <div className="py-4">
+                      <EmptyState
+                        icon={History}
+                        title="No activity history"
+                        description="No activity logs found for this device."
+                      />
                     </div>
                   ) : (
                     <div className="relative border-l border-border pl-6 ml-3 space-y-6 text-left">
@@ -2537,7 +2552,7 @@ export const DeviceInventory = () => {
               onClick={() => setLinkModalDevice(null)}
             >
               <div 
-                className="border border-border p-6 rounded-xl bg-card shadow-lg max-w-lg w-full max-h-[90vh] overflow-y-auto relative space-y-6 animate-in fade-in zoom-in-95 duration-150"
+                className="border border-border p-6 rounded-lg bg-card shadow-lg max-w-lg w-full max-h-[90vh] overflow-y-auto relative space-y-6 animate-in fade-in zoom-in-95 duration-150"
                 onClick={(e) => e.stopPropagation()}
               >
                 <button 
@@ -2657,9 +2672,12 @@ export const DeviceInventory = () => {
 
                         if (parentCandidates.length === 0) {
                           return (
-                            <div className="text-xs text-muted-foreground italic p-2.5 border border-dashed border-border rounded-lg text-center bg-muted/5">
-                              No compatible in-stock parent hardware available.
-                            </div>
+                            <EmptyState
+                              icon={Cpu}
+                              title="No parents available"
+                              description="No compatible in-stock parent hardware available."
+                              className="p-4"
+                            />
                           );
                         }
 
@@ -2720,9 +2738,12 @@ export const DeviceInventory = () => {
                                   </button>
                                 ))
                               ) : (
-                                <div className="p-3 text-center text-muted-foreground italic text-xs">
-                                  No matching compatible parent devices.
-                                </div>
+                                <EmptyState
+                                  icon={Search}
+                                  title="No parents found"
+                                  description="No matching compatible parent devices."
+                                  className="p-4 border-none bg-transparent animate-none"
+                                />
                               )}
                               </div>
                             </ScrollArea>
@@ -2899,17 +2920,23 @@ export const DeviceInventory = () => {
                                   </button>
                                 ))
                               ) : (
-                                <div className="p-3 text-center text-muted-foreground italic text-xs">
-                                  No matching compatible child components.
-                                </div>
+                                <EmptyState
+                                  icon={Search}
+                                  title="No children found"
+                                  description="No matching compatible child components."
+                                  className="p-4 border-none bg-transparent animate-none"
+                                />
                               )}
                               </div>
                             </ScrollArea>
                           </div>
                         ) : (
-                          <div className="text-xs text-muted-foreground italic p-2.5 border border-dashed border-border rounded-lg text-center bg-muted/5">
-                            No compatible in-stock child components available.
-                          </div>
+                          <EmptyState
+                            icon={Cpu}
+                            title="No children available"
+                            description="No compatible in-stock child components available."
+                            className="p-4"
+                          />
                         )}
                       </div>
                     );

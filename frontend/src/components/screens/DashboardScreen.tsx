@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ShieldAlert, CheckCircle, Database, Layers, ArrowUpRight, Scan, FileSpreadsheet, RefreshCw, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { AppShell } from '../layout/AppShell';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface DashboardStats {
   totalDevices: number;
@@ -263,14 +264,14 @@ export const DashboardScreen = () => {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           {isLoading ? (
             Array(5).fill(0).map((_, i) => (
-              <div key={i} className="rounded-xl border border-border bg-card p-6 shadow-sm animate-pulse space-y-3">
+              <div key={i} className="rounded-lg border border-border bg-card p-6 shadow-sm animate-pulse space-y-3">
                 <div className="h-4 bg-muted rounded w-2/3" />
                 <div className="h-8 bg-muted rounded w-1/2" />
               </div>
             ))
           ) : (
             <>
-              <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
                 <div className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Hardware</span>
                   <Database className="h-4 w-4 text-primary" />
@@ -281,7 +282,7 @@ export const DashboardScreen = () => {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
                 <div className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Active Dispatched</span>
                   <ArrowUpRight className="h-4 w-4 text-emerald-500" />
@@ -292,7 +293,7 @@ export const DashboardScreen = () => {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
                 <div className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">QC Testing Bench</span>
                   <Layers className="h-4 w-4 text-amber-500" />
@@ -303,7 +304,7 @@ export const DashboardScreen = () => {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
                 <div className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">In Stock Ready</span>
                   <CheckCircle className="h-4 w-4 text-primary" />
@@ -314,7 +315,7 @@ export const DashboardScreen = () => {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
                 <div className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">QC Pass Rate</span>
                   <TrendingUp className="h-4 w-4 text-emerald-500" />
@@ -331,7 +332,7 @@ export const DashboardScreen = () => {
         {/* Analytics & Graphs row */}
         <div className="grid gap-6 md:grid-cols-2">
           {/* Dispatch Trend SVG Chart */}
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col justify-between">
+          <div className="rounded-lg border border-border bg-card p-6 shadow-sm flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-3">
@@ -490,7 +491,7 @@ export const DashboardScreen = () => {
           </div>
 
           {/* Hardware Breakdown Donut equivalent */}
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col justify-between">
+          <div className="rounded-lg border border-border bg-card p-6 shadow-sm flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-center mb-2">
                 <h3 className="font-semibold text-sm">Asset Type Distribution</h3>
@@ -507,7 +508,7 @@ export const DashboardScreen = () => {
             ) : totalBreakdownCount > 0 ? (
               <div className="space-y-6">
                 {/* Horizontal Segmented Bar chart */}
-                <div className="w-full h-3.5 rounded-full overflow-hidden flex bg-muted">
+                <div className="w-full h-3 rounded-md overflow-hidden flex bg-muted border border-border/40">
                   {breakdown.map((item, idx) => {
                     const widthPct = (item.count / totalBreakdownCount) * 100;
                     if (widthPct === 0) return null;
@@ -515,7 +516,7 @@ export const DashboardScreen = () => {
                       <div 
                         key={idx}
                         style={{ width: `${widthPct}%` }}
-                        className={`${getAssetColor(item.type)} h-full first:rounded-l-full last:rounded-r-full`}
+                        className={`${getAssetColor(item.type)} h-full first:rounded-l-[4px] last:rounded-r-[4px]`}
                         title={`${item.type}: ${item.count} items (${Math.round(widthPct)}%)`}
                       />
                     );
@@ -549,7 +550,7 @@ export const DashboardScreen = () => {
         </div>
 
         {/* Hardware Template Registry & Stock Health Panel */}
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <div>
               <h3 className="font-semibold text-sm">Hardware Template Registry & Stock Health</h3>
@@ -581,7 +582,7 @@ export const DashboardScreen = () => {
               {Array.from({ length: 3 }).map((_, idx) => (
                 <div key={idx} className="animate-pulse space-y-2">
                   <div className="h-4 bg-muted rounded w-48" />
-                  <div className="h-2.5 bg-muted rounded-full w-full" />
+                  <div className="h-2.5 bg-muted rounded-md w-full" />
                 </div>
               ))}
             </div>
@@ -627,14 +628,14 @@ export const DashboardScreen = () => {
                       </div>
                     </div>
                     {hasTarget ? (
-                      <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                      <div className="w-full h-2 rounded-md bg-muted overflow-hidden border border-border/20">
                         <div
-                          className={`h-full rounded-full transition-all duration-700 ${barColor}`}
+                          className={`h-full rounded-md transition-all duration-700 ${barColor}`}
                           style={{ width: `${pct}%` }}
                         />
                       </div>
                     ) : (
-                      <div className="w-full h-2 rounded-full bg-muted/40 border border-dashed border-border" />
+                      <div className="w-full h-2 rounded-md bg-muted/40 border border-dashed border-border" />
                     )}
                     <div className="flex justify-between text-[10px] text-muted-foreground">
                       <span>{profile.dispatched} dispatched · {profile.inTesting} testing · {profile.total} total</span>
@@ -653,46 +654,58 @@ export const DashboardScreen = () => {
 
         <div className="grid gap-6 md:grid-cols-7">
           {/* Recent Warehouse Logs */}
-          <div className="col-span-4 rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col justify-between">
+          <div className="col-span-4 rounded-lg border border-border bg-card p-6 shadow-sm flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold text-sm">Recent Operations Feed</h3>
                 <span className="text-[10px] text-muted-foreground uppercase font-semibold">Real-time database audits</span>
               </div>
-              <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
+              <ScrollArea className="h-[350px] pr-3">
                 {recentLogs.length > 0 ? (
-                  recentLogs.map((log) => (
-                    <div key={log.id} className="flex justify-between items-start gap-4 pb-3 border-b border-border/50 last:border-0 last:pb-0">
-                      <div className="space-y-1">
-                        <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[8px] font-mono font-semibold border ${
-                          log.actionType === 'INGEST' ? 'bg-secondary text-foreground border-border' :
-                          log.actionType === 'LINK' ? 'bg-secondary text-foreground border-border' :
-                          log.actionType === 'DELETE' ? 'bg-destructive/10 text-destructive border-destructive/20' :
-                          'bg-secondary text-foreground border-border'
-                        }`}>
-                          {log.actionType}
-                        </span>
-                        <p className="text-xs font-medium text-foreground">{log.details}</p>
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                          <span>Operator</span>
-                          <span>•</span>
-                          <span>{formatTime(log.createdAt)}</span>
+                  <div className="relative border-l border-border/80 ml-2 pl-4 space-y-5 py-2">
+                    {recentLogs.map((log) => {
+                      const dotColor = log.actionType === 'INGEST' ? 'bg-emerald-500 border-emerald-500' :
+                                       log.actionType === 'DELETE' ? 'bg-destructive border-destructive' :
+                                       log.actionType === 'LINK' ? 'bg-blue-500 border-blue-500' :
+                                       'bg-primary border-primary';
+                      return (
+                        <div key={log.id} className="relative group">
+                          {/* Timeline dot */}
+                          <span className={`absolute -left-[20px] top-1.5 h-2 w-2 rounded-full border-2 border-card ${dotColor} ring-4 ring-card`} />
+                          
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[8px] font-mono font-semibold border ${
+                                log.actionType === 'INGEST' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' :
+                                log.actionType === 'LINK' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' :
+                                log.actionType === 'DELETE' ? 'bg-destructive/10 text-destructive border-destructive/20' :
+                                'bg-secondary text-foreground border-border'
+                              }`}>
+                                {log.actionType}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">{formatTime(log.createdAt)}</span>
+                            </div>
+                            <p className="text-xs font-medium text-foreground leading-relaxed">{log.details}</p>
+                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                              <span>Operator</span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  ))
+                      );
+                    })}
+                  </div>
                 ) : (
                   <div className="text-center py-12 text-xs text-muted-foreground italic">
                     No recent database logs registered.
                   </div>
                 )}
-              </div>
+              </ScrollArea>
             </div>
           </div>
 
           {/* Quick Actions Panel */}
           <div className="col-span-3 space-y-6">
-            <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
+            <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
               <h3 className="font-semibold text-sm">Quick Action Shortcuts</h3>
               <div className="grid grid-cols-1 gap-2">
                 <a 
@@ -731,7 +744,7 @@ export const DashboardScreen = () => {
             </div>
 
             {/* Recommendations / Low stock warning block */}
-            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-6 shadow-sm space-y-3">
+            <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-6 shadow-sm space-y-3">
               <div className="flex items-center gap-2 text-destructive">
                 <ShieldAlert className="h-4 w-4" />
                 <h3 className="font-semibold text-xs uppercase tracking-wider">Critical Recommendations</h3>
