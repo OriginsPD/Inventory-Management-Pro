@@ -1,10 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { Home, Database, Cpu, Menu, X, Shield, AlertCircle, Settings, Truck, CheckSquare, RefreshCw, Users } from 'lucide-react';
+import { CommandMenu } from '../ui/command-menu';
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const currentPath = window.location.pathname;
   const [stockAlerts, setStockAlerts] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Apply theme settings on load
+    const savedAccent = localStorage.getItem('ims_theme_accent') || 'zinc';
+    if (savedAccent && savedAccent !== 'zinc') {
+      document.documentElement.setAttribute('data-accent', savedAccent);
+    } else {
+      document.documentElement.removeAttribute('data-accent');
+    }
+
+    const savedDensity = localStorage.getItem('ims_layout_density') || 'default';
+    if (savedDensity === 'compact') {
+      document.documentElement.classList.add('density-compact');
+    } else {
+      document.documentElement.classList.remove('density-compact');
+    }
+  }, []);
 
   useEffect(() => {
     fetch('http://localhost:3002/api/stock-alerts')
@@ -164,6 +182,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
           </div>
         </main>
       </div>
+      <CommandMenu />
     </div>
   );
 };
