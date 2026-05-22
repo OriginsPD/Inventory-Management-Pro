@@ -16,11 +16,52 @@ import {
 interface Device {
   id: string;
   identifier: string;
+  modelId: string;
   modelName: string;
   type: string;
   status: string;
   metadata?: Record<string, any>;
 }
+
+// Browser HTML5 synthesised beep/buzz generators
+const playAudioTone = (frequency: number, duration: number, type: 'sine' | 'square' | 'sawtooth' | 'triangle' = 'sine') => {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = type;
+    osc.frequency.value = frequency;
+    
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch (e) {
+    console.warn("AudioContext failed to play beep", e);
+  }
+};
+
+const playSuccessBeep = () => {
+  playAudioTone(850, 0.08, 'sine');
+  setTimeout(() => playAudioTone(1250, 0.1, 'sine'), 70);
+  if (window.navigator && window.navigator.vibrate) {
+    window.navigator.vibrate([50, 30, 50]);
+  }
+};
+
+const playErrorBuzz = () => {
+  playAudioTone(170, 0.25, 'triangle');
+  if (window.navigator && window.navigator.vibrate) {
+    window.navigator.vibrate(200);
+  }
+};
 
 const swapSchema = z.object({
   oldDeviceId: z.string().min(1, 'Select the faulty active unit'),
@@ -71,7 +112,10 @@ export const HardwareSwaps = () => {
     try {
       const oldDevice = devices.find(d => d.id === values.oldDeviceId);
       const newDevice = devices.find(d => d.id === values.newDeviceId);
-      if (!oldDevice || !newDevice) return;
+      if (!oldDevice || !newDevice) {
+        playErrorBuzz();
+        return;
+      }
 
       const customerName = oldDevice.metadata?.customerName || 'RMA Replacement Client';
 
@@ -82,16 +126,21 @@ export const HardwareSwaps = () => {
         swappedAt: new Date().toISOString()
       };
       
-      await fetch(`http://localhost:3002/api/devices/${oldDevice.id}`, {
+      const resOld = await fetch(`http://localhost:3002/api/devices/${oldDevice.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           identifier: oldDevice.identifier,
-          modelId: oldDevice.id,
+          modelId: oldDevice.modelId,
           status: 'DAMAGED',
           metadata: updatedOldMetadata
         })
       });
+
+      if (!resOld.ok) {
+        playErrorBuzz();
+        return;
+      }
 
       // Step 2: Set new device status to DISPATCHED and copy customer details
       const updatedNewMetadata = {
@@ -102,25 +151,29 @@ export const HardwareSwaps = () => {
         swappedAt: new Date().toISOString()
       };
 
-      const res = await fetch(`http://localhost:3002/api/devices/${newDevice.id}`, {
+      const resNew = await fetch(`http://localhost:3002/api/devices/${newDevice.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           identifier: newDevice.identifier,
-          modelId: newDevice.id,
+          modelId: newDevice.modelId,
           status: 'DISPATCHED',
           metadata: updatedNewMetadata
         })
       });
 
-      if (res.ok) {
+      if (resNew.ok) {
         setSwapSuccess(true);
+        playSuccessBeep();
         reset();
         setTimeout(() => setSwapSuccess(false), 3000);
         fetchDevices();
+      } else {
+        playErrorBuzz();
       }
     } catch (e) {
       console.error(e);
+      playErrorBuzz();
     }
   };
 

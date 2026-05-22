@@ -24,6 +24,7 @@ const modelSchema = z.object({
   assetType: z.string().min(1, "Asset classification is required"),
   allowedChildren: z.array(z.string()).default([]),
   maxStock: z.coerce.number().int().min(0).default(0),
+  identifierPattern: z.string().optional(),
 });
 
 interface DeviceModel {
@@ -33,6 +34,7 @@ interface DeviceModel {
   assetType: string;
   allowedChildren: string[];
   maxStock: number;
+  identifierPattern?: string;
 }
 
 export const DeviceModels = () => {
@@ -66,6 +68,7 @@ export const DeviceModels = () => {
       assetType: 'TRACKER',
       allowedChildren: [] as string[],
       maxStock: 0,
+      identifierPattern: '',
     }
   });
 
@@ -104,6 +107,7 @@ export const DeviceModels = () => {
           assetType: values.assetType,
           allowedChildren: values.allowedChildren || [],
           maxStock: values.maxStock ?? 0,
+          identifierPattern: values.identifierPattern || null,
         }),
       });
       if (res.ok) {
@@ -138,6 +142,7 @@ export const DeviceModels = () => {
     setValue('assetType', model.assetType);
     setValue('allowedChildren', model.allowedChildren);
     setValue('maxStock', model.maxStock ?? 0);
+    setValue('identifierPattern', model.identifierPattern || '');
     setIsAdding(true);
   };
 
@@ -192,7 +197,14 @@ export const DeviceModels = () => {
                 ) : paginatedModels.length > 0 ? (
                   paginatedModels.map((model, index) => (
                     <tr key={model.id} className="transition-colors hover:bg-muted/50">
-                      <td className="p-4 align-middle font-semibold text-foreground">{model.name}</td>
+                      <td className="p-4 align-middle font-semibold text-foreground">
+                        <div>{model.name}</div>
+                        {model.identifierPattern && (
+                          <div className="text-[10px] text-amber-600 dark:text-amber-500 font-mono mt-0.5 font-normal">
+                            Pattern: {model.identifierPattern}
+                          </div>
+                        )}
+                      </td>
                       <td className="p-4 align-middle text-muted-foreground">{model.brand}</td>
                       <td className="p-4 align-middle">
                         <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-secondary text-secondary-foreground border-border">
@@ -455,6 +467,19 @@ export const DeviceModels = () => {
                 </div>
 
                 <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    Identifier Barcode Pattern (Regex)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ^TRK-\d{6}$"
+                    {...register('identifierPattern')}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Used to validate scanned identifiers (e.g. SIM cards, trackers). Empty disables validation.</p>
+                </div>
+
+                <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-2">
                     Allowed Components (Polymorphic Links)
                   </label>
@@ -539,6 +564,14 @@ export const DeviceModels = () => {
                       {viewModalModel.assetType}
                     </span>
                   </span>
+                </div>
+                <div className="grid grid-cols-3 py-1 border-b border-border/40">
+                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Max Stock Target</span>
+                  <span className="col-span-2 font-medium text-foreground">{viewModalModel.maxStock || 'None'}</span>
+                </div>
+                <div className="grid grid-cols-3 py-1 border-b border-border/40">
+                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Barcode Regex</span>
+                  <span className="col-span-2 font-mono text-xs bg-muted/60 px-1.5 py-0.5 rounded border border-border/50 text-amber-600 dark:text-amber-400 break-all">{viewModalModel.identifierPattern || 'None'}</span>
                 </div>
                 <div className="space-y-1">
                   <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider block mb-1">Allowed Sub-Components</span>

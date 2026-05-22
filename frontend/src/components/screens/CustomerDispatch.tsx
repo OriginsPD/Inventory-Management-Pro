@@ -27,6 +27,7 @@ import {
 interface Device {
   id: string;
   identifier: string;
+  modelId: string;
   modelName: string;
   type: string;
   status: string;
@@ -159,7 +160,7 @@ export const CustomerDispatch = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             identifier: selectedDevice.identifier,
-            modelId: selectedDevice.id,
+            modelId: selectedDevice.modelId,
             status: 'DISPATCHED',
             customerId: values.customerId,
             metadata: updatedMetadata
@@ -194,7 +195,7 @@ export const CustomerDispatch = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           identifier: selectedDevice.identifier,
-          modelId: selectedDevice.id,
+          modelId: selectedDevice.modelId,
           status: 'IN_STOCK',
           customerId: null,
           metadata: cleanMetadata
