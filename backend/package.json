@@ -1,0 +1,22 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "^1.1.1",
+    "@elysiajs/swagger": "^1.1.6",
+    "@ims-pro/shared": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "elysia": "^1.1.25",
+    "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "bun-types": "latest",
+    "drizzle-kit": "^0.31.10",
+    "typescript": "^5.0.0"
+  }
+}

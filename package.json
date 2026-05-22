@@ -1,0 +1,9 @@
+{
+  "name": "ims-pro-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "frontend",
+    "backend"
+  ]
+}
