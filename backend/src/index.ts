@@ -4,7 +4,7 @@ import { cors } from "@elysiajs/cors";
 import { randomUUID } from "crypto";
 import { db } from "./db/index.js";
 import * as schema from "./db/schema.js";
-import { eq, and, or, like, desc } from "drizzle-orm";
+import { eq, and, or, like, desc, sql } from "drizzle-orm";
 
 let useDb = false;
 
@@ -32,6 +32,8 @@ interface DeviceModel {
   brand: string;
   assetType: string;
   allowedChildren: string[];
+  maxStock?: number;
+  identifierPattern?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -72,6 +74,8 @@ interface AuditLog {
   actionType: string;
   details: string;
   createdAt: string;
+  deviceId?: string;
+  deviceIdentifier?: string;
 }
 
 let mockDeviceModels: DeviceModel[] = [
@@ -81,6 +85,8 @@ let mockDeviceModels: DeviceModel[] = [
     brand: "Amber Connect",
     assetType: "TRACKER",
     allowedChildren: ["SIM", "SD_CARD", "PANIC_BUTTON"],
+    maxStock: 10,
+    identifierPattern: "^TRK-\\d{6}$",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -90,6 +96,8 @@ let mockDeviceModels: DeviceModel[] = [
     brand: "KORE Wireless",
     assetType: "SIM",
     allowedChildren: [],
+    maxStock: 5,
+    identifierPattern: "^SIM-\\d{6}$",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -99,6 +107,8 @@ let mockDeviceModels: DeviceModel[] = [
     brand: "SanDisk",
     assetType: "SD_CARD",
     allowedChildren: [],
+    maxStock: 0,
+    identifierPattern: "^SD-\\d{5}$",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -108,6 +118,8 @@ let mockDeviceModels: DeviceModel[] = [
     brand: "Amber Connect",
     assetType: "PANIC_BUTTON",
     allowedChildren: [],
+    maxStock: 20,
+    identifierPattern: "^PANIC-\\d{5}$",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
@@ -185,12 +197,14 @@ let mockDeviceAuditLogs: AuditLog[] = [
 ];
 
 // Helper to write audit logs to Neon or in-memory
-async function writeAudit(action: string, text: string) {
+async function writeAudit(action: string, text: string, deviceId?: string, deviceIdentifier?: string) {
   if (useDb) {
     try {
       await db.insert(schema.deviceAuditLogs).values({
         actionType: action,
-        details: text
+        details: text,
+        deviceId: deviceId || null,
+        deviceIdentifier: deviceIdentifier || null
       });
     } catch (e) {
       console.error("Failed to write db audit log", e);
@@ -200,6 +214,8 @@ async function writeAudit(action: string, text: string) {
       id: randomUUID(),
       actionType: action,
       details: text,
+      deviceId: deviceId || undefined,
+      deviceIdentifier: deviceIdentifier || undefined,
       createdAt: new Date().toISOString()
     });
     // Cap at 100 entries for memory health
@@ -210,12 +226,166 @@ async function writeAudit(action: string, text: string) {
 }
 
 // Helper to infer device classification from serial string
-function inferAssetType(isn: string): string {
+function inferAssetType(isn: string, models: any[]): string {
   const upper = isn.toUpperCase();
+  
+  // 1. Try to match isn against each model's pattern
+  for (const m of models) {
+    if (m.identifierPattern) {
+      try {
+        const regex = new RegExp(m.identifierPattern, "i");
+        if (regex.test(isn)) {
+          return m.assetType;
+        }
+      } catch (e) {
+        console.error(`Invalid regex pattern on model ${m.name}:`, m.identifierPattern);
+      }
+    }
+  }
+
+  // 2. Fallback to legacy heuristic matching
   if (upper.includes("SIM") || upper.startsWith("ICC")) return "SIM";
   if (upper.includes("SD")) return "SD_CARD";
   if (upper.includes("SOS") || upper.includes("PANIC") || upper.includes("FOB")) return "PANIC_BUTTON";
   return "TRACKER";
+}
+
+// Strict tree hierarchy helpers
+async function hasParentDb(deviceId: string): Promise<boolean> {
+  try {
+    const parentRes = await db
+      .select()
+      .from(schema.deviceRelationships)
+      .where(eq(schema.deviceRelationships.linkedDeviceId, deviceId))
+      .limit(1);
+    return parentRes.length > 0;
+  } catch (e) {
+    console.error("Error in hasParentDb:", e);
+    return false;
+  }
+}
+
+function hasParentMemory(deviceId: string): boolean {
+  return mockDeviceRelationships.some(r => r.linkedDeviceId === deviceId);
+}
+
+async function isAncestorDb(possibleAncestorId: string, currentDeviceId: string): Promise<boolean> {
+  if (possibleAncestorId === currentDeviceId) return true;
+  try {
+    const parentRes = await db
+      .select()
+      .from(schema.deviceRelationships)
+      .where(eq(schema.deviceRelationships.linkedDeviceId, currentDeviceId))
+      .limit(1);
+    
+    if (parentRes.length > 0 && parentRes[0]) {
+      const parentId = parentRes[0].primaryDeviceId;
+      if (parentId === possibleAncestorId) return true;
+      return await isAncestorDb(possibleAncestorId, parentId);
+    }
+  } catch (e) {
+    console.error("Error in isAncestorDb:", e);
+  }
+  return false;
+}
+
+function isAncestorMemory(possibleAncestorId: string, currentDeviceId: string): boolean {
+  if (possibleAncestorId === currentDeviceId) return true;
+  const rel = mockDeviceRelationships.find(r => r.linkedDeviceId === currentDeviceId);
+  if (rel) {
+    const parentId = rel.primaryDeviceId;
+    if (parentId === possibleAncestorId) return true;
+    return isAncestorMemory(possibleAncestorId, parentId);
+  }
+  return false;
+}
+
+async function cascadeDeviceStatusDb(
+  deviceId: string,
+  status: string,
+  customerId: string | null,
+  metadata: any
+): Promise<void> {
+  try {
+    const relationships = await db
+      .select()
+      .from(schema.deviceRelationships)
+      .where(eq(schema.deviceRelationships.primaryDeviceId, deviceId));
+
+    for (const rel of relationships) {
+      const childRes = await db
+        .select()
+        .from(schema.devices)
+        .where(eq(schema.devices.id, rel.linkedDeviceId))
+        .limit(1);
+
+      const child = childRes[0];
+      if (child) {
+        const childMetadata = {
+          ...(child.metadata as Record<string, any> || {}),
+          customerName: metadata.customerName,
+          dispatchedAt: metadata.dispatchedAt,
+          swappedAt: metadata.swappedAt,
+          qcStatus: metadata.qcStatus,
+          qcTestedAt: metadata.qcTestedAt
+        };
+        if (!metadata.customerName) delete childMetadata.customerName;
+        if (!metadata.dispatchedAt) delete childMetadata.dispatchedAt;
+
+        await db
+          .update(schema.devices)
+          .set({
+            status: status as any,
+            customerId: customerId,
+            metadata: childMetadata,
+            updatedAt: new Date()
+          })
+          .where(eq(schema.devices.id, rel.linkedDeviceId));
+
+        await cascadeDeviceStatusDb(rel.linkedDeviceId, status, customerId, metadata);
+      }
+    }
+  } catch (e) {
+    console.error("Error cascading status in DB:", e);
+  }
+}
+
+function cascadeDeviceStatusMemory(
+  deviceId: string,
+  status: string,
+  customerId: string | undefined,
+  metadata: any
+): void {
+  const relationships = mockDeviceRelationships.filter(r => r.primaryDeviceId === deviceId);
+  for (const rel of relationships) {
+    const childIdx = mockDevices.findIndex(d => d.id === rel.linkedDeviceId);
+    if (childIdx !== -1) {
+      const child = mockDevices[childIdx];
+      if (child) {
+        const childMetadata = {
+          ...(child.metadata || {}),
+          customerName: metadata.customerName,
+          dispatchedAt: metadata.dispatchedAt,
+          swappedAt: metadata.swappedAt,
+          qcStatus: metadata.qcStatus,
+          qcTestedAt: metadata.qcTestedAt
+        };
+        if (!metadata.customerName) delete childMetadata.customerName;
+        if (!metadata.dispatchedAt) delete childMetadata.dispatchedAt;
+
+        const updatedChild: Device = {
+          ...child,
+          status,
+          customerId,
+          metadata: childMetadata,
+          updatedAt: new Date().toISOString()
+        };
+        mockDevices[childIdx] = updatedChild;
+
+        cascadeDeviceStatusMemory(rel.linkedDeviceId, status, customerId, metadata);
+      }
+    }
+  }
 }
 
 const app = new Elysia()
@@ -277,7 +447,7 @@ const app = new Elysia()
 
       result.push({
         day: dateStr,
-        dispatches: baseline[6 - i] + realCount
+        dispatches: (baseline[6 - i] ?? 0) + realCount
       });
     }
     return result;
@@ -347,6 +517,7 @@ const app = new Elysia()
         assetType: (body.assetType || "TRACKER") as any,
         allowedChildren: body.allowedChildren || [],
         maxStock: body.maxStock || 0,
+        identifierPattern: body.identifierPattern || null,
       };
 
       if (useDb) {
@@ -361,6 +532,7 @@ const app = new Elysia()
       const newModel: DeviceModel = {
         id: randomUUID(),
         ...payload,
+        identifierPattern: payload.identifierPattern || undefined,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -373,7 +545,8 @@ const app = new Elysia()
         brand: t.String(),
         assetType: t.Optional(t.String()),
         allowedChildren: t.Optional(t.Array(t.String())),
-        maxStock: t.Optional(t.Number())
+        maxStock: t.Optional(t.Number()),
+        identifierPattern: t.Optional(t.Nullable(t.String()))
       })
     })
     .put("/:id", async ({ params, body }) => {
@@ -383,6 +556,7 @@ const app = new Elysia()
         assetType: (body.assetType || "TRACKER") as any,
         allowedChildren: body.allowedChildren || [],
         maxStock: body.maxStock ?? 0,
+        identifierPattern: body.identifierPattern || null,
       };
 
       if (useDb) {
@@ -401,20 +575,25 @@ const app = new Elysia()
 
       const idx = mockDeviceModels.findIndex(m => m.id === params.id);
       if (idx === -1) return { error: "Not found" };
+      const model = mockDeviceModels[idx];
+      if (!model) return { error: "Not found" };
       
-      mockDeviceModels[idx] = {
-        ...mockDeviceModels[idx],
+      const updatedModel: DeviceModel = {
+        ...model,
         ...payload,
+        identifierPattern: payload.identifierPattern || undefined,
         updatedAt: new Date().toISOString()
       };
-      return mockDeviceModels[idx];
+      mockDeviceModels[idx] = updatedModel;
+      return updatedModel;
     }, {
       body: t.Object({
         name: t.String(),
         brand: t.String(),
         assetType: t.Optional(t.String()),
         allowedChildren: t.Optional(t.Array(t.String())),
-        maxStock: t.Optional(t.Number())
+        maxStock: t.Optional(t.Number()),
+        identifierPattern: t.Optional(t.Nullable(t.String()))
       })
     })
     .delete("/:id", async ({ params }) => {
@@ -549,6 +728,20 @@ const app = new Elysia()
     // Single Entry
     .post("/", async ({ body }) => {
       const metadata = body.metadata || {};
+      const allModels = useDb ? await db.select().from(schema.deviceModels) : mockDeviceModels;
+      const model = allModels.find(m => m.id === body.modelId);
+      
+      if (model && model.identifierPattern) {
+        try {
+          const regex = new RegExp(model.identifierPattern, "i");
+          if (!regex.test(body.identifier)) {
+            return { error: `Device identifier '${body.identifier}' does not match validation pattern '${model.identifierPattern}'` };
+          }
+        } catch (e) {
+          console.error("Invalid regex format configured:", model.identifierPattern);
+        }
+      }
+
       if (useDb) {
         try {
           const payload = {
@@ -560,7 +753,8 @@ const app = new Elysia()
           const inserted = await db.insert(schema.devices).values(payload).returning();
           
           // Audit
-          await writeAudit("INGEST", `Registered single device '${body.identifier}' in stock`);
+          const insertedId = inserted[0]?.id;
+          await writeAudit("INGEST", `Registered single device '${body.identifier}' in stock`, insertedId, body.identifier);
           
           return inserted[0];
         } catch (e: any) {
@@ -585,7 +779,7 @@ const app = new Elysia()
       mockDevices.push(newDevice);
       
       // Audit
-      await writeAudit("INGEST", `Registered single device '${body.identifier}' in stock`);
+      await writeAudit("INGEST", `Registered single device '${body.identifier}' in stock`, newDevice.id, body.identifier);
       
       return newDevice;
     }, {
@@ -602,18 +796,32 @@ const app = new Elysia()
     .post("/bulk", async ({ body }) => {
       const added: any[] = [];
       const errors: string[] = [];
+      const allModels = useDb ? await db.select().from(schema.deviceModels) : mockDeviceModels;
 
       if (useDb) {
         try {
           for (const item of body.devices) {
             try {
+              // Pattern Validation
+              const model = allModels.find(m => m.id === item.modelId);
+              if (model && model.identifierPattern) {
+                const regex = new RegExp(model.identifierPattern, "i");
+                if (!regex.test(item.identifier)) {
+                  errors.push(`Device '${item.identifier}': Does not match validation pattern '${model.identifierPattern}'`);
+                  continue;
+                }
+              }
+
               const inserted = await db.insert(schema.devices).values({
                 identifier: item.identifier,
                 modelId: item.modelId,
                 status: (item.status || "IN_STOCK") as any,
                 metadata: item.metadata || {}
               }).returning();
-              added.push(inserted[0]);
+              if (inserted[0]) {
+                added.push(inserted[0]);
+                await writeAudit("INGEST", `Registered single device '${item.identifier}' in stock via bulk upload`, inserted[0].id, item.identifier);
+              }
             } catch (e: any) {
               errors.push(`Device '${item.identifier}': ${e.message}`);
             }
@@ -628,6 +836,20 @@ const app = new Elysia()
       }
 
       for (const item of body.devices) {
+        // Pattern Validation
+        const model = allModels.find(m => m.id === item.modelId);
+        if (model && model.identifierPattern) {
+          try {
+            const regex = new RegExp(model.identifierPattern, "i");
+            if (!regex.test(item.identifier)) {
+              errors.push(`Device '${item.identifier}': Does not match validation pattern '${model.identifierPattern}'`);
+              continue;
+            }
+          } catch (e) {
+            console.error("Invalid regex format configured:", model.identifierPattern);
+          }
+        }
+
         const existing = mockDevices.find(d => d.identifier === item.identifier);
         if (existing) {
           errors.push(`Device '${item.identifier}' already exists`);
@@ -645,6 +867,7 @@ const app = new Elysia()
         };
         mockDevices.push(newDevice);
         added.push(newDevice);
+        await writeAudit("INGEST", `Registered single device '${item.identifier}' in stock via bulk upload`, newDevice.id, item.identifier);
       }
 
       if (added.length > 0) {
@@ -673,7 +896,8 @@ const app = new Elysia()
           for (const id of body.ids) {
             try {
               const dev = await db.select().from(schema.devices).where(eq(schema.devices.id, id));
-              if (dev.length > 0) {
+              const deviceObj = dev[0];
+              if (deviceObj) {
                 // Delete relationships first to avoid constraint issues
                 await db.delete(schema.deviceRelationships).where(
                   or(
@@ -683,7 +907,7 @@ const app = new Elysia()
                 );
                 await db.delete(schema.devices).where(eq(schema.devices.id, id));
                 deletedIds.push(id);
-                await writeAudit("DELETE", `Removed device '${dev[0].identifier}' via bulk delete`);
+                await writeAudit("DELETE", `Removed device '${deviceObj.identifier}' via bulk delete`);
               }
             } catch (e: any) {
               errors.push(`Device ID '${id}': ${e.message}`);
@@ -698,11 +922,14 @@ const app = new Elysia()
       for (const id of body.ids) {
         const idx = mockDevices.findIndex(d => d.id === id);
         if (idx !== -1) {
-          const identifier = mockDevices[idx].identifier;
-          mockDevices.splice(idx, 1);
-          mockDeviceRelationships = mockDeviceRelationships.filter(r => r.primaryDeviceId !== id && r.linkedDeviceId !== id);
-          deletedIds.push(id);
-          await writeAudit("DELETE", `Removed device '${identifier}' via bulk delete`);
+          const deviceObj = mockDevices[idx];
+          if (deviceObj) {
+            const identifier = deviceObj.identifier;
+            mockDevices.splice(idx, 1);
+            mockDeviceRelationships = mockDeviceRelationships.filter(r => r.primaryDeviceId !== id && r.linkedDeviceId !== id);
+            deletedIds.push(id);
+            await writeAudit("DELETE", `Removed device '${identifier}' via bulk delete`);
+          }
         }
       }
 
@@ -724,47 +951,35 @@ const app = new Elysia()
 
       if (useDb) {
         try {
+          const existingResult = await db.select().from(schema.devices).where(eq(schema.devices.id, params.id));
+          const oldDevice = existingResult[0];
+
           const updated = await db
             .update(schema.devices)
             .set(payload)
             .where(eq(schema.devices.id, params.id))
             .returning();
 
-          // Cascade status to linked devices
+          // Cascade status recursively to linked devices
           if (body.status) {
-            const relationships = await db
-              .select()
-              .from(schema.deviceRelationships)
-              .where(eq(schema.deviceRelationships.primaryDeviceId, params.id));
+            await cascadeDeviceStatusDb(params.id, body.status, payload.customerId, metadata);
+          }
 
-            for (const rel of relationships) {
-              const childRes = await db
-                .select()
-                .from(schema.devices)
-                .where(eq(schema.devices.id, rel.linkedDeviceId));
-
-              if (childRes.length > 0) {
-                const child = childRes[0];
-                const childMetadata = {
-                  ...(child.metadata as Record<string, any> || {}),
-                  customerName: metadata.customerName,
-                  dispatchedAt: metadata.dispatchedAt,
-                  swappedAt: metadata.swappedAt,
-                  qcStatus: metadata.qcStatus,
-                  qcTestedAt: metadata.qcTestedAt
-                };
-                if (!metadata.customerName) delete childMetadata.customerName;
-                if (!metadata.dispatchedAt) delete childMetadata.dispatchedAt;
-
-                await db
-                  .update(schema.devices)
-                  .set({
-                    status: body.status as any,
-                    metadata: childMetadata,
-                    updatedAt: new Date()
-                  })
-                  .where(eq(schema.devices.id, rel.linkedDeviceId));
-              }
+          // Audit change
+          if (oldDevice) {
+            if (metadata.replacedBy) {
+              await writeAudit("SWAP", `Hardware Swap: Unit replaced by '${metadata.replacedBy}' (Status updated to DAMAGED)`, params.id, body.identifier);
+            } else if (metadata.replacesUnit) {
+              await writeAudit("SWAP", `Hardware Swap: Unit deployed as replacement for '${metadata.replacesUnit}'`, params.id, body.identifier);
+            } else if (oldDevice.status !== payload.status) {
+              await writeAudit("STATUS_CHANGE", `Status changed from ${oldDevice.status} to ${payload.status}`, params.id, body.identifier);
+            }
+            if (oldDevice.customerId !== payload.customerId) {
+              const action = payload.customerId ? "DISPATCH" : "RETURN";
+              const detailText = payload.customerId 
+                ? `Device '${body.identifier}' dispatched to customer`
+                : `Device '${body.identifier}' returned to warehouse stock`;
+              await writeAudit(action, detailText, params.id, body.identifier);
             }
           }
 
@@ -776,41 +991,42 @@ const app = new Elysia()
 
       const idx = mockDevices.findIndex(d => d.id === params.id);
       if (idx === -1) return { error: "Device not found" };
+      const device = mockDevices[idx];
+      if (!device) return { error: "Device not found" };
 
-      mockDevices[idx] = {
-        ...mockDevices[idx],
+      const oldStatus = device.status;
+      const oldCustomerId = device.customerId;
+
+      const updatedDevice: Device = {
+        ...device,
         ...payload,
         customerId: payload.customerId || undefined,
         updatedAt: new Date().toISOString()
       };
-      // Cascade status in Memory Mode
-      if (body.status) {
-        const relationships = mockDeviceRelationships.filter(r => r.primaryDeviceId === params.id);
-        for (const rel of relationships) {
-          const childIdx = mockDevices.findIndex(d => d.id === rel.linkedDeviceId);
-          if (childIdx !== -1) {
-            const child = mockDevices[childIdx];
-            const childMetadata = {
-              ...(child.metadata || {}),
-              customerName: metadata.customerName,
-              dispatchedAt: metadata.dispatchedAt,
-              swappedAt: metadata.swappedAt,
-              qcStatus: metadata.qcStatus,
-              qcTestedAt: metadata.qcTestedAt
-            };
-            if (!metadata.customerName) delete childMetadata.customerName;
-            if (!metadata.dispatchedAt) delete childMetadata.dispatchedAt;
+      mockDevices[idx] = updatedDevice;
 
-            mockDevices[childIdx] = {
-              ...child,
-              status: body.status,
-              metadata: childMetadata,
-              updatedAt: new Date().toISOString()
-            };
-          }
-        }
+      // Cascade status recursively in Memory Mode
+      if (body.status) {
+        cascadeDeviceStatusMemory(params.id, body.status, updatedDevice.customerId, metadata);
       }
-      return mockDevices[idx];
+
+      // Audit change
+      if (metadata.replacedBy) {
+        await writeAudit("SWAP", `Hardware Swap: Unit replaced by '${metadata.replacedBy}' (Status updated to DAMAGED)`, params.id, body.identifier);
+      } else if (metadata.replacesUnit) {
+        await writeAudit("SWAP", `Hardware Swap: Unit deployed as replacement for '${metadata.replacesUnit}'`, params.id, body.identifier);
+      } else if (oldStatus !== payload.status) {
+        await writeAudit("STATUS_CHANGE", `Status changed from ${oldStatus} to ${payload.status}`, params.id, body.identifier);
+      }
+      if (oldCustomerId !== payload.customerId) {
+        const action = payload.customerId ? "DISPATCH" : "RETURN";
+        const detailText = payload.customerId 
+          ? `Device '${body.identifier}' dispatched to customer`
+          : `Device '${body.identifier}' returned to warehouse stock`;
+        await writeAudit(action, detailText, params.id, body.identifier);
+      }
+
+      return updatedDevice;
     }, {
       body: t.Object({
         identifier: t.String(),
@@ -838,11 +1054,110 @@ const app = new Elysia()
       }
       const idx = mockDevices.findIndex(d => d.id === params.id);
       if (idx === -1) return { error: "Not Found" };
-      identifier = mockDevices[idx].identifier;
+      const deviceObj = mockDevices[idx];
+      if (!deviceObj) return { error: "Not Found" };
+      identifier = deviceObj.identifier;
       mockDevices.splice(idx, 1);
       mockDeviceRelationships = mockDeviceRelationships.filter(r => r.primaryDeviceId !== params.id && r.linkedDeviceId !== params.id);
       await writeAudit("DELETE", `Removed device '${identifier}' from inventory database`);
       return { success: true };
+    })
+
+    .get("/:id/audit-logs", async ({ params }) => {
+      if (useDb) {
+        try {
+          const logs = await db
+            .select()
+            .from(schema.deviceAuditLogs)
+            .where(eq(schema.deviceAuditLogs.deviceId, params.id))
+            .orderBy(desc(schema.deviceAuditLogs.createdAt));
+          return logs;
+        } catch (e: any) {
+          return { error: e.message || "Failed to fetch audit logs" };
+        }
+      }
+
+      // Memory Mode fallback
+      const dev = mockDevices.find(d => d.id === params.id);
+      const identifier = dev ? dev.identifier : "";
+      const logs = mockDeviceAuditLogs.filter(
+        log => log.deviceId === params.id || (identifier && log.deviceIdentifier === identifier)
+      );
+      return logs;
+    })
+
+    .get("/:id/telemetry-check", async ({ params }) => {
+      let devObj: any = null;
+      if (useDb) {
+        try {
+          const results = await db.select().from(schema.devices).where(eq(schema.devices.id, params.id));
+          devObj = results[0];
+        } catch (e) {
+          console.error("Failed to query device for telemetry check", e);
+        }
+      } else {
+        devObj = mockDevices.find(d => d.id === params.id);
+      }
+
+      if (!devObj) {
+        return { error: "Device not found for diagnostics check" };
+      }
+
+      const hasFailure = Math.random() < 0.05;
+      
+      const signalDbm = hasFailure 
+        ? -115 
+        : -60 - Math.floor(Math.random() * 35); 
+      
+      const voltage = hasFailure
+        ? 3.1 + Math.random() * 0.2 
+        : 3.8 + Math.random() * 0.45; 
+
+      const gpsSatellites = hasFailure
+        ? Math.floor(Math.random() * 3) 
+        : 7 + Math.floor(Math.random() * 11); 
+
+      const networks = ["LTE (AT&T)", "LTE (T-Mobile)", "LTE (Verizon)", "Roaming GSM"];
+      const network = networks[Math.floor(Math.random() * networks.length)] || "LTE (T-Mobile)";
+
+      const status = (!hasFailure && signalDbm > -105 && voltage >= 3.6 && gpsSatellites >= 4) ? "PASSED" : "FAILED";
+
+      const details = `Telemetry diagnostic executed. Status: ${status}. Signal: ${signalDbm} dBm, Voltage: ${voltage.toFixed(2)}V, GPS Satellites: ${gpsSatellites}, Network: ${network}`;
+      await writeAudit("TELEMETRY_CHECK", details, devObj.id, devObj.identifier);
+
+      const newMeta = {
+        ...(devObj.metadata || {}),
+        lastTelemetryCheck: {
+          status,
+          signalDbm,
+          voltage: parseFloat(voltage.toFixed(2)),
+          gpsSatellites,
+          network,
+          checkedAt: new Date().toISOString()
+        }
+      };
+
+      if (useDb) {
+        try {
+          await db.update(schema.devices).set({ metadata: newMeta }).where(eq(schema.devices.id, devObj.id));
+        } catch (e) {
+          console.error("Failed to update telemetry metadata", e);
+        }
+      } else {
+        devObj.metadata = newMeta;
+      }
+
+      return {
+        success: true,
+        telemetry: {
+          status,
+          signalDbm,
+          voltage: parseFloat(voltage.toFixed(2)),
+          gpsSatellites,
+          network,
+          checkedAt: new Date().toISOString()
+        }
+      };
     })
   )
 
@@ -862,6 +1177,8 @@ const app = new Elysia()
     })
     // Preview relationship connections
     .post("/preview", async ({ body }) => {
+      const allModels = useDb ? await db.select().from(schema.deviceModels) : mockDeviceModels;
+
       const previewList = await Promise.all(body.links.map(async (link) => {
         let primary: any = null;
         let child: any = null;
@@ -887,48 +1204,20 @@ const app = new Elysia()
         if (!primary) {
           willCreatePrimary = true;
           // Find first TRACKER model to use as default template
-          if (useDb) {
-            try {
-              const mRes = await db.select().from(schema.deviceModels).where(eq(schema.deviceModels.assetType, "TRACKER" as any)).limit(1);
-              primaryModel = mRes[0];
-            } catch (e) {}
-          } else {
-            primaryModel = mockDeviceModels.find(m => m.assetType === "TRACKER");
-          }
+          primaryModel = allModels.find(m => m.assetType === "TRACKER");
         } else {
-          if (useDb) {
-            try {
-              const pmRes = await db.select().from(schema.deviceModels).where(eq(schema.deviceModels.id, primary.modelId));
-              primaryModel = pmRes[0];
-            } catch (e) {}
-          } else {
-            primaryModel = mockDeviceModels.find(m => m.id === primary.modelId);
-          }
+          primaryModel = allModels.find(m => m.id === primary.modelId);
         }
 
         // Auto-detect missing child device
         let willCreateChild = false;
-        const childType = inferAssetType(link.childISN);
+        const childType = inferAssetType(link.childISN, allModels);
         if (!child) {
           willCreateChild = true;
           // Find first model matching the inferred asset type
-          if (useDb) {
-            try {
-              const mRes = await db.select().from(schema.deviceModels).where(eq(schema.deviceModels.assetType, childType as any)).limit(1);
-              childModel = mRes[0];
-            } catch (e) {}
-          } else {
-            childModel = mockDeviceModels.find(m => m.assetType === childType);
-          }
+          childModel = allModels.find(m => m.assetType === childType);
         } else {
-          if (useDb) {
-            try {
-              const cmRes = await db.select().from(schema.deviceModels).where(eq(schema.deviceModels.id, child.modelId));
-              childModel = cmRes[0];
-            } catch (e) {}
-          } else {
-            childModel = mockDeviceModels.find(m => m.id === child.modelId);
-          }
+          childModel = allModels.find(m => m.id === child.modelId);
         }
 
         if (!primaryModel) {
@@ -951,6 +1240,42 @@ const app = new Elysia()
           };
         }
 
+        // Barcode Pattern Validation for Primary Ingest
+        if (primaryModel.identifierPattern) {
+          try {
+            const regex = new RegExp(primaryModel.identifierPattern, "i");
+            if (!regex.test(link.primaryISN)) {
+              return {
+                primaryISN: link.primaryISN,
+                childISN: link.childISN,
+                childType,
+                status: "invalid",
+                message: `Primary barcode does not match pattern '${primaryModel.identifierPattern}' for model '${primaryModel.name}'`
+              };
+            }
+          } catch (e) {
+            console.error("Invalid regex format configured:", primaryModel.identifierPattern);
+          }
+        }
+
+        // Barcode Pattern Validation for Child Ingest
+        if (childModel.identifierPattern) {
+          try {
+            const regex = new RegExp(childModel.identifierPattern, "i");
+            if (!regex.test(link.childISN)) {
+              return {
+                primaryISN: link.primaryISN,
+                childISN: link.childISN,
+                childType,
+                status: "invalid",
+                message: `Child barcode does not match pattern '${childModel.identifierPattern}' for model '${childModel.name}'`
+              };
+            }
+          } catch (e) {
+            console.error("Invalid regex format configured:", childModel.identifierPattern);
+          }
+        }
+
         // Handle postgres array vs in-memory representation
         const allowed = Array.isArray(primaryModel.allowedChildren) 
           ? primaryModel.allowedChildren 
@@ -966,6 +1291,52 @@ const app = new Elysia()
             status: "invalid",
             message: `Model '${primaryModel.name}' does not accept components of type '${childType}'`
           };
+        }
+
+        // Tree Hierarchy Constraints Validation
+        if (child) {
+          // 1. Single Parent Constraint
+          if (useDb) {
+            const otherParent = await db.select().from(schema.deviceRelationships)
+              .where(eq(schema.deviceRelationships.linkedDeviceId, child.id)).limit(1);
+            const firstParent = otherParent[0];
+            if (firstParent && firstParent.primaryDeviceId !== primary?.id) {
+              return {
+                primaryISN: link.primaryISN,
+                childISN: link.childISN,
+                childType,
+                status: "invalid",
+                message: `Child device '${link.childISN}' is already linked to another parent.`
+              };
+            }
+          } else {
+            const otherParent = mockDeviceRelationships.find(r => r.linkedDeviceId === child.id);
+            if (otherParent && otherParent.primaryDeviceId !== primary?.id) {
+              return {
+                primaryISN: link.primaryISN,
+                childISN: link.childISN,
+                childType,
+                status: "invalid",
+                message: `Child device '${link.childISN}' is already linked to another parent.`
+              };
+            }
+          }
+        }
+
+        if (primary && child) {
+          // 2. Cycle Detection
+          const isCycle = useDb 
+            ? await isAncestorDb(child.id, primary.id) 
+            : isAncestorMemory(child.id, primary.id);
+          if (isCycle) {
+            return {
+              primaryISN: link.primaryISN,
+              childISN: link.childISN,
+              childType,
+              status: "invalid",
+              message: `Linking '${link.childISN}' to '${link.primaryISN}' would create a circular dependency loop.`
+            };
+          }
         }
 
         let msg = "";
@@ -998,6 +1369,7 @@ const app = new Elysia()
     .post("/commit", async ({ body }) => {
       let created = 0;
       const errors: string[] = [];
+      const allModels = useDb ? await db.select().from(schema.deviceModels) : mockDeviceModels;
 
       for (const link of body.links) {
         let primary: any = null;
@@ -1013,10 +1385,11 @@ const app = new Elysia()
             } else {
               // Find default tracker model
               const mRes = await db.select().from(schema.deviceModels).where(eq(schema.deviceModels.assetType, "TRACKER" as any)).limit(1);
-              if (mRes.length > 0) {
+              const primaryTemplate = mRes[0];
+              if (primaryTemplate) {
                 const inserted = await db.insert(schema.devices).values({
                   identifier: link.primaryISN,
-                  modelId: mRes[0].id,
+                  modelId: primaryTemplate.id,
                   status: "IN_STOCK",
                   metadata: {}
                 }).returning();
@@ -1030,12 +1403,13 @@ const app = new Elysia()
             if (cRes.length > 0) {
               child = cRes[0];
             } else {
-              const childType = inferAssetType(link.childISN);
+              const childType = inferAssetType(link.childISN, allModels);
               const mRes = await db.select().from(schema.deviceModels).where(eq(schema.deviceModels.assetType, childType as any)).limit(1);
-              if (mRes.length > 0) {
+              const childTemplate = mRes[0];
+              if (childTemplate) {
                 const inserted = await db.insert(schema.devices).values({
                   identifier: link.childISN,
-                  modelId: mRes[0].id,
+                  modelId: childTemplate.id,
                   status: "IN_STOCK",
                   metadata: {}
                 }).returning();
@@ -1046,6 +1420,22 @@ const app = new Elysia()
 
             // Create relationship link
             if (primary && child) {
+              // 1. Single Parent Constraint
+              const otherParent = await db.select().from(schema.deviceRelationships)
+                .where(eq(schema.deviceRelationships.linkedDeviceId, child.id)).limit(1);
+              const firstParent = otherParent[0];
+              if (firstParent && firstParent.primaryDeviceId !== primary.id) {
+                errors.push(`Linking '${link.primaryISN}' to '${link.childISN}' failed: Child is already linked to another parent.`);
+                continue;
+              }
+
+              // 2. Cycle Detection
+              const isCycle = await isAncestorDb(child.id, primary.id);
+              if (isCycle) {
+                errors.push(`Linking '${link.primaryISN}' to '${link.childISN}' failed: Circular dependency loop detected.`);
+                continue;
+              }
+
               const dup = await db.select().from(schema.deviceRelationships).where(
                 and(
                   eq(schema.deviceRelationships.primaryDeviceId, primary.id),
@@ -1086,7 +1476,7 @@ const app = new Elysia()
 
           child = mockDevices.find(d => d.identifier === link.childISN);
           if (!child) {
-            const childType = inferAssetType(link.childISN);
+            const childType = inferAssetType(link.childISN, allModels);
             const m = mockDeviceModels.find(model => model.assetType === childType);
             if (m) {
               child = {
@@ -1104,6 +1494,20 @@ const app = new Elysia()
           }
 
           if (primary && child) {
+            // 1. Single Parent Constraint
+            const otherParent = mockDeviceRelationships.find(r => r.linkedDeviceId === child.id);
+            if (otherParent && otherParent.primaryDeviceId !== primary.id) {
+              errors.push(`Linking '${link.primaryISN}' to '${link.childISN}' failed: Child is already linked to another parent.`);
+              continue;
+            }
+
+            // 2. Cycle Detection
+            const isCycle = isAncestorMemory(child.id, primary.id);
+            if (isCycle) {
+              errors.push(`Linking '${link.primaryISN}' to '${link.childISN}' failed: Circular dependency loop detected.`);
+              continue;
+            }
+
             const duplicate = mockDeviceRelationships.find(
               r => r.primaryDeviceId === primary.id && r.linkedDeviceId === child.id
             );
@@ -1143,10 +1547,9 @@ const app = new Elysia()
             const pRes = await db.select().from(schema.devices).where(eq(schema.devices.identifier, link.primaryISN));
             const cRes = await db.select().from(schema.devices).where(eq(schema.devices.identifier, link.childISN));
             
-            if (pRes.length > 0 && cRes.length > 0) {
-              const primary = pRes[0];
-              const child = cRes[0];
-              
+            const primary = pRes[0];
+            const child = cRes[0];
+            if (primary && child) {
               await db.delete(schema.deviceRelationships).where(
                 and(
                   eq(schema.deviceRelationships.primaryDeviceId, primary.id),
@@ -1311,14 +1714,28 @@ const app = new Elysia()
 
       const idx = mockCustomers.findIndex(c => c.id === params.id);
       if (idx !== -1) {
-        mockCustomers[idx] = { 
-          ...mockCustomers[idx], 
-          ...payload, 
-          updatedAt: new Date().toISOString() 
-        };
-        return mockCustomers[idx];
+        const customer = mockCustomers[idx];
+        if (customer) {
+          const updatedCustomer: Customer = {
+            ...customer,
+            ...payload,
+            updatedAt: new Date().toISOString()
+          };
+          mockCustomers[idx] = updatedCustomer;
+          return updatedCustomer;
+        }
       }
       return null;
+    }, {
+      body: t.Object({
+        name: t.String(),
+        type: t.String(),
+        email: t.Optional(t.String()),
+        phone: t.Optional(t.String()),
+        address: t.Optional(t.String()),
+        taxId: t.Optional(t.String()),
+        metadata: t.Optional(t.Any())
+      })
     })
     .delete("/:id", async ({ params }) => {
       if (useDb) {
