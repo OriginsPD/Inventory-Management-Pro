@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { apiClient } from '../../lib/api-client';
 import { useFeedback } from '../ui/feedback-provider';
+import { useAuth } from '../ui/auth-context';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { useForm, Controller } from 'react-hook-form';
@@ -53,6 +55,7 @@ interface DeviceModel {
 }
 
 export const DeviceModels = () => {
+  const { user } = useAuth();
   const { toast, confirm } = useFeedback();
   const [models, setModels] = useState<DeviceModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -113,8 +116,7 @@ export const DeviceModels = () => {
   const fetchModels = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:3002/api/device-models');
-      const data = await res.json();
+      const data = await apiClient.get<DeviceModel[]>('/api/device-models');
       setModels(data);
     } catch (e) {
       console.error(e);
@@ -125,29 +127,28 @@ export const DeviceModels = () => {
 
   const onSubmit = async (values: z.infer<typeof modelSchema>) => {
     try {
-      const url = editingModelId 
-        ? `http://localhost:3002/api/device-models/${editingModelId}` 
-        : 'http://localhost:3002/api/device-models';
-      const method = editingModelId ? 'PUT' : 'POST';
+      const path = editingModelId 
+        ? `/api/device-models/${editingModelId}` 
+        : '/api/device-models';
+      const body = {
+        name: values.name,
+        brand: values.brand,
+        assetType: values.assetType,
+        allowedChildren: values.allowedChildren || [],
+        maxStock: values.maxStock ?? 0,
+        identifierPattern: values.identifierPattern || null,
+      };
 
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: values.name,
-          brand: values.brand,
-          assetType: values.assetType,
-          allowedChildren: values.allowedChildren || [],
-          maxStock: values.maxStock ?? 0,
-          identifierPattern: values.identifierPattern || null,
-        }),
-      });
-      if (res.ok) {
-        reset();
-        setEditingModelId(null);
-        setIsAdding(false);
-        fetchModels();
+      if (editingModelId) {
+        await apiClient.put(path, body);
+      } else {
+        await apiClient.post(path, body);
       }
+
+      reset();
+      setEditingModelId(null);
+      setIsAdding(false);
+      fetchModels();
     } catch (e) {
       console.error(e);
     }
@@ -160,15 +161,9 @@ export const DeviceModels = () => {
     });
     if (!isConfirmed) return;
     try {
-      const res = await fetch(`http://localhost:3002/api/device-models/${id}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        toast.success('Model template deleted successfully');
-        fetchModels();
-      } else {
-        toast.error('Failed to delete model template');
-      }
+      await apiClient.delete(`/api/device-models/${id}`);
+      toast.success('Model template deleted successfully');
+      fetchModels();
     } catch (e) {
       console.error(e);
       toast.error('An unexpected error occurred while deleting the model template.');
@@ -201,12 +196,14 @@ export const DeviceModels = () => {
             <h2 className="text-2xl font-extrabold tracking-tight text-[#d8e2fd]">Device Models</h2>
             <p className="text-sm text-[#bec8ce] mt-1">Configure hardware templates and relationship rules.</p>
           </div>
-          <button
-            onClick={() => { reset(); setEditingModelId(null); setIsAdding(true); }}
-            className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-9 px-4 gap-1.5 cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-sm">add</span> New Model Template
-          </button>
+          {user?.role === 'SUPER_USER' && (
+            <button
+              onClick={() => { reset(); setEditingModelId(null); setIsAdding(true); }}
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-9 px-4 gap-1.5 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-sm">add</span> New Model Template
+            </button>
+          )}
         </div>
 
         {/* DATA REGION: Data Table View */}
@@ -275,26 +272,30 @@ export const DeviceModels = () => {
                               <span className="material-symbols-outlined text-[18px]">more_horiz</span>
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-32 bg-[#0f1524]/95 backdrop-blur-2xl border border-primary/15 text-[#d8e2fd] rounded-xl p-1 shadow-xl">
+                           <DropdownMenuContent align="end" className="w-32 bg-[#0f1524]/95 backdrop-blur-2xl border border-primary/15 text-[#d8e2fd] rounded-xl p-1 shadow-xl">
                             <DropdownMenuItem
                               onClick={() => setViewModalModel(model)}
                               className="text-xs font-semibold cursor-pointer flex items-center px-2.5 py-2 hover:bg-primary/5 focus:bg-primary/5 rounded-lg transition-colors"
                             >
                               <span className="material-symbols-outlined text-sm mr-2 text-primary">visibility</span> View
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleOpenEditModal(model)}
-                              className="text-xs font-semibold cursor-pointer flex items-center px-2.5 py-2 hover:bg-primary/5 focus:bg-primary/5 rounded-lg transition-colors"
-                            >
-                              <span className="material-symbols-outlined text-sm mr-2 text-[#bec8ce]">edit</span> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-primary/10 my-1" />
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(model.id)}
-                              className="text-xs font-semibold text-red-400 focus:text-red-400 cursor-pointer flex items-center px-2.5 py-2 hover:bg-red-500/5 focus:bg-red-500/5 rounded-lg transition-colors"
-                            >
-                              <span className="material-symbols-outlined text-sm mr-2 text-red-400">delete</span> Delete
-                            </DropdownMenuItem>
+                            {user?.role === 'SUPER_USER' && (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenEditModal(model)}
+                                  className="text-xs font-semibold cursor-pointer flex items-center px-2.5 py-2 hover:bg-primary/5 focus:bg-primary/5 rounded-lg transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-sm mr-2 text-[#bec8ce]">edit</span> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="bg-primary/10 my-1" />
+                                <DropdownMenuItem
+                                  onClick={() => handleDelete(model.id)}
+                                  className="text-xs font-semibold text-red-400 focus:text-red-400 cursor-pointer flex items-center px-2.5 py-2 hover:bg-red-500/5 focus:bg-red-500/5 rounded-lg transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-sm mr-2 text-red-400">delete</span> Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

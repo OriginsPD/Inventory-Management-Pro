@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { apiClient } from '../../lib/api-client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Skeleton } from '../ui/skeleton';
 import { EmptyState } from '../ui/empty-state';
@@ -55,8 +56,7 @@ export const Customers = () => {
   const fetchCustomers = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:3002/api/customers');
-      const data = await res.json();
+      const data = await apiClient.get<Customer[]>('/api/customers');
       setCustomers(data);
     } catch (e) {
       console.error(e);
@@ -72,28 +72,20 @@ export const Customers = () => {
     });
     if (!isConfirmed) return;
     try {
-      const res = await fetch(`http://localhost:3002/api/customers/${id}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        toast.success('Customer deleted successfully');
-        await fetchCustomers();
-        if (selectedCustomer?.id === id) setSelectedCustomer(null);
-      } else {
-        const errorData = await res.json();
-        toast.error(errorData.error || 'Failed to delete customer');
-      }
-    } catch (e) {
+      await apiClient.delete(`/api/customers/${id}`);
+      toast.success('Customer deleted successfully');
+      await fetchCustomers();
+      if (selectedCustomer?.id === id) setSelectedCustomer(null);
+    } catch (e: any) {
       console.error(e);
-      toast.error('An unexpected error occurred while deleting the customer.');
+      toast.error(e.message || 'An unexpected error occurred while deleting the customer.');
     }
   };
 
   const fetchHistory = async (customerId: string) => {
     setIsHistoryLoading(true);
     try {
-      const res = await fetch(`http://localhost:3002/api/customers/${customerId}/history`);
-      const data = await res.json();
+      const data = await apiClient.get<any>(`/api/customers/${customerId}/history`);
       setHistory(data);
     } catch (e) {
       console.error(e);
@@ -129,20 +121,14 @@ export const Customers = () => {
   const onSubmit = async (values: any) => {
     setIsSubmitting(true);
     try {
-      const url = selectedCustomer 
-        ? `http://localhost:3002/api/customers/${selectedCustomer.id}` 
-        : 'http://localhost:3002/api/customers';
-      const method = selectedCustomer ? 'PUT' : 'POST';
+      const path = selectedCustomer 
+        ? `/api/customers/${selectedCustomer.id}` 
+        : '/api/customers';
 
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values)
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to save customer');
+      if (selectedCustomer) {
+        await apiClient.put(path, values);
+      } else {
+        await apiClient.post(path, values);
       }
 
       toast.success(selectedCustomer ? 'Customer updated successfully' : 'Customer created successfully');

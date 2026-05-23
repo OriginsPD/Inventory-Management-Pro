@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { CommandMenu } from '../ui/command-menu';
+import { apiClient } from '../../lib/api-client';
+import { useAuth } from '../ui/auth-context';
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => {
+  const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const currentPath = window.location.pathname;
   const [stockAlerts, setStockAlerts] = useState<any[]>([]);
@@ -24,8 +27,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    fetch('http://localhost:3002/api/stock-alerts')
-      .then(r => r.json())
+    apiClient.get<any[]>('/api/stock-alerts')
       .then(data => setStockAlerts(data))
       .catch(() => {});
   }, []);
@@ -43,6 +45,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
     {
       label: 'Management',
       items: [
+        ...(user?.role === 'SUPER_USER' ? [{ name: 'Users', path: '/users', icon: 'manage_accounts' }] : []),
         { name: 'Model Templates', path: '/models', icon: 'layers' },
         { name: 'RMA Swaps', path: '/swaps', icon: 'swap_horiz' },
         { name: 'Customers', path: '/customers', icon: 'groups' },
@@ -112,8 +115,35 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
           ))}
         </nav>
 
+        {/* User Profile Block */}
+        <div className="p-4 border-t border-primary/5">
+          <div className="glass-panel rounded-xl p-2.5 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 overflow-hidden">
+              <div className="relative shrink-0">
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary/20 text-xs font-bold text-primary">
+                  {user?.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'U'}
+                </div>
+                <span className="absolute bottom-0 right-0 block h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-[#0f1524]" />
+              </div>
+              <div className="overflow-hidden">
+                <p className="text-xs font-semibold truncate leading-tight text-[#d8e2fd]">{user?.name}</p>
+                <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-wider mt-0.5">
+                  {user?.role === 'SUPER_USER' ? 'Super User' : user?.role === 'TECHNICIAN' ? 'Technician' : 'Reviewer'}
+                </p>
+              </div>
+            </div>
+            <button 
+              onClick={logout} 
+              className="p-1 hover:bg-destructive/10 rounded-lg text-[#bec8ce] hover:text-destructive transition-colors shrink-0 cursor-pointer" 
+              title="Logout"
+            >
+              <span className="material-symbols-outlined text-[18px]">logout</span>
+            </button>
+          </div>
+        </div>
+
         {/* Database Connection Status Block */}
-        <div className="p-4 border-t border-primary/5 mt-auto">
+        <div className="p-4 border-t border-primary/5">
           <div className="glass-panel rounded-xl p-3 flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary/20">
               <span className="material-symbols-outlined text-primary text-sm">terminal</span>

@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { apiClient } from '../../lib/api-client';
+import { useAuth } from '../ui/auth-context';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -74,6 +76,7 @@ const swapSchema = z.object({
 type SwapFormValues = z.infer<typeof swapSchema>;
 
 export const HardwareSwaps = () => {
+  const { user } = useAuth();
   const [devices, setDevices] = useState<Device[]>([]);
   const [relationships, setRelationships] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -99,14 +102,14 @@ export const HardwareSwaps = () => {
   const fetchDevices = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:3002/api/devices');
-      const data = await res.json();
+      const data = await apiClient.get<Device[]>('/api/devices');
       setDevices(data);
 
-      const relRes = await fetch('http://localhost:3002/api/device-links');
-      if (relRes.ok) {
-        const relData = await relRes.json();
+      try {
+        const relData = await apiClient.get<any[]>('/api/device-links');
         setRelationships(relData);
+      } catch (err) {
+        console.error("Failed to load device links", err);
       }
     } catch (e) {
       console.error(e);
@@ -123,18 +126,12 @@ export const HardwareSwaps = () => {
 
   const onSubmit = async (values: SwapFormValues) => {
     try {
-      const res = await fetch('http://localhost:3002/api/devices/swap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          oldDeviceId: values.oldDeviceId,
-          newDeviceId: values.newDeviceId
-        })
+      const responseData = await apiClient.post<any>('/api/devices/swap', {
+        oldDeviceId: values.oldDeviceId,
+        newDeviceId: values.newDeviceId
       });
 
-      const responseData = await res.json();
-
-      if (res.ok && !responseData.error) {
+      if (responseData && !responseData.error) {
         setSwapSuccess(true);
         playSuccessBeep();
         reset();
@@ -281,12 +278,18 @@ export const HardwareSwaps = () => {
                     )}
                   </div>
 
-                  <button 
-                    type="submit" 
-                    className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-9 px-4 cursor-pointer"
-                  >
-                    Perform Unit Replacement Swap
-                  </button>
+                  {user?.role !== 'REVIEWER' ? (
+                    <button 
+                      type="submit" 
+                      className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-9 px-4 cursor-pointer"
+                    >
+                      Perform Unit Replacement Swap
+                    </button>
+                  ) : (
+                    <div className="text-center text-xs text-muted-foreground p-3 border border-primary/10 rounded-xl bg-primary/5">
+                      Read-only access. Hardware swaps are disabled.
+                    </div>
+                  )}
                 </form>
               </>
             )}
