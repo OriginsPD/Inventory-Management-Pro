@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { RefreshCw, Search, AlertTriangle, Calendar, User, CheckCircle2, ArrowRight } from 'lucide-react';
-import { AppShell } from '../layout/AppShell';
 import { Skeleton } from '../ui/skeleton';
 import { EmptyState } from '../ui/empty-state';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
@@ -174,39 +172,38 @@ export const HardwareSwaps = () => {
   const totalPages = Math.ceil(damagedUnits.length / pageSize);
 
   return (
-    <AppShell>
-      <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
+    <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">RMA Swaps & Replacements</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h2 className="text-2xl font-extrabold tracking-tight text-[#d8e2fd]">RMA Swaps & Replacements</h2>
+          <p className="text-sm text-[#bec8ce] mt-1">
             Swap out faulty field hardware tracking units with certified warehouse stock to maintain uptime.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Column 1: Swap Form */}
-          <div className="md:col-span-1 border border-border p-5 rounded-lg bg-card space-y-4 h-fit">
-            <div className="flex items-center gap-2">
-              <RefreshCw className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-sm">Log Unit Replacement Swap</h3>
+          <div className="md:col-span-1 glass-panel p-5 rounded-2xl space-y-4 h-fit">
+            <div className="flex items-center gap-2 border-b border-primary/10 pb-3">
+              <span className="material-symbols-outlined text-[18px] text-primary">sync</span>
+              <h3 className="font-extrabold text-sm text-[#d8e2fd]">Log Unit Replacement Swap</h3>
             </div>
 
             {isLoading ? (
               <div className="space-y-4">
-                <Skeleton className="h-9 w-full" />
-                <Skeleton className="h-9 w-full" />
+                <Skeleton className="h-9 w-full animate-pulse" />
+                <Skeleton className="h-9 w-full animate-pulse" />
               </div>
             ) : (
               <>
                 {swapSuccess && (
-                  <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs p-2.5 rounded font-medium">
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs p-2.5 rounded-lg font-semibold animate-pulse">
                     Hardware swap processed and logged successfully!
                   </div>
                 )}
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    <label className="text-xs font-semibold text-[#bec8ce] block mb-1">
                       Faulty Field Unit (Dispatched)
                     </label>
                     <Controller
@@ -214,7 +211,7 @@ export const HardwareSwaps = () => {
                       name="oldDeviceId"
                       render={({ field }) => (
                         <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger className={`w-full text-sm h-9 bg-card ${errors.oldDeviceId ? 'border-destructive focus:ring-destructive' : ''}`}>
+                          <SelectTrigger className={`w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20 ${errors.oldDeviceId ? 'border-red-500/50 focus:ring-red-500/20' : ''}`}>
                             <SelectValue placeholder="Select active device..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -228,26 +225,26 @@ export const HardwareSwaps = () => {
                       )}
                     />
                     {errors.oldDeviceId && (
-                      <p className="text-[10px] text-destructive mt-1 font-semibold">{errors.oldDeviceId.message}</p>
+                      <p className="text-[10px] text-red-400 mt-1 font-semibold">{errors.oldDeviceId.message}</p>
                     )}
                   </div>
 
                   {inheritedComponents.length > 0 && (
-                    <div className="bg-muted/30 border border-border rounded-md p-3 space-y-2">
+                    <div className="bg-primary/5 border border-primary/10 rounded-xl p-3 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                        <span className="text-[10px] font-bold text-[#bec8ce] uppercase tracking-wider block">
                           Inherited Components ({inheritedComponents.length})
                         </span>
-                        <ArrowRight className="h-3.5 w-3.5 text-primary animate-pulse" />
+                        <span className="material-symbols-outlined text-sm text-primary animate-pulse">arrow_forward</span>
                       </div>
                       <div className="space-y-1.5">
                         {inheritedComponents.map((comp) => (
-                          <div key={comp.id} className="flex items-center justify-between text-xs bg-background/50 border border-border/60 px-2 py-1 rounded">
+                          <div key={comp.id} className="flex items-center justify-between text-xs bg-[#081326]/50 border border-primary/10 px-2 py-1 rounded-lg">
                             <div className="flex flex-col">
-                              <span className="font-semibold text-foreground tracking-mono">{comp.identifier}</span>
-                              <span className="text-[9px] text-muted-foreground">{comp.modelName}</span>
+                              <span className="font-bold text-[#d8e2fd] font-mono tracking-wider">{comp.identifier}</span>
+                              <span className="text-[9px] text-[#bec8ce]">{comp.modelName}</span>
                             </div>
-                            <span className="text-[9px] font-mono uppercase bg-muted border border-border px-1.5 py-0.5 rounded text-muted-foreground">
+                            <span className="text-[9px] font-mono uppercase bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded text-primary font-bold">
                               {comp.type}
                             </span>
                           </div>
@@ -260,7 +257,7 @@ export const HardwareSwaps = () => {
                   )}
 
                   <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    <label className="text-xs font-semibold text-[#bec8ce] block mb-1">
                       Replacement Warehouse Unit (In Stock)
                     </label>
                     <Controller
@@ -268,7 +265,7 @@ export const HardwareSwaps = () => {
                       name="newDeviceId"
                       render={({ field }) => (
                         <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger className={`w-full text-sm h-9 bg-card ${errors.newDeviceId ? 'border-destructive focus:ring-destructive' : ''}`}>
+                          <SelectTrigger className={`w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20 ${errors.newDeviceId ? 'border-red-500/50 focus:ring-red-500/20' : ''}`}>
                             <SelectValue placeholder="Select replacement unit..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -280,13 +277,13 @@ export const HardwareSwaps = () => {
                       )}
                     />
                     {errors.newDeviceId && (
-                      <p className="text-[10px] text-destructive mt-1 font-semibold">{errors.newDeviceId.message}</p>
+                      <p className="text-[10px] text-red-400 mt-1 font-semibold">{errors.newDeviceId.message}</p>
                     )}
                   </div>
 
                   <button 
                     type="submit" 
-                    className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 cursor-pointer"
+                    className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-9 px-4 cursor-pointer"
                   >
                     Perform Unit Replacement Swap
                   </button>
@@ -297,19 +294,19 @@ export const HardwareSwaps = () => {
 
           {/* Column 2 & 3: Damaged Registry */}
           <div className="md:col-span-2 space-y-4">
-            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 border border-border p-2 rounded-lg bg-card">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 border border-primary/10 p-2 rounded-xl bg-[#0f1524]/60">
               <div className="flex items-center gap-2 flex-1 px-2">
-                <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="material-symbols-outlined text-sm text-muted-foreground shrink-0">search</span>
                 <input 
                   placeholder="Filter damaged/RMA units registry..." 
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="flex h-9 w-full bg-transparent px-2 py-1 text-sm focus-visible:outline-none placeholder:text-muted-foreground border-0"
+                  className="flex h-9 w-full bg-transparent px-2 py-1 text-sm focus-visible:outline-none placeholder:text-muted-foreground/30 text-[#d8e2fd] border-0"
                 />
               </div>
             </div>
 
-            <div className="border border-border rounded-lg bg-card overflow-visible">
+            <div className="glass-panel rounded-xl overflow-visible">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -333,30 +330,30 @@ export const HardwareSwaps = () => {
                     ))
                   ) : paginatedDamaged.length > 0 ? (
                     paginatedDamaged.map((device) => (
-                      <TableRow key={device.id}>
-                        <TableCell className="font-medium tracking-mono text-foreground">{device.identifier}</TableCell>
-                        <TableCell className="text-muted-foreground">{device.modelName}</TableCell>
+                      <TableRow key={device.id} className="group hover:bg-primary/5 transition-colors">
+                        <TableCell className="font-bold tracking-mono text-[#d8e2fd] font-mono text-xs">{device.identifier}</TableCell>
+                        <TableCell className="text-[#bec8ce]">{device.modelName}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1.5 font-semibold text-foreground text-xs">
-                            <User className="h-3 w-3 text-muted-foreground" />
+                          <div className="flex items-center gap-1.5 font-bold text-[#d8e2fd] text-xs">
+                            <span className="material-symbols-outlined text-xs text-[#bec8ce]">person</span>
                             <span>{device.metadata?.customerName || 'Internal Inventory'}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-xs">
                           {device.metadata?.replacedBy ? (
-                            <span className="inline-flex items-center gap-1 font-mono font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
-                              <CheckCircle2 className="h-3 w-3" /> {device.metadata.replacedBy}
+                            <span className="inline-flex items-center gap-1 font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">
+                              <span className="material-symbols-outlined text-xs mr-1 text-emerald-400">check_circle</span> {device.metadata.replacedBy}
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
-                              <AlertTriangle className="h-3 w-3" /> Awaiting Swap
+                            <span className="inline-flex items-center gap-1 font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg">
+                              <span className="material-symbols-outlined text-xs mr-1 text-amber-400">warning</span> Awaiting Swap
                             </span>
                           )}
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
+                        <TableCell className="text-[#bec8ce] text-xs">
                           {device.metadata?.swappedAt ? (
                             <div className="flex items-center gap-1.5">
-                              <Calendar className="h-3 w-3" />
+                              <span className="material-symbols-outlined text-xs text-[#bec8ce]">calendar_today</span>
                               <span>
                                 {new Date(device.metadata.swappedAt).toLocaleDateString(undefined, {
                                   month: 'short',
@@ -376,7 +373,7 @@ export const HardwareSwaps = () => {
                     <TableRow>
                       <TableCell colSpan={5} className="h-auto p-0">
                         <EmptyState
-                          icon={AlertTriangle}
+                          icon="warning"
                           title="No Damaged or Swapped Units"
                           description="There are currently no active damaged units or completed RMA swaps registered in the log."
                           className="border-0 bg-transparent py-12"
@@ -388,69 +385,68 @@ export const HardwareSwaps = () => {
               </Table>
             </div>
 
-              {/* Pagination Controls */}
-              {damagedUnits.length > 0 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/20">
-                  <div className="text-xs text-muted-foreground">
-                    Showing <span className="font-semibold text-foreground">{startIndex + 1}</span> to{' '}
-                    <span className="font-semibold text-foreground">{Math.min(endIndex, damagedUnits.length)}</span> of{' '}
-                    <span className="font-semibold text-foreground">{damagedUnits.length}</span> units
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                      className="inline-flex items-center justify-center rounded-md text-xs font-semibold transition-colors border border-border bg-background shadow-sm hover:bg-accent disabled:opacity-50 disabled:pointer-events-none h-8 px-3"
-                    >
-                      Previous
-                    </button>
-                    
-                    {Array.from({ length: totalPages }).map((_, i) => {
-                      const pageNum = i + 1;
-                      if (
-                        pageNum === 1 ||
-                        pageNum === totalPages ||
-                        Math.abs(pageNum - currentPage) <= 1
-                      ) {
-                        return (
-                          <button
-                            key={pageNum}
-                            type="button"
-                            onClick={() => setCurrentPage(pageNum)}
-                            className={`inline-flex items-center justify-center rounded-md text-xs font-semibold transition-colors h-8 w-8 ${
-                              currentPage === pageNum
-                                ? 'bg-primary text-primary-foreground shadow'
-                                : 'border border-border bg-background hover:bg-accent'
-                            }`}
-                          >
-                            {pageNum}
-                          </button>
-                        );
-                      }
-                      if (pageNum === 2 || pageNum === totalPages - 1) {
-                        return <span key={pageNum} className="text-muted-foreground px-1 text-xs">...</span>;
-                      }
-                      return null;
-                    }).filter((el, idx, arr) => {
-                      if (el?.type === 'span' && arr[idx - 1]?.type === 'span') return false;
-                      return true;
-                    })}
-
-                    <button
-                      type="button"
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages || totalPages === 0}
-                      className="inline-flex items-center justify-center rounded-md text-xs font-semibold transition-colors border border-border bg-background shadow-sm hover:bg-accent disabled:opacity-50 disabled:pointer-events-none h-8 px-3"
-                    >
-                      Next
-                    </button>
-                  </div>
+            {/* Pagination Controls */}
+            {damagedUnits.length > 0 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-primary/10 bg-transparent">
+                <div className="text-xs text-muted-foreground">
+                  Showing <span className="font-semibold text-foreground">{startIndex + 1}</span> to{' '}
+                  <span className="font-semibold text-foreground">{Math.min(endIndex, damagedUnits.length)}</span> of{' '}
+                  <span className="font-semibold text-foreground">{damagedUnits.length}</span> units
                 </div>
-              )}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-[#d8e2fd] disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                  >
+                    Previous
+                  </button>
+                  
+                  {Array.from({ length: totalPages }).map((_, i) => {
+                    const pageNum = i + 1;
+                    if (
+                      pageNum === 1 ||
+                      pageNum === totalPages ||
+                      Math.abs(pageNum - currentPage) <= 1
+                    ) {
+                      return (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`inline-flex items-center justify-center rounded-lg text-xs font-bold h-8 w-8 transition-colors cursor-pointer ${
+                            currentPage === pageNum
+                              ? 'bg-primary text-[#081326]'
+                              : 'border border-primary/10 bg-primary/5 text-[#d8e2fd] hover:bg-primary/15'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    }
+                    if (pageNum === 2 || pageNum === totalPages - 1) {
+                      return <span key={pageNum} className="text-[#bec8ce] px-1 text-xs">...</span>;
+                    }
+                    return null;
+                  }).filter((el, idx, arr) => {
+                    if (el?.type === 'span' && arr[idx - 1]?.type === 'span') return false;
+                    return true;
+                  })}
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages || totalPages === 0}
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-[#d8e2fd] disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </AppShell>
   );
 };

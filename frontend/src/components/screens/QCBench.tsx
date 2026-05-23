@@ -1,21 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { 
-  CheckSquare, 
-  Search, 
-  Calendar, 
-  Check, 
-  AlertCircle, 
-  ArrowLeft,
-  Info,
-  Save,
-  Loader2,
-  CheckCircle2,
-  Activity
-} from 'lucide-react';
-import { AppShell } from '../layout/AppShell';
+
 import { Skeleton } from '../ui/skeleton';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { DEFAULT_QC_CHECKS, QCCheckStatus } from '@ims-pro/shared';
 import type { QCCheckItem } from '@ims-pro/shared';
@@ -236,7 +223,6 @@ export const QCBench = () => {
 
   if (selectedDevice) {
     return (
-      <AppShell>
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -244,39 +230,39 @@ export const QCBench = () => {
                 variant="outline" 
                 size="icon" 
                 onClick={() => setSelectedDevice(null)}
-                className="h-8 w-8"
+                className="h-9 w-9 bg-primary/5 border border-primary/20 hover:border-primary/50 text-[#d8e2fd]"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <span className="material-symbols-outlined text-sm">arrow_back</span>
               </Button>
               <div>
-                <h2 className="text-xl font-semibold tracking-tight">Manual QC Testing</h2>
-                <p className="text-sm text-muted-foreground">
-                  Testing <span className="font-mono font-medium text-foreground">{selectedDevice.identifier}</span> ({selectedDevice.modelName})
+                <h1 className="text-2xl font-extrabold tracking-tight text-[#d8e2fd]">Manual QC Testing</h1>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Testing <span className="font-mono font-bold text-primary">{selectedDevice.identifier}</span> ({selectedDevice.modelName})
                 </p>
               </div>
             </div>
             
             <div className="flex items-center gap-2">
-              <div className="px-2 py-1 rounded border text-[10px] font-bold uppercase tracking-wider bg-muted/40 border-border/80 flex items-center gap-1">
-                <span className="text-muted-foreground mr-1">Current:</span>
-                {selectedDevice.status === 'IN_STOCK' && <span className="text-emerald-600 dark:text-emerald-500 font-bold">🟢 In Stock</span>}
-                {selectedDevice.status === 'DISPATCHED' && <span className="text-blue-600 dark:text-blue-400 font-bold">🔵 Dispatched</span>}
-                {selectedDevice.status === 'TESTING' && <span className="text-amber-500 font-bold">🟡 Testing</span>}
-                {selectedDevice.status === 'DAMAGED' && <span className="text-red-500 font-bold">🔴 Damaged</span>}
-                {selectedDevice.status === 'RMA' && <span className="text-amber-600 font-bold">🟠 RMA Swap</span>}
+              <div className="glass-panel px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span className="text-muted-foreground mr-1">Status:</span>
+                {selectedDevice.status === 'IN_STOCK' && <span className="text-emerald-400 font-bold">In Stock</span>}
+                {selectedDevice.status === 'DISPATCHED' && <span className="text-blue-400 font-bold">Dispatched</span>}
+                {selectedDevice.status === 'TESTING' && <span className="text-amber-400 font-bold">Testing</span>}
+                {selectedDevice.status === 'DAMAGED' && <span className="text-red-400 font-bold">Damaged</span>}
+                {selectedDevice.status === 'RMA' && <span className="text-purple-300 font-bold">RMA Swap</span>}
                 {!['IN_STOCK', 'DISPATCHED', 'TESTING', 'DAMAGED', 'RMA'].includes(selectedDevice.status) && (
-                  <span className="text-muted-foreground font-bold">{selectedDevice.status.replace('_', ' ')}</span>
+                  <span className="text-primary font-bold">{selectedDevice.status.replace('_', ' ')}</span>
                 )}
               </div>
             </div>
           </div>
 
           {/* Automated Telemetry Diagnostics Bench */}
-          <div className="border border-border rounded-lg bg-card overflow-hidden shadow-sm p-5 space-y-4">
+          <div className="glass-panel p-6 rounded-2xl space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
-                <h3 className="text-sm font-semibold flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-bold flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-xl">sensors</span>
                   Automated Telemetry Diagnostics Bench
                 </h3>
                 <p className="text-xs text-muted-foreground">
@@ -287,16 +273,16 @@ export const QCBench = () => {
                 onClick={runLiveDiagnostics}
                 disabled={isRunningDiagnostics}
                 variant="outline"
-                className="h-9 px-4 text-xs font-semibold shrink-0 gap-1.5"
+                className="h-9 px-4 text-xs font-bold shrink-0 gap-1.5 bg-primary/10 border border-primary/20 hover:bg-primary/20 text-primary"
               >
                 {isRunningDiagnostics ? (
                   <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span className="material-symbols-outlined text-sm animate-spin">sync</span>
                     Querying Gateway...
                   </>
                 ) : (
                   <>
-                    <Activity className="h-3.5 w-3.5" />
+                    <span className="material-symbols-outlined text-sm">sensors</span>
                     Run Diagnostics
                   </>
                 )}
@@ -304,87 +290,162 @@ export const QCBench = () => {
             </div>
 
             {diagnosticsResult && (
-              <div className="border border-border/80 rounded-lg bg-muted/10 p-3.5 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                <div className="space-y-1">
-                  <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Diagnostics Status</span>
-                  <span className={`inline-flex items-center gap-1 font-semibold text-[10px] uppercase px-1.5 py-0.5 rounded border ${
-                    diagnosticsResult.status === 'PASSED' 
-                      ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' 
-                      : 'bg-red-500/10 text-red-600 border-red-500/20'
-                  }`}>
-                    {diagnosticsResult.status}
-                  </span>
+              <div className="border border-primary/10 rounded-xl bg-primary/5 p-4 space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                  {/* Status Indicator */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">Diagnostics Status</span>
+                    <span className={`inline-flex items-center gap-1 font-bold text-[9px] uppercase px-2 py-0.5 rounded border ${
+                      diagnosticsResult.status === 'PASSED' 
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                        : 'bg-red-500/10 text-red-400 border-red-500/20'
+                    }`}>
+                      {diagnosticsResult.status === 'PASSED' ? (
+                        <>
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> GATEWAY PASS
+                        </>
+                      ) : (
+                        <>
+                          <span className="h-1.5 w-1.5 rounded-full bg-red-400" /> GATEWAY FAIL
+                        </>
+                      )}
+                    </span>
+                  </div>
+
+                  {/* Network Operator */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">Network Carrier</span>
+                    <span className="font-mono text-foreground font-bold flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs text-primary">cell_tower</span>
+                      {diagnosticsResult.network}
+                    </span>
+                  </div>
+
+                  {/* Signal Strength (With bar gauge) */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center pr-2">
+                      <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">Signal (RSSI)</span>
+                      <span className="font-mono text-foreground text-[10px] font-bold">{diagnosticsResult.signalDbm} dBm</span>
+                    </div>
+                    <div className="flex items-end gap-0.5 h-3">
+                      {/* 4-bar indicator */}
+                      {[1, 2, 3, 4].map((bar) => {
+                        const signal = diagnosticsResult.signalDbm;
+                        let active = false;
+                        if (bar === 1) active = true; // Poor/fair always gets 1 active
+                        if (bar === 2 && signal > -105) active = true;
+                        if (bar === 3 && signal > -95) active = true;
+                        if (bar === 4 && signal > -80) active = true;
+                        return (
+                          <div
+                            key={bar}
+                            className={`w-1 rounded-sm transition-colors ${
+                              active
+                                ? signal > -105
+                                  ? 'bg-emerald-400'
+                                  : 'bg-red-400'
+                                : 'bg-primary/10'
+                            }`}
+                            style={{ height: `${bar * 3}px` }}
+                          />
+                        );
+                      })}
+                      <span className="text-[9px] font-bold ml-1.5 font-mono uppercase text-muted-foreground leading-none">
+                        {diagnosticsResult.signalDbm > -95 ? 'Good' : diagnosticsResult.signalDbm > -105 ? 'Fair' : 'Weak'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Battery Calibration (With progress bar) */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center pr-2">
+                      <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">Battery Voltage</span>
+                      <span className="font-mono text-[#d8e2fd] text-[10px] font-bold">{diagnosticsResult.voltage}V</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-grow bg-primary/10 h-1.5 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            diagnosticsResult.voltage >= 3.6 ? 'bg-emerald-400' : 'bg-red-400'
+                          }`}
+                          style={{
+                            width: `${Math.min(100, Math.max(0, ((diagnosticsResult.voltage - 3.2) / (4.2 - 3.2)) * 100))}%`
+                          }}
+                        />
+                      </div>
+                      <span className="text-[9px] font-bold font-mono text-muted-foreground shrink-0 leading-none">
+                        {Math.round(Math.min(100, Math.max(0, ((diagnosticsResult.voltage - 3.2) / (4.2 - 3.2)) * 100)))}%
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Cellular Network</span>
-                  <span className="font-mono text-foreground font-semibold">{diagnosticsResult.network}</span>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Signal Strength</span>
-                  <span className="font-mono text-foreground font-semibold">{diagnosticsResult.signalDbm} dBm</span>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">Calibration Voltage</span>
-                  <span className="font-mono text-foreground font-semibold">{diagnosticsResult.voltage}V</span>
+
+                {/* Threshold Info Banner */}
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground border-t border-primary/5 pt-2 font-medium">
+                  <span className="material-symbols-outlined text-[12px] text-primary select-none">info</span>
+                  <span>Gateway standards: Signal Strength must be better than <span className="font-mono">-105 dBm</span>. Battery voltage must calibrate above <span className="font-mono">3.6V</span>.</span>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="border border-border rounded-lg bg-card overflow-hidden shadow-sm">
-            <div className="bg-muted/30 p-3 px-4 border-b border-border flex items-center justify-between">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <CheckSquare className="h-4 w-4 text-primary" />
+          <div className="glass-panel rounded-2xl overflow-hidden">
+            <div className="bg-primary/5 p-4 border-b border-primary/10 flex items-center justify-between">
+              <h3 className="text-sm font-bold flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-xl">fact_check</span>
                 Hardware Test Matrix
               </h3>
-              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
+              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
                 Technician Checklist
               </span>
             </div>
 
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-primary/5">
               {DEFAULT_QC_CHECKS.map((check) => {
                 const result = results[check.id];
                 return (
-                  <div key={check.id} className="p-3 md:py-2.5 grid grid-cols-1 md:grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors">
+                  <div key={check.id} className="p-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-center hover:bg-primary/5 transition-colors">
                     <div className="md:col-span-4 space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{check.label}</span>
+                        <span className="text-sm font-semibold">{check.label}</span>
                         {check.critical && (
-                          <span className="text-[9px] font-bold bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded border border-amber-500/20 uppercase tracking-tighter">
+                          <span className="text-[9px] font-bold bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 uppercase tracking-widest">
                             Critical
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground">Verify the {check.label.toLowerCase()} is within operating spec.</p>
+                      <p className="text-xs text-muted-foreground">Verify operating spec.</p>
                     </div>
 
                     <div className="md:col-span-4 flex items-center gap-3">
-                      <Button
-                        size="sm"
-                        variant={result.status === 'PASSED' ? 'default' : 'outline'}
-                        className={`h-8 flex-1 gap-1.5 ${result.status === 'PASSED' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}`}
+                      <button
+                        className={`h-8 flex-1 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all border ${
+                          result.status === 'PASSED' 
+                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_15px_rgba(52,211,153,0.1)]' 
+                            : 'bg-transparent border-primary/10 text-muted-foreground hover:text-foreground hover:bg-primary/5'
+                        }`}
                         onClick={() => handleUpdateStatus(check.id, 'PASSED')}
                       >
-                        <Check className="h-4 w-4" />
-                        <span className="text-xs">Pass</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={result.status === 'FAILED' ? 'destructive' : 'outline'}
-                        className={`h-8 flex-1 gap-1.5 ${result.status === 'FAILED' ? 'bg-red-600 hover:bg-red-700 text-white' : ''}`}
+                        <span className="material-symbols-outlined text-sm">check</span>
+                        <span>Pass</span>
+                      </button>
+                      <button
+                        className={`h-8 flex-1 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all border ${
+                          result.status === 'FAILED' 
+                            ? 'bg-red-500/20 text-red-400 border-red-500/40 shadow-[0_0_15px_rgba(248,113,113,0.1)]' 
+                            : 'bg-transparent border-primary/10 text-muted-foreground hover:text-foreground hover:bg-primary/5'
+                        }`}
                         onClick={() => handleUpdateStatus(check.id, 'FAILED')}
                       >
-                        {/* Red Check Mark as requested by user instead of X */}
-                        <Check className="h-4 w-4" />
-                        <span className="text-xs">Fail</span>
-                      </Button>
+                        <span className="material-symbols-outlined text-sm">close</span>
+                        <span>Fail</span>
+                      </button>
                     </div>
 
                     <div className="md:col-span-4">
-                      <Input 
-                        placeholder="Add notes (optional)..." 
-                        className="h-8 text-xs"
+                      <input 
+                        placeholder="Add comments (optional)..." 
+                        className="w-full bg-[#081326] border border-primary/10 rounded-lg py-1.5 px-3 text-xs font-medium placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary focus:outline-none focus:border-primary text-[#d8e2fd]"
                         value={result.notes}
                         onChange={(e) => handleUpdateNotes(check.id, e.target.value)}
                       />
@@ -394,71 +455,69 @@ export const QCBench = () => {
               })}
             </div>
 
-            <div className="p-4 px-6 bg-muted/20 border-t border-border flex items-center justify-between">
+            <div className="p-4 px-6 bg-primary/5 border-t border-primary/10 flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Info className="h-4 w-4" />
+                <span className="material-symbols-outlined text-sm text-[#bec8ce]">info</span>
                 <span>Submit only after all items have been verified.</span>
               </div>
               <Button 
                 disabled={!isComplete || isSubmitting}
                 onClick={handleSubmit}
-                className="gap-2 px-6"
+                className="gap-2 px-6 bg-primary text-[#081326] font-bold hover:brightness-110 active:scale-95 transition-all rounded-lg"
               >
                 {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="material-symbols-outlined text-sm animate-spin">sync</span>
                 ) : (
-                  <Save className="h-4 w-4" />
+                  <span className="material-symbols-outlined text-sm">done_all</span>
                 )}
                 Complete QC Report
               </Button>
             </div>
           </div>
         </div>
-      </AppShell>
     );
   }
 
   return (
-    <AppShell>
-      <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full">
+    <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight">QC Bench Testing</h2>
+            <h1 className="text-3xl font-extrabold tracking-tight text-[#d8e2fd]">QC Bench Testing</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Select a hardware unit from inventory to begin the manual diagnostic checklist.
             </p>
           </div>
           <div className="relative w-full md:w-80">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
+            <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-sm">search</span>
+            <input
               placeholder="Search serial or model..."
-              className="pl-9 h-10"
+              className="w-full bg-primary/5 border border-primary/10 rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-1 focus:ring-primary focus:outline-none text-[#d8e2fd] placeholder:text-muted-foreground/35"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="border border-border rounded-lg bg-card overflow-hidden shadow-sm">
+        <div className="glass-panel rounded-2xl overflow-hidden">
           <Table>
-            <TableHeader className="bg-muted/50">
+            <TableHeader className="bg-[#0f1524]/40 border-b border-primary/10">
               <TableRow>
-                <TableHead>Device Identifier</TableHead>
-                <TableHead>Model Template</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Tested</TableHead>
-                <TableHead className="text-right">Action</TableHead>
+                <TableHead className="font-bold text-[10px] uppercase tracking-widest text-[#bec8ce]">Device Identifier</TableHead>
+                <TableHead className="font-bold text-[10px] uppercase tracking-widest text-[#bec8ce]">Model Template</TableHead>
+                <TableHead className="font-bold text-[10px] uppercase tracking-widest text-[#bec8ce]">Status</TableHead>
+                <TableHead className="font-bold text-[10px] uppercase tracking-widest text-[#bec8ce]">Last Tested</TableHead>
+                <TableHead className="text-right font-bold text-[10px] uppercase tracking-widest text-[#bec8ce]">Action</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="divide-y divide-primary/5">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32 bg-primary/10" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24 bg-primary/10" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20 bg-primary/10" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-28 bg-primary/10" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto bg-primary/10" /></TableCell>
                   </TableRow>
                 ))
               ) : filteredDevices.length > 0 ? (
@@ -467,20 +526,20 @@ export const QCBench = () => {
                   const qcTestedAt = device.metadata?.qcTestedAt;
 
                   return (
-                    <TableRow key={device.id} className="group">
-                      <TableCell className="font-mono font-medium">{device.identifier}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground uppercase">{device.modelName}</TableCell>
+                    <TableRow key={device.id} className="group hover:bg-primary/5 transition-colors">
+                      <TableCell className="font-mono font-bold text-primary">{device.identifier}</TableCell>
+                      <TableCell className="text-xs text-[#d8e2fd] uppercase font-semibold">{device.modelName}</TableCell>
                       <TableCell>
                         {qcStatus === 'PASSED' ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                            <CheckCircle2 className="h-3 w-3" /> Passed
+                          <span className="inline-flex items-center gap-1 text-emerald-400 font-bold text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
+                            Passed
                           </span>
                         ) : qcStatus === 'FAILED' ? (
-                          <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 font-semibold text-[10px] bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                            <AlertCircle className="h-3 w-3" /> Failed
+                          <span className="inline-flex items-center gap-1 text-red-400 font-bold text-[10px] bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
+                            Failed
                           </span>
                         ) : (
-                          <span className="text-[10px] text-muted-foreground font-medium border border-border px-1.5 py-0.5 rounded uppercase tracking-wider">
+                          <span className="text-[10px] text-muted-foreground font-bold border border-primary/10 px-2 py-0.5 rounded uppercase tracking-wider">
                             Untested
                           </span>
                         )}
@@ -488,7 +547,7 @@ export const QCBench = () => {
                       <TableCell className="text-xs text-muted-foreground">
                         {qcTestedAt ? (
                           <div className="flex items-center gap-1.5">
-                            <Calendar className="h-3 w-3" />
+                            <span className="material-symbols-outlined text-sm">calendar_month</span>
                             <span>{new Date(qcTestedAt).toLocaleDateString()}</span>
                           </div>
                         ) : (
@@ -496,14 +555,12 @@ export const QCBench = () => {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button 
-                          size="sm" 
-                          variant="secondary"
+                        <button 
                           onClick={() => handleSelectDevice(device)}
-                          className="h-8 text-xs font-semibold"
+                          className="h-8 text-xs font-bold px-4 bg-primary text-[#081326] rounded-md hover:brightness-110 active:scale-95 transition-all shadow-md shadow-primary/10"
                         >
                           Start QC Test
-                        </Button>
+                        </button>
                       </TableCell>
                     </TableRow>
                   );
@@ -512,7 +569,7 @@ export const QCBench = () => {
                 <TableRow>
                   <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">
-                      <Info className="h-8 w-8 opacity-20" />
+                      <span className="material-symbols-outlined text-3xl opacity-20">info</span>
                       <p>No devices found matching your search.</p>
                     </div>
                   </TableCell>
@@ -522,6 +579,5 @@ export const QCBench = () => {
           </Table>
         </div>
       </div>
-    </AppShell>
   );
 };
