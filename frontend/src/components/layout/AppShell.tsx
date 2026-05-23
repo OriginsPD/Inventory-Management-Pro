@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Database, Cpu, Menu, X, Shield, AlertCircle, Settings, Truck, CheckSquare, RefreshCw, Users, FileSpreadsheet } from 'lucide-react';
 import { CommandMenu } from '../ui/command-menu';
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => {
@@ -33,86 +32,77 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
 
   const navGroups = [
     {
-      label: 'Overview',
-      items: [
-        { name: 'Dashboard', path: '/', icon: Home },
-        { name: 'Reports Console', path: '/reports', icon: FileSpreadsheet },
-      ]
-    },
-    {
-      label: 'Hardware',
-      items: [
-        { name: 'Device Inventory', path: '/inventory', icon: Database },
-        { name: 'Model Templates', path: '/models', icon: Cpu },
-      ]
-    },
-    {
       label: 'Operations',
       items: [
-        { name: 'Customers', path: '/customers', icon: Users },
-        { name: 'Customer Dispatch', path: '/dispatch', icon: Truck },
-        { name: 'QC Bench', path: '/qc', icon: CheckSquare },
-        { name: 'RMA Swaps', path: '/swaps', icon: RefreshCw },
+        { name: 'Dashboard', path: '/', icon: 'dashboard' },
+        { name: 'Inventory', path: '/inventory', icon: 'inventory_2' },
+        { name: 'Dispatch', path: '/dispatch', icon: 'local_shipping' },
+        { name: 'QC Bench', path: '/qc', icon: 'biotech' },
       ]
     },
     {
-      label: 'System',
+      label: 'Management',
       items: [
-        { name: 'Settings', path: '/settings', icon: Settings },
+        { name: 'Model Templates', path: '/models', icon: 'layers' },
+        { name: 'RMA Swaps', path: '/swaps', icon: 'swap_horiz' },
+        { name: 'Customers', path: '/customers', icon: 'groups' },
+        { name: 'Reports', path: '/reports', icon: 'analytics' },
+        { name: 'Settings', path: '/settings', icon: 'settings' },
       ]
     },
   ];
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex bg-background text-foreground font-sans antialiased selection:bg-primary selection:text-primary-foreground">
-      
+    <div className="h-screen w-screen overflow-hidden flex bg-[#081326] text-[#d8e2fd] font-sans antialiased selection:bg-primary/30 relative">
+      {/* Background Glow Decorations */}
+      <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/5 blur-[120px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute bottom-[-5%] left-[-5%] w-[40%] h-[40%] bg-primary/5 blur-[100px] rounded-full pointer-events-none -z-10" />
+
       {/* Mobile Sidebar overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar Component */}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex h-full w-56 flex-col border-r border-border bg-card transition-transform duration-200 lg:static lg:translate-x-0 shrink-0 ${
+      <aside className={`fixed inset-y-0 left-0 z-50 flex h-full w-60 flex-col border-r border-primary/10 bg-[#0f1524]/60 backdrop-blur-2xl transition-transform duration-200 lg:static lg:translate-x-0 shrink-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        <div className="flex h-12 items-center justify-between px-4 border-b border-border shrink-0">
+        <div className="flex h-14 items-center justify-between px-6 border-b border-primary/10 shrink-0">
           <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-foreground/80" />
-            <span className="font-semibold tracking-tight text-xs">IMS-Pro</span>
-            <span className="bg-muted text-muted-foreground text-[9px] font-mono px-1 py-0.5 rounded border border-border">v2.3</span>
+            <span className="text-xl font-bold tracking-wider text-primary">IMS Pro</span>
+            <span className="bg-primary/10 text-primary text-[9px] font-mono px-1 py-0.5 rounded border border-primary/20">v4.2</span>
           </div>
           <button 
-            className="lg:hidden p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+            className="lg:hidden p-1 hover:bg-primary/15 rounded text-muted-foreground hover:text-foreground"
             onClick={() => setSidebarOpen(false)}
           >
-            <X className="h-3.5 w-3.5" />
+            <span className="material-symbols-outlined text-sm">close</span>
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
+        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
           {navGroups.map((group) => (
-            <div key={group.label}>
-              <p className="px-2 mb-1.5 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+            <div key={group.label} className="space-y-2">
+              <p className="px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">
                 {group.label}
               </p>
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 {group.items.map((item) => {
                   const isActive = currentPath === item.path;
-                  const Icon = item.icon;
                   return (
                     <a
                       key={item.name}
                       href={item.path}
-                      className={`flex items-center gap-2.5 rounded px-2.5 py-1.5 text-xs font-medium transition-colors duration-150 ${
+                      className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-300 ${
                         isActive 
-                          ? 'bg-secondary text-foreground border border-border/80' 
-                          : 'text-muted-foreground hover:bg-secondary/40 hover:text-foreground'
+                          ? 'bg-primary/5 text-primary border-r-2 border-primary font-semibold' 
+                          : 'text-[#bec8ce] hover:bg-primary/5 hover:text-[#d8e2fd]'
                       }`}
                     >
-                      <Icon className="h-3.5 w-3.5 shrink-0" />
+                      <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
                       {item.name}
                     </a>
                   );
@@ -123,15 +113,14 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
         </nav>
 
         {/* Database Connection Status Block */}
-        <div className="p-3 border-t border-border bg-muted/20 shrink-0">
-          <div className="flex items-center gap-2 text-xs">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-            </span>
-            <div className="flex flex-col">
-              <span className="font-semibold text-foreground text-[10px]">Neon DB Connected</span>
-              <span className="text-[8px] text-muted-foreground font-mono">pg.neon.tech</span>
+        <div className="p-4 border-t border-primary/5 mt-auto">
+          <div className="glass-panel rounded-xl p-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary/20">
+              <span className="material-symbols-outlined text-primary text-sm">terminal</span>
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-xs font-semibold truncate">Node-042</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Active Station 04</p>
             </div>
           </div>
         </div>
@@ -139,12 +128,12 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
 
       {/* Main Content Layout */}
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
-        <header className="flex h-12 items-center justify-between border-b border-border bg-card px-4 lg:px-6 shrink-0">
+        <header className="flex h-14 items-center justify-between border-b border-primary/10 bg-[#081326]/60 backdrop-blur-xl px-6 shrink-0 z-10">
           <button 
             onClick={() => setSidebarOpen(true)}
             className="p-1.5 -ml-1.5 lg:hidden text-muted-foreground hover:text-foreground"
           >
-            <Menu className="h-4 w-4" />
+            <span className="material-symbols-outlined">menu</span>
           </button>
           
           <div className="flex items-center gap-4 ml-auto">
@@ -155,29 +144,40 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
               const warnCount = withTarget.filter(a => a.level === 'WARNING').length;
               if (withTarget.length === 0) return null;
               if (lowCount > 0) return (
-                <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/25 font-semibold font-mono">
-                  <AlertCircle className="h-3 w-3" />
+                <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-red-400 bg-red-500/10 px-2.5 py-1 rounded border border-red-500/25 font-semibold font-mono">
+                  <span className="material-symbols-outlined text-xs">warning</span>
                   <span>{lowCount} LOW STOCK ALERT{lowCount > 1 ? 'S' : ''}</span>
                 </div>
               );
               if (warnCount > 0) return (
-                <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-amber-600 dark:text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/25 font-semibold font-mono">
-                  <AlertCircle className="h-3 w-3" />
+                <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/25 font-semibold font-mono">
+                  <span className="material-symbols-outlined text-xs">warning</span>
                   <span>{warnCount} STOCK WARNING{warnCount > 1 ? 'S' : ''}</span>
                 </div>
               );
               return (
-                <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25 font-semibold font-mono">
-                  <AlertCircle className="h-3 w-3" />
+                <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/25 font-semibold font-mono">
+                  <span className="material-symbols-outlined text-xs">check_circle</span>
                   <span>ALL STOCK HEALTHY</span>
                 </div>
               );
             })()}
+
+            <div className="h-4 w-[1px] bg-primary/10 hidden sm:block" />
+
+            {/* Neon Connection status block */}
+            <div className="flex items-center gap-2 px-2.5 py-1 bg-primary/5 rounded border border-primary/10 text-[10px] font-semibold">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+              </span>
+              <span className="font-mono text-muted-foreground">pg.neon.tech</span>
+            </div>
           </div>
         </header>
 
         {/* Scrollable Main Area */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8 custom-scrollbar">
           <div className="max-w-[1440px] w-full mx-auto">
             {children}
           </div>
