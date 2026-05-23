@@ -1,17 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import { 
-  Search, 
-  FileSpreadsheet, 
-  Download, 
-  Loader2, 
-  Calendar, 
-  Info, 
-  Users, 
-  Database, 
-  FileText,
-  TrendingUp
-} from 'lucide-react';
-import { AppShell } from '../layout/AppShell';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Skeleton } from '../ui/skeleton';
 import { EmptyState } from '../ui/empty-state';
@@ -537,14 +524,14 @@ export const ReportsScreen = () => {
   };
 
   return (
-    <AppShell>
-      <div className="space-y-6">
+    <div className="space-y-6">
         
         {/* Header Block */}
         <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <FileSpreadsheet className="h-5 w-5 text-primary" /> Reports Console
+            <h1 className="text-2xl font-extrabold tracking-tight text-[#d8e2fd] flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-2xl select-none">analytics</span> 
+              Reports Console
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
               Compile lifecycle metrics, inventory counts, and customer allocation details. Export directly to spreadsheets.
@@ -554,99 +541,45 @@ export const ReportsScreen = () => {
 
         {/* Reports Type Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          
-          <button 
-            type="button"
-            onClick={() => handleReportTabChange('inventory')}
-            className={`text-left p-4 rounded-lg border transition-all duration-200 cursor-pointer flex flex-col justify-between h-28 ${
-              activeReport === 'inventory' 
-                ? 'border-primary/80 bg-primary/5 shadow-sm ring-1 ring-primary/45' 
-                : 'border-border bg-card hover:bg-muted/40 hover:border-border-hover'
-            }`}
-          >
-            <div className="flex items-center justify-between w-full">
-              <span className={`p-1.5 rounded-md ${activeReport === 'inventory' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                <Database className="h-4 w-4" />
-              </span>
-              <span className="text-[10px] text-muted-foreground font-mono font-medium">Inventory</span>
-            </div>
-            <div className="mt-3">
-              <h3 className="text-xs font-semibold text-foreground">Active Inventory</h3>
-              <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">Asset status, metadata and assignments.</p>
-            </div>
-          </button>
-
-          <button 
-            type="button"
-            onClick={() => handleReportTabChange('stock')}
-            className={`text-left p-4 rounded-lg border transition-all duration-200 cursor-pointer flex flex-col justify-between h-28 ${
-              activeReport === 'stock' 
-                ? 'border-primary/80 bg-primary/5 shadow-sm ring-1 ring-primary/45' 
-                : 'border-border bg-card hover:bg-muted/40 hover:border-border-hover'
-            }`}
-          >
-            <div className="flex items-center justify-between w-full">
-              <span className={`p-1.5 rounded-md ${activeReport === 'stock' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                <TrendingUp className="h-4 w-4" />
-              </span>
-              <span className="text-[10px] text-muted-foreground font-mono font-medium">Capacities</span>
-            </div>
-            <div className="mt-3">
-              <h3 className="text-xs font-semibold text-foreground">Stock Capacity & Health</h3>
-              <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">Capacities vs real-time stock tiers.</p>
-            </div>
-          </button>
-
-          <button 
-            type="button"
-            onClick={() => handleReportTabChange('customer')}
-            className={`text-left p-4 rounded-lg border transition-all duration-200 cursor-pointer flex flex-col justify-between h-28 ${
-              activeReport === 'customer' 
-                ? 'border-primary/80 bg-primary/5 shadow-sm ring-1 ring-primary/45' 
-                : 'border-border bg-card hover:bg-muted/40 hover:border-border-hover'
-            }`}
-          >
-            <div className="flex items-center justify-between w-full">
-              <span className={`p-1.5 rounded-md ${activeReport === 'customer' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                <Users className="h-4 w-4" />
-              </span>
-              <span className="text-[10px] text-muted-foreground font-mono font-medium">Distributions</span>
-            </div>
-            <div className="mt-3">
-              <h3 className="text-xs font-semibold text-foreground">Customer Allocations</h3>
-              <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">Dispatched device models by client.</p>
-            </div>
-          </button>
-
-          <button 
-            type="button"
-            onClick={() => handleReportTabChange('audit')}
-            className={`text-left p-4 rounded-lg border transition-all duration-200 cursor-pointer flex flex-col justify-between h-28 ${
-              activeReport === 'audit' 
-                ? 'border-primary/80 bg-primary/5 shadow-sm ring-1 ring-primary/45' 
-                : 'border-border bg-card hover:bg-muted/40 hover:border-border-hover'
-            }`}
-          >
-            <div className="flex items-center justify-between w-full">
-              <span className={`p-1.5 rounded-md ${activeReport === 'audit' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                <FileText className="h-4 w-4" />
-              </span>
-              <span className="text-[10px] text-muted-foreground font-mono font-medium">Logs</span>
-            </div>
-            <div className="mt-3">
-              <h3 className="text-xs font-semibold text-foreground">Lifecycle Audit logs</h3>
-              <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">Technician scan operations timeline.</p>
-            </div>
-          </button>
-
+          {[
+            { id: 'inventory', icon: 'database', title: 'Active Inventory', label: 'Inventory', desc: 'Asset status, metadata and assignments.' },
+            { id: 'stock', icon: 'trending_up', title: 'Stock Capacity & Health', label: 'Capacities', desc: 'Capacities vs real-time stock tiers.' },
+            { id: 'customer', icon: 'group', title: 'Customer Allocations', label: 'Distributions', desc: 'Dispatched device models by client.' },
+            { id: 'audit', icon: 'article', title: 'Lifecycle Audit logs', label: 'Logs', desc: 'Technician scan operations timeline.' }
+          ].map((tab) => {
+            const isActive = activeReport === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => handleReportTabChange(tab.id as ReportType)}
+                className={`text-left p-4 rounded-xl border transition-all duration-300 cursor-pointer flex flex-col justify-between h-28 glass-panel glow-accent-hover ${
+                  isActive 
+                    ? 'border-primary/80 bg-primary/10 shadow-sm glow-accent ring-1 ring-primary/30' 
+                    : 'border-primary/10 hover:border-primary/30 hover:bg-primary/5'
+                }`}
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span className={`p-1.5 rounded-lg flex items-center justify-center ${isActive ? 'bg-primary/20 text-primary' : 'bg-primary/5 text-muted-foreground'}`}>
+                    <span className="material-symbols-outlined text-base select-none">{tab.icon}</span>
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-mono font-medium tracking-wide uppercase">{tab.label}</span>
+                </div>
+                <div className="mt-3">
+                  <h3 className={`text-xs font-bold transition-colors ${isActive ? 'text-primary' : 'text-[#d8e2fd]'}`}>{tab.title}</h3>
+                  <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{tab.desc}</p>
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         {/* Filter Panel & Console Area */}
-        <div className="border border-border rounded-lg bg-card p-5 space-y-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-3 border-b border-border/80">
+        <div className="glass-panel rounded-2xl p-5 space-y-4 glow-accent">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-4 border-b border-primary/10">
             <div>
-              <h2 className="text-sm font-semibold tracking-tight text-foreground">{activeReportDetails.title}</h2>
-              <p className="text-[11px] text-muted-foreground">{activeReportDetails.description}</p>
+              <h2 className="text-sm font-bold tracking-tight text-[#d8e2fd]">{activeReportDetails.title}</h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">{activeReportDetails.description}</p>
             </div>
             
             {/* Export buttons */}
@@ -655,20 +588,20 @@ export const ReportsScreen = () => {
                 type="button"
                 onClick={handleExportCSV}
                 disabled={isLoading || isExporting || activeReportDetails.data.length === 0}
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium transition-colors border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 disabled:opacity-50 cursor-pointer gap-1.5"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-semibold transition-all border border-primary/10 bg-primary/5 text-[#d8e2fd] hover:bg-primary/10 h-8.5 px-3.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer gap-1.5"
               >
-                <Download className="h-3.5 w-3.5" /> CSV
+                <span className="material-symbols-outlined text-sm select-none">download</span> CSV
               </button>
               <button
                 type="button"
                 onClick={handleExportExcel}
                 disabled={isLoading || isExporting || activeReportDetails.data.length === 0}
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/90 h-8 px-3 disabled:opacity-50 cursor-pointer gap-1.5 font-semibold"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground hover:bg-primary/90 h-8.5 px-3.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer gap-1.5"
               >
                 {isExporting ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span className="material-symbols-outlined text-sm animate-spin select-none">sync</span>
                 ) : (
-                  <Download className="h-3.5 w-3.5" />
+                  <span className="material-symbols-outlined text-sm select-none">download</span>
                 )}
                 Export to Excel
               </button>
@@ -676,27 +609,27 @@ export const ReportsScreen = () => {
           </div>
 
           {/* Filters Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-muted/10 p-3 rounded-lg border border-border/50">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-primary/5 p-3 rounded-xl border border-primary/10">
             
             {/* Search query */}
             <div className="relative col-span-1 sm:col-span-2 md:col-span-1">
-              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <span className="absolute left-2.5 top-2.5 material-symbols-outlined text-[#bec8ce] text-base select-none">search</span>
               <input
                 type="text"
                 placeholder="Fuzzy search matching terms..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-8.5 w-full rounded-md border border-input bg-card pl-8.5 pr-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-sans"
+                className="h-9 w-full rounded-lg border border-primary/10 bg-primary/5 pl-9 pr-3 py-1 text-xs text-[#d8e2fd] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary/20 font-sans transition-all"
               />
             </div>
 
             {/* Inventory Type Filter (Inventory & Stock Health) */}
             {(activeReport === 'inventory' || activeReport === 'stock') && (
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="h-8.5 text-xs bg-card border-input">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
                   <SelectValue placeholder="Filter Asset Type" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border">
+                <SelectContent className="bg-popover border border-primary/10">
                   <SelectItem value="ALL" className="text-xs">All Asset Types</SelectItem>
                   <SelectItem value="TRACKER" className="text-xs">Trackers</SelectItem>
                   <SelectItem value="SIM" className="text-xs">SIM Cards</SelectItem>
@@ -710,10 +643,10 @@ export const ReportsScreen = () => {
             {/* Inventory Status Filter */}
             {activeReport === 'inventory' && (
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-8.5 text-xs bg-card border-input">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
                   <SelectValue placeholder="Filter Device Status" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border">
+                <SelectContent className="bg-popover border border-primary/10">
                   <SelectItem value="ALL" className="text-xs">All Statuses</SelectItem>
                   <SelectItem value="IN_STOCK" className="text-xs">In Stock</SelectItem>
                   <SelectItem value="DISPATCHED" className="text-xs">Dispatched</SelectItem>
@@ -727,10 +660,10 @@ export const ReportsScreen = () => {
             {/* Inventory Customer Filter */}
             {activeReport === 'inventory' && (
               <Select value={customerFilter} onValueChange={setCustomerFilter}>
-                <SelectTrigger className="h-8.5 text-xs bg-card border-input">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
                   <SelectValue placeholder="Filter Customer" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border">
+                <SelectContent className="bg-popover border border-primary/10">
                   <SelectItem value="ALL" className="text-xs">All Customers</SelectItem>
                   {customers.map(c => (
                     <SelectItem key={c.id} value={c.id} className="text-xs">{c.name}</SelectItem>
@@ -742,10 +675,10 @@ export const ReportsScreen = () => {
             {/* Stock Health Level Filter */}
             {activeReport === 'stock' && (
               <Select value={healthFilter} onValueChange={setHealthFilter}>
-                <SelectTrigger className="h-8.5 text-xs bg-card border-input">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
                   <SelectValue placeholder="Filter Stock Status" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border">
+                <SelectContent className="bg-popover border border-primary/10">
                   <SelectItem value="ALL" className="text-xs">All Stock Health Levels</SelectItem>
                   <SelectItem value="HEALTHY" className="text-xs">Healthy (60%+)</SelectItem>
                   <SelectItem value="WARNING" className="text-xs">Warning (30-59%)</SelectItem>
@@ -757,10 +690,10 @@ export const ReportsScreen = () => {
             {/* Customer Type Filter */}
             {activeReport === 'customer' && (
               <Select value={custTypeFilter} onValueChange={setCustTypeFilter}>
-                <SelectTrigger className="h-8.5 text-xs bg-card border-input">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
                   <SelectValue placeholder="Filter Client Type" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border">
+                <SelectContent className="bg-popover border border-primary/10">
                   <SelectItem value="ALL" className="text-xs">All Customer Types</SelectItem>
                   <SelectItem value="COMPANY" className="text-xs">Corporations / Fleets</SelectItem>
                   <SelectItem value="PERSON" className="text-xs">Individuals</SelectItem>
@@ -771,10 +704,10 @@ export const ReportsScreen = () => {
             {/* Audit Log Action Filter */}
             {activeReport === 'audit' && (
               <Select value={actionFilter} onValueChange={setActionFilter}>
-                <SelectTrigger className="h-8.5 text-xs bg-card border-input">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
                   <SelectValue placeholder="Filter Audit Action" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border">
+                <SelectContent className="bg-popover border border-primary/10">
                   <SelectItem value="ALL" className="text-xs">All Operations</SelectItem>
                   <SelectItem value="INGEST" className="text-xs">Ingestion (Bulk/Single)</SelectItem>
                   <SelectItem value="LINK" className="text-xs">Link Creation</SelectItem>
@@ -789,18 +722,18 @@ export const ReportsScreen = () => {
           </div>
 
           {/* Table Preview Grid */}
-          <div className="relative border border-border/80 rounded-lg overflow-hidden bg-card">
+          <div className="relative border border-primary/10 rounded-xl overflow-hidden bg-primary/5 backdrop-filter backdrop-blur-md">
             
             {isLoading ? (
               <div className="p-8 space-y-4">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full bg-primary/5" />
+                <Skeleton className="h-10 w-full bg-primary/5" />
+                <Skeleton className="h-10 w-full bg-primary/5" />
               </div>
             ) : activeReportDetails.data.length === 0 ? (
-              <div className="p-4 bg-muted/5">
+              <div className="p-4 bg-transparent">
                 <EmptyState
-                  icon={Search}
+                  icon="search"
                   title="No matching records"
                   description="No reports data matches the selected search queries and filter options. Try adjusting filters."
                 />
@@ -808,9 +741,9 @@ export const ReportsScreen = () => {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="hover:bg-transparent bg-muted/30">
+                  <TableRow className="hover:bg-transparent bg-primary/10 border-b border-primary/10">
                     {activeReportDetails.headers.map((h, i) => (
-                      <TableHead key={i} className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80 py-2.5 px-3">
+                      <TableHead key={i} className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80 py-3 px-4">
                         {h}
                       </TableHead>
                     ))}
@@ -821,33 +754,33 @@ export const ReportsScreen = () => {
                   {activeReportDetails.data.slice(0, 15).map((row: any, idx: number) => {
                     if (activeReport === 'inventory') {
                       return (
-                        <TableRow key={row.id || idx} className="hover:bg-muted/30 border-b border-border/50">
-                          <TableCell className="font-mono text-[11px] font-semibold text-foreground px-3 py-2">
+                        <TableRow key={row.id || idx} className="hover:bg-primary/5 border-b border-primary/5 transition-all">
+                          <TableCell className="font-mono text-[11px] font-semibold text-[#d8e2fd] px-4 py-2.5">
                             {row.identifier}
                           </TableCell>
-                          <TableCell className="text-xs font-semibold text-foreground/90 px-3 py-2">
+                          <TableCell className="text-xs font-semibold text-foreground/90 px-4 py-2.5">
                             {row.modelName}
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground px-3 py-2">
-                            <span className="bg-muted text-muted-foreground/80 border border-border/40 px-1.5 py-0.5 rounded text-[10px] font-medium font-sans">
+                          <TableCell className="text-xs text-muted-foreground px-4 py-2.5">
+                            <span className="bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded text-[10px] font-medium font-sans">
                               {row.type}
                             </span>
                           </TableCell>
-                          <TableCell className="text-xs px-3 py-2">
-                            {row.status === 'IN_STOCK' && <span className="text-emerald-600 dark:text-emerald-500 font-semibold">🟢 In Stock</span>}
-                            {row.status === 'DISPATCHED' && <span className="text-blue-600 dark:text-blue-400 font-semibold font-sans">🔵 Dispatched</span>}
-                            {row.status === 'TESTING' && <span className="text-amber-500 font-semibold">🟡 Testing</span>}
-                            {row.status === 'DAMAGED' && <span className="text-red-500 font-semibold">🔴 Damaged</span>}
-                            {row.status === 'RMA' && <span className="text-amber-600 font-semibold">🟠 RMA Swap</span>}
+                          <TableCell className="text-xs px-4 py-2.5">
+                            {row.status === 'IN_STOCK' && <span className="text-emerald-400 font-semibold flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />In Stock</span>}
+                            {row.status === 'DISPATCHED' && <span className="text-sky-400 font-semibold flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-sky-400" />Dispatched</span>}
+                            {row.status === 'TESTING' && <span className="text-amber-400 font-semibold flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />Testing</span>}
+                            {row.status === 'DAMAGED' && <span className="text-red-400 font-semibold flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-red-400" />Damaged</span>}
+                            {row.status === 'RMA' && <span className="text-amber-500 font-semibold flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />RMA Swap</span>}
                           </TableCell>
-                          <TableCell className="text-xs text-foreground/80 px-3 py-2 max-w-xs truncate">
-                            {row.customerName || <span className="text-muted-foreground/40 italic">-</span>}
+                          <TableCell className="text-xs text-foreground/80 px-4 py-2.5 max-w-xs truncate">
+                            {row.customerName || <span className="text-muted-foreground/30 italic">-</span>}
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground font-mono px-3 py-2">
+                          <TableCell className="text-xs text-muted-foreground font-mono px-4 py-2.5">
                             {row.linked > 0 ? (
                               <span className="text-primary font-semibold">{row.linked} link{row.linked > 1 ? 's' : ''}</span>
                             ) : (
-                              <span className="text-muted-foreground/30">-</span>
+                              <span className="text-muted-foreground/20">-</span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -856,44 +789,44 @@ export const ReportsScreen = () => {
                     
                     if (activeReport === 'stock') {
                       return (
-                        <TableRow key={row.id || idx} className="hover:bg-muted/30 border-b border-border/50">
-                          <TableCell className="text-xs font-semibold text-foreground px-3 py-2">
+                        <TableRow key={row.id || idx} className="hover:bg-primary/5 border-b border-primary/5 transition-all">
+                          <TableCell className="text-xs font-semibold text-foreground px-4 py-2.5">
                             {row.brand} {row.name}
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground px-3 py-2">
-                            <span className="bg-muted text-muted-foreground/80 border border-border/40 px-1.5 py-0.5 rounded text-[10px] font-medium">
+                          <TableCell className="text-xs text-muted-foreground px-4 py-2.5">
+                            <span className="bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded text-[10px] font-medium">
                               {row.assetType}
                             </span>
                           </TableCell>
-                          <TableCell className="text-xs font-mono font-bold text-foreground px-3 py-2">
+                          <TableCell className="text-xs font-mono font-bold text-foreground px-4 py-2.5">
                             {row.inStock}
                           </TableCell>
-                          <TableCell className="text-xs font-mono text-muted-foreground px-3 py-2">
+                          <TableCell className="text-xs font-mono text-muted-foreground px-4 py-2.5">
                             {row.maxStock > 0 ? row.maxStock : <span className="text-muted-foreground/30 italic">No limit</span>}
                           </TableCell>
-                          <TableCell className="text-xs px-3 py-2">
+                          <TableCell className="text-xs px-4 py-2.5">
                             {row.level === 'LOW' && (
-                              <span className="bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                              <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold">
                                 CRITICAL LOW
                               </span>
                             )}
                             {row.level === 'WARNING' && (
-                              <span className="bg-amber-500/10 text-amber-600 dark:text-amber-500 border border-amber-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                              <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold">
                                 WARNING ALERT
                               </span>
                             )}
                             {row.level === 'HEALTHY' && (
-                              <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                              <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold">
                                 HEALTHY
                               </span>
                             )}
                           </TableCell>
-                          <TableCell className="text-xs font-mono font-medium text-foreground px-3 py-2">
+                          <TableCell className="text-xs font-mono font-medium text-foreground px-4 py-2.5">
                             {row.maxStock > 0 ? (
                               <div className="flex items-center gap-2">
-                                <div className="w-12 bg-muted h-1.5 rounded overflow-hidden">
+                                <div className="w-12 bg-primary/10 h-1.5 rounded overflow-hidden">
                                   <div 
-                                    className={`h-full ${row.level === 'LOW' ? 'bg-red-500' : row.level === 'WARNING' ? 'bg-amber-500' : 'bg-emerald-500'}`} 
+                                    className={`h-full ${row.level === 'LOW' ? 'bg-red-400' : row.level === 'WARNING' ? 'bg-amber-400' : 'bg-emerald-400'}`} 
                                     style={{ width: `${Math.min((row.inStock / row.maxStock) * 100, 100)}%` }}
                                   />
                                 </div>
@@ -909,25 +842,25 @@ export const ReportsScreen = () => {
                     
                     if (activeReport === 'customer') {
                       return (
-                        <TableRow key={row.id || idx} className="hover:bg-muted/30 border-b border-border/50">
-                          <TableCell className="text-xs font-semibold text-foreground px-3 py-2">
+                        <TableRow key={row.id || idx} className="hover:bg-primary/5 border-b border-primary/5 transition-all">
+                          <TableCell className="text-xs font-semibold text-foreground px-4 py-2.5">
                             {row.name}
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground px-3 py-2">
-                            <span className="bg-muted text-muted-foreground/80 border border-border/40 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                          <TableCell className="text-xs text-muted-foreground px-4 py-2.5">
+                            <span className="bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded text-[10px] font-bold">
                               {row.type}
                             </span>
                           </TableCell>
-                          <TableCell className="text-xs text-foreground/80 px-3 py-2 font-mono">
+                          <TableCell className="text-xs text-foreground/80 px-4 py-2.5 font-mono">
                             {row.phone || <span className="text-muted-foreground/30 italic">-</span>}
                           </TableCell>
-                          <TableCell className="text-xs text-foreground/80 px-3 py-2 font-mono">
+                          <TableCell className="text-xs text-foreground/80 px-4 py-2.5 font-mono">
                             {row.email || <span className="text-muted-foreground/30 italic">-</span>}
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground font-mono px-3 py-2">
+                          <TableCell className="text-xs text-muted-foreground font-mono px-4 py-2.5">
                             {row.taxId || <span className="text-muted-foreground/30 italic">-</span>}
                           </TableCell>
-                          <TableCell className="text-xs font-mono font-bold text-primary px-3 py-2">
+                          <TableCell className="text-xs font-mono font-bold text-primary px-4 py-2.5">
                             {row.dispatchCount} units
                           </TableCell>
                         </TableRow>
@@ -936,26 +869,26 @@ export const ReportsScreen = () => {
 
                     if (activeReport === 'audit') {
                       return (
-                        <TableRow key={row.id || idx} className="hover:bg-muted/30 border-b border-border/50">
-                          <TableCell className="text-xs px-3 py-2">
+                        <TableRow key={row.id || idx} className="hover:bg-primary/5 border-b border-primary/5 transition-all">
+                          <TableCell className="text-xs px-4 py-2.5">
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
-                              row.actionType === 'INGEST' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 border border-emerald-500/20' :
-                              row.actionType === 'LINK' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' :
-                              row.actionType === 'STATUS_CHANGE' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' :
-                              row.actionType === 'SWAP' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-500 border border-amber-500/20' :
-                              row.actionType === 'DELETE' ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20' :
-                              'bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20'
+                              row.actionType === 'INGEST' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                              row.actionType === 'LINK' ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' :
+                              row.actionType === 'STATUS_CHANGE' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' :
+                              row.actionType === 'SWAP' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                              row.actionType === 'DELETE' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                              'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20'
                             }`}>
                               {row.actionType}
                             </span>
                           </TableCell>
-                          <TableCell className="font-mono text-[11px] font-semibold text-foreground px-3 py-2">
+                          <TableCell className="font-mono text-[11px] font-semibold text-foreground px-4 py-2.5">
                             {row.deviceIdentifier || <span className="text-muted-foreground/30 italic">-</span>}
                           </TableCell>
-                          <TableCell className="text-xs text-foreground/80 px-3 py-2 max-w-sm truncate" title={row.details}>
+                          <TableCell className="text-xs text-foreground/80 px-4 py-2.5 max-w-sm truncate" title={row.details}>
                             {row.details}
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground font-mono px-3 py-2">
+                          <TableCell className="text-xs text-muted-foreground font-mono px-4 py-2.5">
                             {new Date(row.createdAt).toLocaleString()}
                           </TableCell>
                         </TableRow>
@@ -970,8 +903,8 @@ export const ReportsScreen = () => {
 
             {/* Preview limit caption bar */}
             {!isLoading && activeReportDetails.data.length > 15 && (
-              <div className="p-2.5 bg-muted/10 border-t border-border flex items-center gap-1.5 text-[10px] text-muted-foreground justify-center">
-                <Info className="h-3 w-3" />
+              <div className="p-3 bg-primary/10 border-t border-primary/10 flex items-center gap-1.5 text-[10px] text-muted-foreground justify-center">
+                <span className="material-symbols-outlined text-xs text-primary select-none">info</span>
                 <span>Showing top 15 records in the live preview. Download to export the full breakdown of {activeReportDetails.data.length} records.</span>
               </div>
             )}
@@ -983,11 +916,11 @@ export const ReportsScreen = () => {
             <div className="flex items-center gap-1">
               <span className="font-semibold text-foreground font-mono">{activeReportDetails.data.length}</span>
               <span>of</span>
-              <span className="font-semibold text-foreground font-mono">{activeReportDetails.total}</span>
+              <span className="font-semibold text-[#d8e2fd] font-mono">{activeReportDetails.total}</span>
               <span>records match the applied parameters.</span>
             </div>
-            <div className="flex items-center gap-1 text-[9px] bg-muted/40 px-2 py-0.5 rounded border border-border/40 font-mono uppercase">
-              <Calendar className="h-2.5 w-2.5 mr-0.5 text-muted-foreground" />
+            <div className="flex items-center gap-1 text-[9px] bg-primary/5 px-2.5 py-1 rounded-lg border border-primary/10 font-mono uppercase tracking-wide">
+              <span className="material-symbols-outlined text-[10px] text-muted-foreground mr-1 select-none">calendar_today</span>
               Compiled At {new Date().toLocaleTimeString()}
             </div>
           </div>
@@ -995,6 +928,6 @@ export const ReportsScreen = () => {
         </div>
 
       </div>
-    </AppShell>
   );
 };
+

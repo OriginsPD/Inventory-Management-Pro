@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { AppShell } from '../layout/AppShell';
-import { Sun, Moon, Laptop, Volume2, Shield, Plus, Settings, Link2, Monitor, Palette, Check } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useFeedback } from '../ui/feedback-provider';
 
 export const SettingsScreen = () => {
+  const { toast, confirm } = useFeedback();
   const { theme, setTheme } = useTheme();
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [activeSection, setActiveSection] = useState<'general' | 'appearance' | 'polymorphic' | 'system'>('general');
@@ -80,13 +80,14 @@ export const SettingsScreen = () => {
     const trimmed = newOption.trim().toUpperCase().replace(/\s+/g, '_');
     if (!trimmed) return;
     if (polymorphicOptions.includes(trimmed)) {
-      alert('Option already exists.');
+      toast.error('Option already exists.');
       return;
     }
     const updated = [...polymorphicOptions, trimmed];
     setPolymorphicOptions(updated);
     localStorage.setItem('ims_polymorphic_link_options', JSON.stringify(updated));
     setNewOption('');
+    toast.success('Polymorphic link option added successfully');
   };
 
   const handleStartEdit = (idx: number, val: string) => {
@@ -98,7 +99,7 @@ export const SettingsScreen = () => {
     const trimmed = editingOptionVal.trim().toUpperCase().replace(/\s+/g, '_');
     if (!trimmed) return;
     if (polymorphicOptions.includes(trimmed) && polymorphicOptions[idx] !== trimmed) {
-      alert('Option already exists.');
+      toast.error('Option already exists.');
       return;
     }
     const updated = [...polymorphicOptions];
@@ -106,118 +107,123 @@ export const SettingsScreen = () => {
     setPolymorphicOptions(updated);
     localStorage.setItem('ims_polymorphic_link_options', JSON.stringify(updated));
     setEditingOptionIdx(null);
+    toast.success('Option updated successfully');
   };
 
-  const handleDeleteOption = (idx: number) => {
-    if (!confirm('Are you sure you want to delete this option? Device models currently referencing this allowed component type will retain it, but it will be removed from future templates configuration options.')) return;
+  const handleDeleteOption = async (idx: number) => {
+    const isConfirmed = await confirm({
+      title: 'Delete Polymorphic Option?',
+      message: 'Are you sure you want to delete this option? Device models currently referencing this allowed component type will retain it, but it will be removed from future templates configuration options.'
+    });
+    if (!isConfirmed) return;
     const updated = polymorphicOptions.filter((_, i) => i !== idx);
     setPolymorphicOptions(updated);
     localStorage.setItem('ims_polymorphic_link_options', JSON.stringify(updated));
+    toast.success('Polymorphic link option deleted');
   };
 
   return (
-    <AppShell>
-      <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
+    <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight text-foreground">System Settings</h2>
+          <h1 className="text-3xl font-extrabold tracking-tight text-[#d8e2fd]">System Settings</h1>
           <p className="text-sm text-muted-foreground mt-1">Configure your warehouse terminal, system preferences, and allowed asset relationship link templates.</p>
         </div>
 
         <div className="flex flex-col md:flex-row gap-6 items-start">
           {/* Side Navigation Menu Bar */}
-          <div className="w-full md:w-60 shrink-0 bg-card rounded-lg border border-border p-2 space-y-1">
+          <div className="w-full md:w-60 shrink-0 bg-primary/5 rounded-2xl border border-primary/10 p-2 space-y-1">
             {/* Desktop Navigation */}
             <div className="hidden md:flex flex-col gap-0.5">
               <button
                 onClick={() => setActiveSection('general')}
-                className={`w-full text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-md transition-all flex items-center gap-2 ${
+                className={`w-full text-left px-3 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all flex items-center gap-2.5 ${
                   activeSection === 'general'
-                    ? 'bg-primary/10 text-primary border border-primary/20'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/40 border border-transparent'
+                    ? 'bg-primary/20 text-primary border-r-2 border-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-primary/5 border border-transparent'
                 }`}
               >
-                <Settings className="h-3.5 w-3.5" />
+                <span className="material-symbols-outlined text-[18px]">settings</span>
                 General Settings
               </button>
               <button
                 onClick={() => setActiveSection('appearance')}
-                className={`w-full text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-md transition-all flex items-center gap-2 ${
+                className={`w-full text-left px-3 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all flex items-center gap-2.5 ${
                   activeSection === 'appearance'
-                    ? 'bg-primary/10 text-primary border border-primary/20'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/40 border border-transparent'
+                    ? 'bg-primary/20 text-primary border-r-2 border-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-primary/5 border border-transparent'
                 }`}
               >
-                <Palette className="h-3.5 w-3.5" />
+                <span className="material-symbols-outlined text-[18px]">palette</span>
                 Appearance Settings
               </button>
               <button
                 onClick={() => setActiveSection('polymorphic')}
-                className={`w-full text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-md transition-all flex items-center gap-2 ${
+                className={`w-full text-left px-3 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all flex items-center gap-2.5 ${
                   activeSection === 'polymorphic'
-                    ? 'bg-primary/10 text-primary border border-primary/20'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/40 border border-transparent'
+                    ? 'bg-primary/20 text-primary border-r-2 border-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-primary/5 border border-transparent'
                 }`}
               >
-                <Link2 className="h-3.5 w-3.5" />
+                <span className="material-symbols-outlined text-[18px]">link</span>
                 Polymorphic Links
               </button>
               <button
                 onClick={() => setActiveSection('system')}
-                className={`w-full text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-md transition-all flex items-center gap-2 ${
+                className={`w-full text-left px-3 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all flex items-center gap-2.5 ${
                   activeSection === 'system'
-                    ? 'bg-primary/10 text-primary border border-primary/20'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/40 border border-transparent'
+                    ? 'bg-primary/20 text-primary border-r-2 border-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-primary/5 border border-transparent'
                 }`}
               >
-                <Monitor className="h-3.5 w-3.5" />
+                <span className="material-symbols-outlined text-[18px]">monitor</span>
                 System Information
               </button>
             </div>
 
-            {/* Mobile Navigation (Horizontal Scrollable) */}
+            {/* Mobile Navigation */}
             <div className="flex md:hidden gap-1 overflow-x-auto pb-1">
               <button
                 onClick={() => setActiveSection('general')}
                 className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-md whitespace-nowrap transition-all flex items-center gap-1.5 ${
                   activeSection === 'general'
-                    ? 'bg-primary/10 text-primary border border-primary/20'
-                    : 'text-muted-foreground border border-transparent'
+                    ? 'bg-primary/20 text-primary'
+                    : 'text-muted-foreground'
                 }`}
               >
-                <Settings className="h-3.5 w-3.5" />
+                <span className="material-symbols-outlined text-[16px]">settings</span>
                 General
               </button>
               <button
                 onClick={() => setActiveSection('appearance')}
                 className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-md whitespace-nowrap transition-all flex items-center gap-1.5 ${
                   activeSection === 'appearance'
-                    ? 'bg-primary/10 text-primary border border-primary/20'
-                    : 'text-muted-foreground border border-transparent'
+                    ? 'bg-primary/20 text-primary'
+                    : 'text-muted-foreground'
                 }`}
               >
-                <Palette className="h-3.5 w-3.5" />
+                <span className="material-symbols-outlined text-[16px]">palette</span>
                 Appearance
               </button>
               <button
                 onClick={() => setActiveSection('polymorphic')}
                 className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-md whitespace-nowrap transition-all flex items-center gap-1.5 ${
                   activeSection === 'polymorphic'
-                    ? 'bg-primary/10 text-primary border border-primary/20'
-                    : 'text-muted-foreground border border-transparent'
+                    ? 'bg-primary/20 text-primary'
+                    : 'text-muted-foreground'
                 }`}
               >
-                <Link2 className="h-3.5 w-3.5" />
+                <span className="material-symbols-outlined text-[16px]">link</span>
                 Polymorphic
               </button>
               <button
                 onClick={() => setActiveSection('system')}
                 className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-md whitespace-nowrap transition-all flex items-center gap-1.5 ${
                   activeSection === 'system'
-                    ? 'bg-primary/10 text-primary border border-primary/20'
-                    : 'text-muted-foreground border border-transparent'
+                    ? 'bg-primary/20 text-primary'
+                    : 'text-muted-foreground'
                 }`}
               >
-                <Monitor className="h-3.5 w-3.5" />
+                <span className="material-symbols-outlined text-[16px]">monitor</span>
                 System
               </button>
             </div>
@@ -228,9 +234,9 @@ export const SettingsScreen = () => {
             {activeSection === 'general' && (
               <div className="space-y-6">
                 {/* Theme Settings */}
-                <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
+                <div className="glass-panel p-6 rounded-2xl space-y-4">
                   <div>
-                    <h3 className="font-semibold text-sm">Theme Preference</h3>
+                    <h3 className="font-bold text-sm">Theme Preference</h3>
                     <p className="text-xs text-muted-foreground mt-0.5">Toggle the visual style of the application workspace.</p>
                   </div>
 
@@ -240,11 +246,11 @@ export const SettingsScreen = () => {
                       onClick={() => setTheme('light')}
                       className={`flex flex-col items-center justify-between p-4 rounded-lg border text-center transition-all ${
                         theme === 'light'
-                          ? 'border-primary bg-primary/5 ring-1 ring-ring text-foreground'
-                          : 'border-border bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary text-[#d8e2fd]'
+                          : 'border-primary/10 bg-transparent text-muted-foreground hover:text-foreground hover:bg-primary/5'
                       }`}
                     >
-                      <Sun className="h-5 w-5 mb-2 shrink-0 text-amber-500" />
+                      <span className="material-symbols-outlined text-xl mb-2 text-amber-400">light_mode</span>
                       <span className="text-xs font-semibold">Light Mode</span>
                     </button>
 
@@ -253,11 +259,11 @@ export const SettingsScreen = () => {
                       onClick={() => setTheme('dark')}
                       className={`flex flex-col items-center justify-between p-4 rounded-lg border text-center transition-all ${
                         theme === 'dark'
-                          ? 'border-primary bg-primary/5 ring-1 ring-ring text-foreground'
-                          : 'border-border bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary text-[#d8e2fd]'
+                          : 'border-primary/10 bg-transparent text-muted-foreground hover:text-foreground hover:bg-primary/5'
                       }`}
                     >
-                      <Moon className="h-5 w-5 mb-2 shrink-0 text-blue-400" />
+                      <span className="material-symbols-outlined text-xl mb-2 text-primary">dark_mode</span>
                       <span className="text-xs font-semibold">Dark Mode</span>
                     </button>
 
@@ -266,41 +272,39 @@ export const SettingsScreen = () => {
                       onClick={() => setTheme('system')}
                       className={`flex flex-col items-center justify-between p-4 rounded-lg border text-center transition-all ${
                         theme === 'system'
-                          ? 'border-primary bg-primary/5 ring-1 ring-ring text-foreground'
-                          : 'border-border bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary text-[#d8e2fd]'
+                          : 'border-primary/10 bg-transparent text-muted-foreground hover:text-foreground hover:bg-primary/5'
                       }`}
                     >
-                      <Laptop className="h-5 w-5 mb-2 shrink-0 text-zinc-500" />
+                      <span className="material-symbols-outlined text-xl mb-2 text-zinc-400">computer</span>
                       <span className="text-xs font-semibold">System Default</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Audio/Haptic Warnings */}
-                <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
+                <div className="glass-panel p-6 rounded-2xl space-y-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-semibold text-sm">Audio & Haptic Feedback</h3>
+                      <h3 className="font-bold text-sm">Audio & Haptic Feedback</h3>
                       <p className="text-xs text-muted-foreground mt-0.5">Toggle sound signals during hardware scanning sequences.</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Volume2 className="h-4 w-4 text-muted-foreground" />
-                    </div>
+                    <span className="material-symbols-outlined text-primary text-xl">volume_up</span>
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-border pt-4">
+                  <div className="flex items-center justify-between border-t border-primary/10 pt-4">
                     <div className="space-y-0.5">
-                      <label className="text-xs font-semibold text-foreground">Acoustic Gun Indicators</label>
+                      <label className="text-xs font-semibold text-[#d8e2fd]">Acoustic Gun Indicators</label>
                       <p className="text-[10px] text-muted-foreground">Play tone beeps for successful scans and low buzzes for errors.</p>
                     </div>
                     <button
                       onClick={handleToggleSound}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-ring focus:ring-offset-2 ${
-                        soundEnabled ? 'bg-primary' : 'bg-muted'
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-primary ${
+                        soundEnabled ? 'bg-primary' : 'bg-primary/10 border-primary/20'
                       }`}
                     >
                       <span
-                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow ring-0 transition duration-200 ease-in-out ${
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-[#081326] shadow ring-0 transition duration-200 ease-in-out ${
                           soundEnabled ? 'translate-x-4' : 'translate-x-0'
                         }`}
                       />
@@ -313,9 +317,9 @@ export const SettingsScreen = () => {
             {activeSection === 'appearance' && (
               <div className="space-y-6">
                 {/* Accent Color Section */}
-                <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
+                <div className="glass-panel p-6 rounded-2xl space-y-4">
                   <div>
-                    <h3 className="font-semibold text-sm">Theme Accent Color</h3>
+                    <h3 className="font-bold text-sm">Theme Accent Color</h3>
                     <p className="text-xs text-muted-foreground mt-0.5">Select a custom accent color theme for buttons, active items, and alerts.</p>
                   </div>
 
@@ -334,12 +338,12 @@ export const SettingsScreen = () => {
                           onClick={() => handleSelectAccent(accent.value)}
                           className={`flex flex-col items-center justify-between p-3.5 rounded-lg border text-center transition-all ${
                             isSelected
-                              ? 'border-primary bg-primary/5 ring-1 ring-ring text-foreground'
-                              : 'border-border bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                              ? 'border-primary bg-primary/10 ring-1 ring-primary text-[#d8e2fd]'
+                              : 'border-primary/10 bg-transparent text-muted-foreground hover:text-[#d8e2fd] hover:bg-primary/5'
                           }`}
                         >
                           <span className={`h-4 w-4 rounded-full ${accent.bg} mb-2 shrink-0 flex items-center justify-center`}>
-                            {isSelected && <Check className="h-2.5 w-2.5 text-white" />}
+                            {isSelected && <span className="material-symbols-outlined text-[10px] text-[#081326] font-bold">check</span>}
                           </span>
                           <span className="text-[10px] font-semibold">{accent.name}</span>
                         </button>
@@ -349,31 +353,31 @@ export const SettingsScreen = () => {
                 </div>
 
                 {/* Density Section */}
-                <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
+                <div className="glass-panel p-6 rounded-2xl space-y-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-semibold text-sm">Workspace Spacing & Density</h3>
+                      <h3 className="font-bold text-sm">Workspace Spacing & Density</h3>
                       <p className="text-xs text-muted-foreground mt-0.5">Adjust density layout for optimized data-density vs visual breathing room.</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 bg-muted p-1 rounded-md border border-border">
+                  <div className="grid grid-cols-2 gap-2 bg-primary/5 p-1 rounded-xl border border-primary/10">
                     <button
                       onClick={() => handleSelectDensity('default')}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded transition-all ${
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                         density === 'default'
-                          ? 'bg-card text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
+                          ? 'bg-primary/20 text-primary shadow-sm'
+                          : 'text-[#bec8ce] hover:text-[#d8e2fd]'
                       }`}
                     >
                       Standard Layout
                     </button>
                     <button
                       onClick={() => handleSelectDensity('compact')}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded transition-all ${
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                         density === 'compact'
-                          ? 'bg-card text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
+                          ? 'bg-primary/20 text-primary shadow-sm'
+                          : 'text-[#bec8ce] hover:text-[#d8e2fd]'
                       }`}
                     >
                       High Density (Compact)
@@ -384,9 +388,9 @@ export const SettingsScreen = () => {
             )}
 
             {activeSection === 'polymorphic' && (
-              <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
+              <div className="glass-panel p-6 rounded-2xl space-y-4">
                 <div>
-                  <h3 className="font-semibold text-sm">Polymorphic Link Templates</h3>
+                  <h3 className="font-bold text-sm">Polymorphic Link Templates</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">Manage custom secondary asset component types that can be selected in Device Models relationship rules.</p>
                 </div>
 
@@ -397,20 +401,20 @@ export const SettingsScreen = () => {
                     value={newOption}
                     onChange={(e) => setNewOption(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleAddOption(); }}
-                    className="flex h-9 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono uppercase"
+                    className="flex h-10 flex-1 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground/35 focus:ring-1 focus:ring-primary focus:outline-none font-mono uppercase text-primary"
                   />
                   <button
                     onClick={handleAddOption}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 flex items-center gap-1.5"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:bg-primary/95 h-10 px-4 gap-1.5"
                   >
-                    <Plus className="h-4 w-4" /> Add Type
+                    <span className="material-symbols-outlined text-sm">add</span> Add Type
                   </button>
                 </div>
 
-                <div className="border border-border rounded-lg bg-muted/5 divide-y divide-border overflow-hidden">
+                <div className="border border-primary/10 rounded-xl bg-primary/5 divide-y divide-primary/10 overflow-hidden">
                   {polymorphicOptions.length > 0 ? (
                     polymorphicOptions.map((opt, idx) => (
-                      <div key={opt} className="flex items-center justify-between p-3 text-xs">
+                      <div key={opt} className="flex items-center justify-between p-3.5 text-xs">
                         {editingOptionIdx === idx ? (
                           <div className="flex items-center gap-2 flex-1 mr-2">
                             <input
@@ -418,35 +422,35 @@ export const SettingsScreen = () => {
                               value={editingOptionVal}
                               onChange={(e) => setEditingOptionVal(e.target.value)}
                               onKeyDown={(e) => { if (e.key === 'Enter') handleSaveEdit(idx); }}
-                              className="flex h-7 flex-1 rounded-md border border-input bg-card px-2 py-0.5 text-xs font-mono uppercase"
+                              className="flex h-8 flex-1 rounded-lg border border-primary/20 bg-[#081326] px-2 py-0.5 text-xs font-mono uppercase text-primary"
                               autoFocus
                             />
                             <button
                               onClick={() => handleSaveEdit(idx)}
-                              className="px-2.5 py-1 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white rounded font-medium transition-colors"
+                              className="px-3 py-1 text-[10px] bg-emerald-500 hover:bg-emerald-600 text-[#081326] rounded-md font-bold transition-colors"
                             >
                               Save
                             </button>
                             <button
                               onClick={() => setEditingOptionIdx(null)}
-                              className="px-2.5 py-1 text-[10px] bg-muted hover:bg-muted/80 text-foreground border border-border rounded font-medium transition-colors"
+                              className="px-3 py-1 text-[10px] bg-[#081326] hover:bg-primary/5 text-[#bec8ce] border border-primary/10 rounded-md font-semibold transition-colors"
                             >
                               Cancel
                             </button>
                           </div>
                         ) : (
                           <>
-                            <span className="font-mono font-bold tracking-wider text-foreground">{opt}</span>
+                            <span className="font-mono font-bold tracking-wider text-primary">{opt}</span>
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => handleStartEdit(idx, opt)}
-                                className="px-2 py-1 text-[10px] bg-background border border-border hover:bg-muted text-muted-foreground hover:text-foreground rounded font-semibold transition-all"
+                                className="px-2.5 py-1 text-[10px] bg-[#081326] border border-primary/10 hover:bg-primary/5 text-primary rounded-md font-bold transition-all"
                               >
                                 Edit
                               </button>
                               <button
                                 onClick={() => handleDeleteOption(idx)}
-                                className="px-2 py-1 text-[10px] bg-destructive/10 hover:bg-destructive text-destructive hover:text-destructive-foreground rounded font-semibold transition-all"
+                                className="px-2.5 py-1 text-[10px] bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-[#081326] rounded-md font-bold transition-all border border-red-500/20"
                               >
                                 Delete
                               </button>
@@ -465,23 +469,23 @@ export const SettingsScreen = () => {
             )}
 
             {activeSection === 'system' && (
-              <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-3">
+              <div className="glass-panel p-6 rounded-2xl space-y-4">
                 <div className="flex items-center gap-2 text-primary">
-                  <Shield className="h-4 w-4" />
-                  <h3 className="font-semibold text-xs uppercase tracking-wider">Workspace Verification</h3>
+                  <span className="material-symbols-outlined text-sm">security</span>
+                  <h3 className="font-bold text-xs uppercase tracking-wider">Workspace Verification</h3>
                 </div>
-                <div className="text-xs text-muted-foreground space-y-1 font-mono">
-                  <div className="flex justify-between border-b border-border/50 pb-1">
+                <div className="text-xs text-[#bec8ce] space-y-2.5 font-mono">
+                  <div className="flex justify-between border-b border-primary/5 pb-2">
                     <span>Client Engine:</span>
-                    <span className="text-foreground font-semibold">Vite React v19</span>
+                    <span className="text-primary font-bold">Vite React v19</span>
                   </div>
-                  <div className="flex justify-between border-b border-border/50 pb-1">
+                  <div className="flex justify-between border-b border-primary/5 pb-2">
                     <span>Database Syncer:</span>
-                    <span className="text-foreground font-semibold">Neon Serverless PostgreSQL</span>
+                    <span className="text-primary font-bold">Neon Serverless PostgreSQL</span>
                   </div>
                   <div className="flex justify-between">
                     <span>API Gateway:</span>
-                    <span className="text-foreground font-semibold">ElysiaJS v2.3</span>
+                    <span className="text-primary font-bold">ElysiaJS v2.3</span>
                   </div>
                 </div>
               </div>
@@ -489,6 +493,6 @@ export const SettingsScreen = () => {
           </div>
         </div>
       </div>
-    </AppShell>
   );
 };
+
