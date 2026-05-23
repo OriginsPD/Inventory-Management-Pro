@@ -108,9 +108,9 @@ interface AuditLog {
   customerId?: string;
 }
 
-let mockQcReports: any[] = [];
+const mockQcReports: any[] = [];
 
-let mockDeviceModels: DeviceModel[] = [
+const mockDeviceModels: DeviceModel[] = [
   {
     id: "m1",
     name: "Amber Shield V4",
@@ -157,7 +157,7 @@ let mockDeviceModels: DeviceModel[] = [
   }
 ];
 
-let mockDevices: Device[] = [
+const mockDevices: Device[] = [
   {
     id: "d1",
     identifier: "TRK-982103",
@@ -188,7 +188,7 @@ let mockDevices: Device[] = [
 ];
 
 let mockDeviceRelationships: DeviceRelationship[] = [];
-let mockCustomers: Customer[] = [
+const mockCustomers: Customer[] = [
   {
     id: "c1",
     name: "Acme Logistics",
@@ -213,7 +213,7 @@ let mockCustomers: Customer[] = [
     updatedAt: new Date().toISOString(),
   }
 ];
-let mockDeviceAuditLogs: AuditLog[] = [
+const mockDeviceAuditLogs: AuditLog[] = [
   {
     id: "l1",
     actionType: "INGEST",
@@ -1204,8 +1204,8 @@ const app = new Elysia()
 
   // -- Stock Alerts --
   .get("/api/stock-alerts", async () => {
-    let allModels: any[] = [];
-    let allDevices: any[] = [];
+    let allModels: any[];
+    let allDevices: any[];
 
     if (useDb) {
       try {
@@ -2172,8 +2172,8 @@ const app = new Elysia()
       const previewList = await Promise.all(body.links.map(async (link) => {
         let primary: any = null;
         let child: any = null;
-        let primaryModel: any = null;
-        let childModel: any = null;
+        let primaryModel: any;
+        let childModel: any;
 
         if (useDb) {
           try {

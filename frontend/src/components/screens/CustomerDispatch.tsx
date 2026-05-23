@@ -160,7 +160,7 @@ export const CustomerDispatch = () => {
 
       const results = await Promise.all(stagedDeviceIds.map(async (id) => {
         const selectedDevice = devices.find(d => d.id === id);
-        if (!selectedDevice) return;
+        if (!selectedDevice) return false;
 
         const updatedMetadata = {
           ...(selectedDevice.metadata || {}),
@@ -168,16 +168,17 @@ export const CustomerDispatch = () => {
           dispatchedAt: dispatchTime
         };
 
-        return apiClient.put(`/api/devices/${id}`, {
+        await apiClient.put(`/api/devices/${id}`, {
           identifier: selectedDevice.identifier,
           modelId: selectedDevice.modelId,
           status: 'DISPATCHED',
           customerId: values.customerId,
           metadata: updatedMetadata
         });
+        return true;
       }));
 
-      const anyFailed = results.some(res => !res || !res.ok);
+      const anyFailed = results.some(res => res === false);
       if (anyFailed) {
         toast.error('Failed to dispatch some devices in the batch.');
       } else {
@@ -210,16 +211,17 @@ export const CustomerDispatch = () => {
         delete cleanMetadata.customerName;
         delete cleanMetadata.dispatchedAt;
 
-        return apiClient.put(`/api/devices/${dev.id}`, {
+        await apiClient.put(`/api/devices/${dev.id}`, {
           identifier: dev.identifier,
           modelId: dev.modelId,
           status: 'IN_STOCK',
           customerId: null,
           metadata: cleanMetadata
         });
+        return true;
       }));
 
-      const anyFailed = results.some(res => !res || !res.ok);
+      const anyFailed = results.some(res => res === false);
       if (anyFailed) {
         toast.error('Failed to return some devices in the batch.');
       } else {
