@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
-import { ShieldAlert, CheckCircle, Database, Layers, ArrowUpRight, Scan, FileSpreadsheet, RefreshCw, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
-import { AppShell } from '../layout/AppShell';
+import { useState, useEffect, useMemo } from 'react';
+
 import { ScrollArea } from '../ui/scroll-area';
 
 interface DashboardStats {
@@ -62,6 +61,13 @@ export const DashboardScreen = () => {
     };
     loadAllData();
   }, []);
+
+  useEffect(() => {
+    if (stockAlerts.length > 0) {
+      const activeLevels = stockAlerts.map(a => `${a.modelName}: ${a.level}`);
+      console.debug('IMS Telemetry Stock Alerts status:', activeLevels);
+    }
+  }, [stockAlerts]);
 
   const fetchStats = async () => {
     try {
@@ -209,9 +215,13 @@ export const DashboardScreen = () => {
 
   const activeTrendData = activeTab === 'dispatches' ? trendData : getIngestTrendData();
 
+  const maxVal = useMemo(() => {
+    if (activeTrendData.length === 0) return 10;
+    return Math.max(...activeTrendData.map(d => 'dispatches' in d ? d.dispatches : (d as any).count), 10) * 1.15;
+  }, [activeTrendData]);
+
   const getChartPoints = () => {
     if (activeTrendData.length === 0) return [];
-    const maxVal = Math.max(...activeTrendData.map(d => 'dispatches' in d ? d.dispatches : (d as any).count), 10) * 1.15;
     return activeTrendData.map((d, index) => {
       const val = 'dispatches' in d ? d.dispatches : (d as any).count;
       const x = paddingX + (index * (chartWidth - paddingX * 2) / (activeTrendData.length - 1));
@@ -253,76 +263,88 @@ export const DashboardScreen = () => {
   const totalBreakdownCount = breakdown.reduce((sum, item) => sum + item.count, 0);
 
   return (
-    <AppShell>
-      <div className="flex flex-col gap-6">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Main Hub</h2>
-          <p className="text-sm text-muted-foreground mt-1">Real-time telematics hardware warehouse stats and workflow recommendations.</p>
+    <div className="flex flex-col gap-8">
+        {/* Header Section */}
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-[#d8e2fd]">Warehouse Operations</h1>
+            <p className="text-[#bec8ce] mt-1 text-sm">Real-time logistics and inventory health telemetry.</p>
+          </div>
         </div>
 
-        {/* Stats Grid with Shimmer loaders */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        {/* KPI Metrics Bento Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {isLoading ? (
             Array(5).fill(0).map((_, i) => (
-              <div key={i} className="rounded-lg border border-border bg-card p-6 shadow-sm animate-pulse space-y-3">
-                <div className="h-4 bg-muted rounded w-2/3" />
-                <div className="h-8 bg-muted rounded w-1/2" />
+              <div key={i} className="glass-panel p-5 rounded-xl animate-pulse space-y-3">
+                <div className="h-3 bg-primary/20 rounded w-2/3" />
+                <div className="h-6 bg-primary/20 rounded w-1/2" />
               </div>
             ))
           ) : (
             <>
-              <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-                <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Hardware</span>
-                  <Database className="h-4 w-4 text-primary" />
+              <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(125,211,252,0.08)] transition-all">
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-semibold text-[#bec8ce] uppercase tracking-widest">Total Hardware</span>
+                  <span className="material-symbols-outlined text-primary text-xl">inventory</span>
                 </div>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <span className="text-3xl font-bold tracking-tight">{stats.totalDevices}</span>
-                  <span className="text-xs text-muted-foreground font-medium">registered assets</span>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-                <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Active Dispatched</span>
-                  <ArrowUpRight className="h-4 w-4 text-emerald-500" />
-                </div>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <span className="text-3xl font-bold tracking-tight text-emerald-600 dark:text-emerald-500">{stats.activeDispatched}</span>
-                  <span className="text-xs text-muted-foreground font-medium">in fleet vehicles</span>
+                <div className="mt-4">
+                  <div className="text-2xl font-bold">{stats.totalDevices}</div>
+                  <div className="text-[10px] text-primary mt-1 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px]">trending_up</span> +2.4% vs prev week
+                  </div>
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-                <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">QC Testing Bench</span>
-                  <Layers className="h-4 w-4 text-amber-500" />
+              <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(125,211,252,0.08)] transition-all">
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-semibold text-[#bec8ce] uppercase tracking-widest">Active Dispatched</span>
+                  <span className="material-symbols-outlined text-secondary-foreground text-xl">local_shipping</span>
                 </div>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <span className="text-3xl font-bold tracking-tight text-amber-600 dark:text-amber-500">{stats.inTesting}</span>
-                  <span className="text-xs text-muted-foreground font-medium">under evaluation</span>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-                <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">In Stock Ready</span>
-                  <CheckCircle className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <span className="text-3xl font-bold tracking-tight">{stats.inStock}</span>
-                  <span className="text-xs text-muted-foreground font-medium">available units</span>
+                <div className="mt-4">
+                  <div className="text-2xl font-bold text-emerald-400">{stats.activeDispatched}</div>
+                  <div className="text-[10px] text-secondary-foreground mt-1 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px]">sync</span> In Transit
+                  </div>
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-                <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">QC Pass Rate</span>
-                  <TrendingUp className="h-4 w-4 text-emerald-500" />
+              <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(125,211,252,0.08)] transition-all">
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-semibold text-[#bec8ce] uppercase tracking-widest">Testing Bench</span>
+                  <span className="material-symbols-outlined text-purple-300 text-xl">biotech</span>
                 </div>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <span className="text-3xl font-bold tracking-tight text-emerald-600 dark:text-emerald-500">97.4%</span>
-                  <span className="text-xs text-muted-foreground font-medium">bench health index</span>
+                <div className="mt-4">
+                  <div className="text-2xl font-bold text-purple-300">{stats.inTesting}</div>
+                  <div className="text-[10px] text-purple-300 mt-1 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px]">schedule</span> Avg. 4h cycle
+                  </div>
+                </div>
+              </div>
+
+              <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(125,211,252,0.08)] transition-all">
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-semibold text-[#bec8ce] uppercase tracking-widest">Ready Stock</span>
+                  <span className="material-symbols-outlined text-primary text-xl">package_2</span>
+                </div>
+                <div className="mt-4">
+                  <div className="text-2xl font-bold">{stats.inStock}</div>
+                  <div className="text-[10px] text-[#bec8ce] mt-1 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px]">check_circle</span> 92% SLA target
+                  </div>
+                </div>
+              </div>
+
+              <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(125,211,252,0.08)] transition-all">
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-semibold text-[#bec8ce] uppercase tracking-widest">QC Pass Rate</span>
+                  <span className="material-symbols-outlined text-primary text-xl">task_alt</span>
+                </div>
+                <div className="mt-4">
+                  <div className="text-2xl font-bold text-emerald-400">97.4%</div>
+                  <div className="text-[10px] text-primary mt-1 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px]">verified</span> Near Peak efficiency
+                  </div>
                 </div>
               </div>
             </>
@@ -330,19 +352,19 @@ export const DashboardScreen = () => {
         </div>
 
         {/* Analytics & Graphs row */}
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-3">
           {/* Dispatch Trend SVG Chart */}
-          <div className="rounded-lg border border-border bg-card p-6 shadow-sm flex flex-col justify-between">
+          <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between md:col-span-2">
             <div>
-              <div className="flex justify-between items-center mb-2">
+              <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
-                  <h3 className="font-semibold text-sm">Activity Velocity</h3>
-                  <div className="flex bg-muted p-0.5 rounded-md border border-border">
+                  <h3 className="font-bold text-lg">Activity Velocity</h3>
+                  <div className="flex bg-primary/5 p-1 rounded-lg border border-primary/10">
                     <button
                       onClick={() => setActiveTab('dispatches')}
-                      className={`px-1.5 py-0.5 text-[9px] font-semibold rounded transition-colors ${
+                      className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
                         activeTab === 'dispatches'
-                          ? 'bg-card text-foreground shadow-sm'
+                          ? 'bg-primary/20 text-primary shadow-sm'
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
@@ -350,9 +372,9 @@ export const DashboardScreen = () => {
                     </button>
                     <button
                       onClick={() => setActiveTab('ingestions')}
-                      className={`px-1.5 py-0.5 text-[9px] font-semibold rounded transition-colors ${
+                      className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
                         activeTab === 'ingestions'
-                          ? 'bg-card text-foreground shadow-sm'
+                          ? 'bg-primary/20 text-primary shadow-sm'
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
@@ -360,9 +382,9 @@ export const DashboardScreen = () => {
                     </button>
                   </div>
                 </div>
-                <span className="text-[10px] text-muted-foreground uppercase font-semibold">Past 7 Days</span>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Past 7 Days</span>
               </div>
-              <p className="text-xs text-muted-foreground mb-4">
+              <p className="text-xs text-muted-foreground mb-6">
                 {activeTab === 'dispatches' 
                   ? 'Quantity of sub-elements successfully linked to operational vehicle trackers.'
                   : 'Velocity of raw device identifiers registered inside warehouse inventory.'}
@@ -370,7 +392,7 @@ export const DashboardScreen = () => {
             </div>
 
             {isLoading ? (
-              <div className="h-[180px] bg-muted animate-pulse rounded-lg border border-dashed border-border" />
+              <div className="h-[180px] bg-primary/5 animate-pulse rounded-lg border border-dashed border-primary/20" />
             ) : activeTrendData.length > 0 ? (
               <div className="relative pt-2">
                 {/* SVG Graphics container */}
@@ -382,22 +404,32 @@ export const DashboardScreen = () => {
                     </linearGradient>
                   </defs>
 
-                  {/* Horizontal grid lines */}
-                  {Array(4).fill(0).map((_, i) => {
-                    const stepY = paddingY + i * (chartHeight - paddingY * 2) / 3;
-                    return (
-                      <line 
-                        key={i} 
-                        x1={paddingX} 
-                        y1={stepY} 
-                        x2={chartWidth - paddingX} 
-                        y2={stepY} 
-                        className="stroke-border/40" 
-                        strokeWidth="1" 
-                        strokeDasharray="4 4"
-                      />
-                    );
-                  })}
+                   {/* Horizontal grid lines with Y axis labels */}
+                   {Array(4).fill(0).map((_, i) => {
+                     const stepY = paddingY + i * (chartHeight - paddingY * 2) / 3;
+                     const gridValue = Math.round(maxVal - i * maxVal / 3);
+                     return (
+                       <g key={i}>
+                         <line 
+                           x1={paddingX} 
+                           y1={stepY} 
+                           x2={chartWidth - paddingX} 
+                           y2={stepY} 
+                           className="stroke-primary/10" 
+                           strokeWidth="1" 
+                           strokeDasharray="4 4"
+                         />
+                         <text
+                           x={paddingX - 6}
+                           y={stepY + 3}
+                           textAnchor="end"
+                           className="text-[9px] fill-muted-foreground/60 font-semibold font-mono select-none"
+                         >
+                           {gridValue}
+                         </text>
+                       </g>
+                     );
+                   })}
 
                   {/* X axis line */}
                   <line 
@@ -405,7 +437,7 @@ export const DashboardScreen = () => {
                     y1={chartHeight - paddingY} 
                     x2={chartWidth - paddingX} 
                     y2={chartHeight - paddingY} 
-                    className="stroke-border" 
+                    className="stroke-primary/20" 
                     strokeWidth="1" 
                   />
 
@@ -422,7 +454,7 @@ export const DashboardScreen = () => {
                         cx={p.x} 
                         cy={p.y} 
                         r={hoveredPoint === idx ? "5" : "3"} 
-                        className={`fill-background stroke-primary transition-all duration-100 ${hoveredPoint === idx ? 'stroke-2' : ''}`} 
+                        className={`fill-[#081326] stroke-primary transition-all duration-100 ${hoveredPoint === idx ? 'stroke-2' : ''}`} 
                       />
                       <text 
                         x={p.x} 
@@ -470,7 +502,7 @@ export const DashboardScreen = () => {
                 {/* Float interactive tooltip */}
                 {hoveredPoint !== null && points[hoveredPoint] && (
                   <div 
-                    className="absolute z-20 bg-popover text-popover-foreground border border-border rounded shadow-md px-2 py-1 text-[10px] pointer-events-none transition-all duration-75"
+                    className="absolute z-20 bg-popover text-popover-foreground border border-primary/20 rounded shadow-md px-2.5 py-1 text-[10px] pointer-events-none transition-all duration-75"
                     style={{
                       left: `${(points[hoveredPoint].x / chartWidth) * 100}%`,
                       top: `${(points[hoveredPoint].y / chartHeight) * 100 - 25}%`,
@@ -491,24 +523,24 @@ export const DashboardScreen = () => {
           </div>
 
           {/* Hardware Breakdown Donut equivalent */}
-          <div className="rounded-lg border border-border bg-card p-6 shadow-sm flex flex-col justify-between">
+          <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-center mb-2">
-                <h3 className="font-semibold text-sm">Asset Type Distribution</h3>
-                <span className="text-[10px] text-muted-foreground uppercase font-semibold">Live Inventory Ratio</span>
+                <h3 className="font-bold text-lg">Asset Class Breakdown</h3>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Live Ratio</span>
               </div>
               <p className="text-xs text-muted-foreground mb-4">Proportionate composition of tracking devices, SIM configurations, and hardware adapters.</p>
             </div>
 
             {isLoading ? (
               <div className="space-y-4 animate-pulse">
-                <div className="h-6 bg-muted rounded w-full" />
-                <div className="h-20 bg-muted rounded w-full" />
+                <div className="h-3 bg-primary/20 rounded w-full" />
+                <div className="h-20 bg-primary/20 rounded w-full" />
               </div>
             ) : totalBreakdownCount > 0 ? (
               <div className="space-y-6">
                 {/* Horizontal Segmented Bar chart */}
-                <div className="w-full h-3 rounded-md overflow-hidden flex bg-muted border border-border/40">
+                <div className="w-full h-3 rounded-md overflow-hidden flex bg-primary/5 border border-primary/10">
                   {breakdown.map((item, idx) => {
                     const widthPct = (item.count / totalBreakdownCount) * 100;
                     if (widthPct === 0) return null;
@@ -524,18 +556,18 @@ export const DashboardScreen = () => {
                 </div>
 
                 {/* Detailed legends panel */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-2.5">
                   {breakdown.map((item, idx) => {
                     const pct = totalBreakdownCount > 0 ? Math.round((item.count / totalBreakdownCount) * 100) : 0;
                     return (
-                      <div key={idx} className="flex items-center gap-3 p-2 rounded-lg border border-border/50 bg-muted/5">
-                        <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${getAssetColor(item.type)}`} />
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{item.type.replace('_', ' ')}</span>
-                          <span className="text-xs font-bold text-foreground">
-                            {item.count} units <span className={`text-[10px] font-normal ${getAssetTextColor(item.type)}`}>({pct}%)</span>
-                          </span>
+                      <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg border border-primary/5 bg-primary/5">
+                        <div className="flex items-center gap-2">
+                          <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${getAssetColor(item.type)}`} />
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{item.type.replace('_', ' ')}</span>
                         </div>
+                        <span className="text-xs font-bold text-foreground">
+                          {item.count} units <span className={`text-[10px] font-normal ${getAssetTextColor(item.type)}`}>({pct}%)</span>
+                        </span>
                       </div>
                     );
                   })}
@@ -549,221 +581,155 @@ export const DashboardScreen = () => {
           </div>
         </div>
 
-        {/* Hardware Template Registry & Stock Health Panel */}
-        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h3 className="font-semibold text-sm">Hardware Template Registry & Stock Health</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Real-time stock levels vs configured max targets. Set max stock per model in Model Templates.</p>
+        {/* Lower Layout Sections */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Stock Health Table */}
+          <div className="lg:col-span-3 glass-panel rounded-2xl overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-primary/10 flex justify-between items-center bg-primary/5">
+              <h3 className="font-bold text-lg">Model Stock Health Register</h3>
+              <a href="/models" className="text-xs text-primary hover:underline">View All Models</a>
             </div>
-            <div className="flex items-center gap-3">
-              {!isLoading && stockAlerts.filter((a: any) => a.maxStock > 0).length > 0 && (
-                <div className="flex items-center gap-2 text-[10px] font-semibold">
-                  {stockAlerts.some((a: any) => a.level === 'LOW') && (
-                    <span className="flex items-center gap-1 bg-destructive/10 text-destructive border border-destructive/20 px-2 py-0.5 rounded">
-                      <AlertTriangle className="h-3 w-3" />
-                      {stockAlerts.filter((a: any) => a.level === 'LOW').length} Low
-                    </span>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-[#0f1524]/40 text-[10px] uppercase tracking-widest text-muted-foreground/80 font-bold border-b border-primary/10">
+                  <tr>
+                    <th className="px-6 py-4 font-bold">SKU / Model</th>
+                    <th className="px-6 py-4 font-bold">Current Level</th>
+                    <th className="px-6 py-4 font-bold">Progress Target</th>
+                    <th className="px-6 py-4 font-bold">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-primary/5">
+                  {isLoading ? (
+                    Array.from({ length: 3 }).map((_, idx) => (
+                      <tr key={idx} className="animate-pulse">
+                        <td className="px-6 py-4"><div className="h-4 bg-primary/10 rounded w-32" /></td>
+                        <td className="px-6 py-4"><div className="h-4 bg-primary/10 rounded w-16" /></td>
+                        <td className="px-6 py-4"><div className="h-3 bg-primary/10 rounded w-full" /></td>
+                        <td className="px-6 py-4"><div className="h-5 bg-primary/10 rounded w-12" /></td>
+                      </tr>
+                    ))
+                  ) : getModelProfiles().length > 0 ? (
+                    getModelProfiles().map((profile) => {
+                      const hasTarget = profile.maxStock > 0;
+                      const pct = hasTarget ? Math.min((profile.inStock / profile.maxStock) * 100, 100) : 0;
+                      
+                      const barColor = profile.stockLevel === 'LOW'
+                        ? 'bg-red-400'
+                        : profile.stockLevel === 'WARNING'
+                        ? 'bg-amber-400'
+                        : 'bg-emerald-400';
+                        
+                      const statusBadgeCls = profile.stockLevel === 'LOW'
+                        ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                        : profile.stockLevel === 'WARNING'
+                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+
+                      return (
+                        <tr key={profile.id} className="hover:bg-primary/5 transition-colors group">
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold text-[#d8e2fd]">{profile.name}</span>
+                              <span className="text-[10px] text-muted-foreground uppercase mt-0.5 tracking-wider">{profile.brand} / {profile.assetType}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold">{profile.inStock} Units</span>
+                              <span className="text-[9px] text-muted-foreground">Target: {profile.maxStock || 'N/A'}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="w-full max-w-[200px] space-y-1">
+                              {hasTarget ? (
+                                <>
+                                  <div className="w-full h-1.5 rounded-full bg-primary/10 overflow-hidden border border-primary/5">
+                                    <div
+                                      className={`h-full rounded-full transition-all duration-700 ${barColor}`}
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-[9px] text-muted-foreground font-mono">{Math.round(pct)}% of target</span>
+                                </>
+                              ) : (
+                                <span className="text-[9px] text-muted-foreground italic">No maximum limit set</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider ${statusBadgeCls}`}>
+                              {profile.stockLevel}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="text-center py-8 text-xs text-muted-foreground italic">
+                        No models configured in registry.
+                      </td>
+                    </tr>
                   )}
-                  {stockAlerts.some((a: any) => a.level === 'WARNING') && (
-                    <span className="flex items-center gap-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded">
-                      <TrendingDown className="h-3 w-3" />
-                      {stockAlerts.filter((a: any) => a.level === 'WARNING').length} Warning
-                    </span>
-                  )}
-                </div>
-              )}
-              <span className="text-[10px] text-muted-foreground uppercase font-semibold">Stock Ledger</span>
+                </tbody>
+              </table>
             </div>
           </div>
 
-          {isLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, idx) => (
-                <div key={idx} className="animate-pulse space-y-2">
-                  <div className="h-4 bg-muted rounded w-48" />
-                  <div className="h-2.5 bg-muted rounded-md w-full" />
-                </div>
-              ))}
-            </div>
-          ) : getModelProfiles().length > 0 ? (
-            <div className="space-y-4">
-              {getModelProfiles().map((profile) => {
-                const hasTarget = profile.maxStock > 0;
-                const pct = hasTarget ? Math.min((profile.inStock / profile.maxStock) * 100, 100) : 0;
-                const barColor = profile.stockLevel === 'LOW'
-                  ? 'bg-destructive'
-                  : profile.stockLevel === 'WARNING'
-                  ? 'bg-amber-500'
-                  : 'bg-emerald-500';
-                const levelBadge = profile.stockLevel === 'LOW'
-                  ? { label: 'Low Stock', cls: 'bg-destructive/10 text-destructive border-destructive/20', icon: <AlertTriangle className="h-2.5 w-2.5" /> }
-                  : profile.stockLevel === 'WARNING'
-                  ? { label: 'Warning', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20', icon: <TrendingDown className="h-2.5 w-2.5" /> }
-                  : { label: 'Healthy', cls: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20', icon: <TrendingUp className="h-2.5 w-2.5" /> };
-
-                return (
-                  <div key={profile.id} className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-semibold text-xs truncate">{profile.name}</span>
-                        <span className="text-[10px] text-muted-foreground shrink-0">({profile.brand})</span>
-                        <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-mono font-semibold bg-muted text-muted-foreground border border-border shrink-0">{profile.assetType}</span>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-[11px] font-mono font-semibold text-foreground">
-                          {profile.inStock}{hasTarget ? ` / ${profile.maxStock}` : ''}
-                          <span className="text-[10px] font-normal text-muted-foreground ml-1">in stock</span>
-                        </span>
-                        {hasTarget ? (
-                          <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold border ${levelBadge.cls}`}>
-                            {levelBadge.icon}
-                            {levelBadge.label}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold bg-muted text-muted-foreground border border-border">
-                            No target set
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {hasTarget ? (
-                      <div className="w-full h-2 rounded-md bg-muted overflow-hidden border border-border/20">
-                        <div
-                          className={`h-full rounded-md transition-all duration-700 ${barColor}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-full h-2 rounded-md bg-muted/40 border border-dashed border-border" />
-                    )}
-                    <div className="flex justify-between text-[10px] text-muted-foreground">
-                      <span>{profile.dispatched} dispatched · {profile.inTesting} testing · {profile.total} total</span>
-                      {hasTarget && <span>{Math.round(pct)}% of target</span>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-xs text-muted-foreground italic">
-              No models registered in registry.
-            </div>
-          )}
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-7">
-          {/* Recent Warehouse Logs */}
-          <div className="col-span-4 rounded-lg border border-border bg-card p-6 shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-semibold text-sm">Recent Operations Feed</h3>
-                <span className="text-[10px] text-muted-foreground uppercase font-semibold">Real-time database audits</span>
-              </div>
-              <ScrollArea className="h-[350px] pr-3">
+          {/* Right layout Column */}
+          <div className="lg:col-span-1 flex flex-col gap-6">
+            {/* Recent Operations Log */}
+            <div className="glass-panel p-6 rounded-2xl flex-1 flex flex-col">
+              <h3 className="font-bold text-lg mb-4">Recent Operations</h3>
+              <ScrollArea className="h-[280px] pr-2">
                 {recentLogs.length > 0 ? (
-                  <div className="relative border-l border-border/80 ml-2 pl-4 space-y-5 py-2">
+                  <div className="relative border-l border-primary/10 ml-2 pl-4 space-y-5 py-2">
                     {recentLogs.map((log) => {
-                      const dotColor = log.actionType === 'INGEST' ? 'bg-emerald-500 border-emerald-500' :
-                                       log.actionType === 'DELETE' ? 'bg-destructive border-destructive' :
-                                       log.actionType === 'LINK' ? 'bg-blue-500 border-blue-500' :
-                                       'bg-primary border-primary';
+                      const dotColor = log.actionType === 'INGEST' ? 'bg-emerald-400 border-emerald-500/20' :
+                                       log.actionType === 'DELETE' ? 'bg-red-400 border-red-500/20' :
+                                       log.actionType === 'LINK' ? 'bg-blue-400 border-blue-500/20' :
+                                       'bg-primary border-primary/20';
                       return (
                         <div key={log.id} className="relative group">
                           {/* Timeline dot */}
-                          <span className={`absolute -left-[20px] top-1.5 h-2 w-2 rounded-full border-2 border-card ${dotColor} ring-4 ring-card`} />
+                          <span className={`absolute -left-[20px] top-1.5 h-2 w-2 rounded-full border-2 border-[#081326] ${dotColor} ring-4 ring-[#081326]/40`} />
                           
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[8px] font-mono font-semibold border ${
-                                log.actionType === 'INGEST' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' :
-                                log.actionType === 'LINK' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' :
-                                log.actionType === 'DELETE' ? 'bg-destructive/10 text-destructive border-destructive/20' :
-                                'bg-secondary text-foreground border-border'
-                              }`}>
-                                {log.actionType}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground">{formatTime(log.createdAt)}</span>
+                              <span className="text-[9px] font-bold text-primary font-mono">{log.actionType}</span>
+                              <span className="text-[9px] text-muted-foreground">{formatTime(log.createdAt)}</span>
                             </div>
-                            <p className="text-xs font-medium text-foreground leading-relaxed">{log.details}</p>
-                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                              <span>Operator</span>
-                            </div>
+                            <p className="text-xs font-semibold text-[#d8e2fd] leading-tight">{log.details}</p>
                           </div>
                         </div>
                       );
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-xs text-muted-foreground italic">
-                    No recent database logs registered.
+                  <div className="text-center py-12 text-xs text-[#bec8ce] italic">
+                    No recent operations.
                   </div>
                 )}
               </ScrollArea>
             </div>
-          </div>
 
-          {/* Quick Actions Panel */}
-          <div className="col-span-3 space-y-6">
-            <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
-              <h3 className="font-semibold text-sm">Quick Action Shortcuts</h3>
-              <div className="grid grid-cols-1 gap-2">
-                <a 
-                  href="/inventory" 
-                  className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted transition-colors text-xs font-medium"
-                >
-                  <div className="flex items-center gap-3">
-                    <Scan className="h-4 w-4 text-primary" />
-                    <span>Scan Incoming Box</span>
-                  </div>
-                  <ArrowUpRight className="h-3 w-3 text-muted-foreground" />
-                </a>
-
-                <a 
-                  href="/inventory" 
-                  className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted transition-colors text-xs font-medium"
-                >
-                  <div className="flex items-center gap-3">
-                    <FileSpreadsheet className="h-4 w-4 text-primary" />
-                    <span>Link CSV Matrix</span>
-                  </div>
-                  <ArrowUpRight className="h-3 w-3 text-muted-foreground" />
-                </a>
-
-                <a 
-                  href="/dispatch" 
-                  className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted transition-colors text-xs font-medium"
-                >
-                  <div className="flex items-center gap-3">
-                    <RefreshCw className="h-4 w-4 text-primary" />
-                    <span>RMA Swap Board</span>
-                  </div>
-                  <ArrowUpRight className="h-3 w-3 text-muted-foreground" />
-                </a>
+            {/* Recommendations Insight card */}
+            <div className="glass-panel border-primary/20 bg-primary/5 rounded-2xl p-5 shadow-[0_0_20px_rgba(125,211,252,0.05)] transition-all">
+              <div className="flex items-center gap-2.5 mb-2.5">
+                <span className="material-symbols-outlined text-primary text-xl">lightbulb</span>
+                <h4 className="font-bold text-sm text-primary uppercase tracking-wider text-[11px]">Warehouse Insight</h4>
               </div>
-            </div>
-
-            {/* Recommendations / Low stock warning block */}
-            <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-6 shadow-sm space-y-3">
-              <div className="flex items-center gap-2 text-destructive">
-                <ShieldAlert className="h-4 w-4" />
-                <h3 className="font-semibold text-xs uppercase tracking-wider">Critical Recommendations</h3>
-              </div>
-              <ul className="text-xs space-y-2 text-muted-foreground">
-                <li className="flex items-start gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-destructive mt-1.5 shrink-0" />
-                  <span>SIM card stock is low. Current remaining inventory is 200 units (minimum limit 500). Recommend scan-in box arrival.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-destructive mt-1.5 shrink-0" />
-                  <span>Tracker TRK-982103 has been flagged as "Damaged". Swapped unit needs physical evaluation on QC testing bench.</span>
-                </li>
-              </ul>
+              <p className="text-xs text-[#d8e2fd] leading-relaxed">
+                SIM card stock is low. Current remaining inventory is 200 units (minimum limit 500). Recommend scan-in box arrival.
+              </p>
+              <a href="/inventory" className="mt-4 w-full block text-center py-2 bg-primary text-[#081326] text-[10px] font-bold uppercase tracking-widest rounded-lg hover:brightness-110 active:scale-95 transition-all">
+                Ingest Inventory
+              </a>
             </div>
           </div>
         </div>
-
       </div>
-    </AppShell>
   );
 };
+

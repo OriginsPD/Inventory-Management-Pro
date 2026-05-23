@@ -1,26 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Search, 
-  Plus, 
-  Upload, 
-  Trash2, 
-  Cpu, 
-  CheckCircle2, 
-  AlertCircle, 
-  Scan, 
-  X, 
-  FileSpreadsheet, 
-  Info, 
-  Volume2, 
-  MoreHorizontal, 
-  Eye, 
-  Edit2, 
-  Link as LinkIcon, 
-  ChevronDown, 
-  ArrowUpDown,
-  History
-} from 'lucide-react';
-import { AppShell } from '../layout/AppShell';
+import { useFeedback } from '../ui/feedback-provider';
+
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -30,6 +10,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
 import { EmptyState } from '../ui/empty-state';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -174,11 +155,13 @@ const playChirp = () => {
 };
 
 export const DeviceInventory = () => {
+  const { toast, confirm } = useFeedback();
   const [devices, setDevices] = useState<Device[]>([]);
   const [models, setModels] = useState<DeviceModel[]>([]);
   const [relationships, setRelationships] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [modelFilter, setModelFilter] = useState('');
 
@@ -363,10 +346,20 @@ export const DeviceInventory = () => {
   const scanLinkChildRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchDevices();
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  useEffect(() => {
     fetchModels();
     fetchRelationships();
-  }, [search, statusFilter, modelFilter]);
+  }, []);
+
+  useEffect(() => {
+    fetchDevices();
+  }, [debouncedSearch, statusFilter, modelFilter]);
 
   // -- GLOBAL KEYBOARD SCANNER LISTENER WEDGE --
   const handleGlobalBarcodeScanned = (barcode: string) => {
@@ -565,7 +558,7 @@ export const DeviceInventory = () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
-      if (search) params.append('search', search);
+      if (debouncedSearch) params.append('search', debouncedSearch);
       if (statusFilter) params.append('status', statusFilter);
       if (modelFilter) params.append('modelId', modelFilter);
 
@@ -709,19 +702,23 @@ export const DeviceInventory = () => {
 
   // Delete device
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this device?')) return;
+    const isConfirmed = await confirm({
+      title: 'Delete Device?',
+      message: 'Are you sure you want to delete this device?'
+    });
+    if (!isConfirmed) return;
     try {
       const res = await fetch(`http://localhost:3002/api/devices/${id}`, {
         method: 'DELETE'
       });
       if (res.ok) {
-        playSuccessBeep();
+        toast.success('Device deleted successfully');
         fetchDevices();
       } else {
-        playErrorBuzz();
+        toast.error('Failed to delete device');
       }
     } catch (e) {
-      playErrorBuzz();
+      toast.error('An unexpected error occurred while deleting the device.');
     }
   };
 
@@ -1089,19 +1086,18 @@ export const DeviceInventory = () => {
   const bulkAssetType = getSelectedModelType(bulkSelectedModelId);
 
   return (
-    <AppShell>
-      <div className="flex flex-col gap-6 w-full">
+    <div className="flex flex-col gap-6 w-full animate-in fade-in duration-300">
         {!isOnline && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-500 rounded-lg p-3 px-4 flex items-center gap-2 text-xs font-medium animate-in fade-in duration-200">
-            <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg p-3 px-4 flex items-center gap-2 text-xs font-medium animate-in fade-in duration-200">
+            <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
             <span>Connection Offline: Operations will be cached locally until internet connectivity is restored.</span>
           </div>
         )}
 
         {pendingSyncItems.length > 0 && (
-          <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-500 rounded-lg p-3 px-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-medium animate-in fade-in duration-200">
+          <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg p-3 px-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-medium animate-in fade-in duration-200">
             <div className="flex items-center gap-2">
-              <AlertCircle className="h-4.5 w-4.5 text-amber-500 shrink-0" />
+              <span className="material-symbols-outlined text-[18px] text-amber-500 shrink-0">error</span>
               <span>
                 Offline Sync: You have <strong>{pendingSyncItems.length}</strong> pending ingestion item(s) buffered locally in queue {isOnline ? "(Ready to Sync)" : "(Currently Offline)"}.
               </span>
@@ -1110,7 +1106,7 @@ export const DeviceInventory = () => {
               type="button"
               onClick={() => syncPendingItems()}
               disabled={!isOnline}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white dark:text-black shadow h-8 px-3.5 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white dark:text-black shadow h-8 px-3.5 transition-colors disabled:opacity-50 disabled:pointer-events-none"
             >
               Sync Queue
             </button>
@@ -1120,20 +1116,20 @@ export const DeviceInventory = () => {
         {/* Header & Actions */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight">Device Inventory</h2>
+            <h1 className="text-3xl font-extrabold tracking-tight text-[#d8e2fd]">Device Inventory</h1>
             <p className="text-sm text-muted-foreground mt-1">Manage tracking hardware, SIMs, and peripherals.</p>
           </div>
           
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1.5 rounded-md border border-border">
-              <Volume2 className="h-3.5 w-3.5" />
+            <div className="hidden sm:flex items-center gap-1.5 text-xs text-[#bec8ce] bg-[#0f1524]/60 px-3 py-1.5 rounded-lg border border-primary/10">
+              <span className="material-symbols-outlined text-[16px] text-primary">volume_up</span>
               <span>Synth Audio feedback active</span>
             </div>
             <button 
               onClick={openBulkModal}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-[#d8e2fd] h-9 px-4 gap-1.5 cursor-pointer"
             >
-              <Upload className="mr-2 h-4 w-4" /> Bulk Operations
+              <span className="material-symbols-outlined text-sm">upload</span> Bulk Operations
             </button>
             <button 
               onClick={() => { 
@@ -1146,61 +1142,51 @@ export const DeviceInventory = () => {
                 });
                 setActiveModal('single'); 
               }}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2"
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-9 px-4 gap-1.5 cursor-pointer"
             >
-              <Plus className="mr-2 h-4 w-4" /> Single Entry
+              <span className="material-symbols-outlined text-sm">add</span> Single Entry
             </button>
           </div>
         </div>
 
         {/* 1. Modal Dialog: Single Entry (React Hook Form + Zod) */}
-        {activeModal === 'single' && (
-          <div 
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => { setActiveModal('none'); setEditingDeviceId(null); }}
-          >
-            <div 
-              className="border border-border p-6 rounded-lg bg-card shadow-lg max-w-md w-full relative space-y-4 animate-in fade-in zoom-in-95 duration-150"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button 
-                onClick={() => { setActiveModal('none'); setEditingDeviceId(null); }} 
-                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-              <h3 className="text-lg font-semibold tracking-tight">{editingDeviceId ? 'Edit Device Properties' : 'Add Single Device'}</h3>
+        <Dialog open={activeModal === 'single'} onOpenChange={(open) => { if (!open) { setActiveModal('none'); setEditingDeviceId(null); } }}>
+          <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-md w-full space-y-4 border-0 animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
+            <DialogHeader className="text-left space-y-0.5">
+              <DialogTitle className="text-lg font-extrabold tracking-tight text-[#d8e2fd] p-0">{editingDeviceId ? 'Edit Device Properties' : 'Add Single Device'}</DialogTitle>
+              <DialogDescription className="hidden">Single Device Entry Form</DialogDescription>
+            </DialogHeader>
               
               {errors.root && (
-                <div className="bg-destructive/10 text-destructive text-xs p-2.5 rounded border border-destructive/20 font-medium">
+                <div className="bg-red-500/10 text-red-400 text-xs p-2.5 rounded-lg border border-red-500/20 font-medium">
                   {errors.root.message}
                 </div>
               )}
 
               <form onSubmit={handleSubmit(onSubmitSingle)} className="space-y-4">
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">ISN / IMEI / ICCID</label>
+                  <label className="text-xs font-semibold text-[#bec8ce] block mb-1">ISN / IMEI / ICCID</label>
                   <input 
                     type="text" 
                     placeholder="e.g. TRK-982103"
                     {...register('identifier')}
-                    className={`flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
-                      errors.identifier ? 'border-destructive focus-visible:ring-destructive' : 'border-input'
+                    className={`flex h-9 w-full rounded-lg border bg-primary/5 px-3 py-1 text-sm shadow-sm transition-all placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-[#d8e2fd] ${
+                      errors.identifier ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-primary/10'
                     }`}
                   />
                   {errors.identifier && (
-                    <p className="text-[10px] text-destructive mt-1 font-semibold">{errors.identifier.message}</p>
+                    <p className="text-[10px] text-red-400 mt-1 font-semibold">{errors.identifier.message}</p>
                   )}
                 </div>
                 
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Device Model Template</label>
+                  <label className="text-xs font-semibold text-[#bec8ce] block mb-1">Device Model Template</label>
                   <Controller
                     control={control}
                     name="modelId"
                     render={({ field }) => (
                       <Select onValueChange={field.onChange} value={field.value || ""}>
-                        <SelectTrigger className={`w-full text-sm h-9 bg-card ${errors.modelId ? 'border-destructive focus:ring-destructive' : ''}`}>
+                        <SelectTrigger className={`w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20 ${errors.modelId ? 'border-red-500/50 focus:ring-red-500/20' : ''}`}>
                           <SelectValue placeholder="Select a model..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -1212,118 +1198,118 @@ export const DeviceInventory = () => {
                     )}
                   />
                   {errors.modelId && (
-                    <p className="text-[10px] text-destructive mt-1 font-semibold">{errors.modelId.message}</p>
+                    <p className="text-[10px] text-red-400 mt-1 font-semibold">{errors.modelId.message}</p>
                   )}
                 </div>
 
                 {/* Dynamic Polymorphic Metadata Fields validated dynamically via Zod superRefine */}
                 {singleAssetType === 'SIM' && (
-                  <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
+                  <div className="grid grid-cols-2 gap-3 border-t border-primary/10 pt-3">
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Phone Number (MSISDN)</label>
+                      <label className="text-xs font-semibold text-[#bec8ce] block mb-1">Phone Number (MSISDN)</label>
                       <input 
                         type="text" 
                         placeholder="+1 (868) 555-0199"
                         {...register('meta1')}
-                        className={`flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
-                          errors.meta1 ? 'border-destructive focus-visible:ring-destructive' : 'border-input'
+                        className={`flex h-9 w-full rounded-lg border bg-primary/5 px-3 py-1 text-xs shadow-sm transition-all placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-[#d8e2fd] ${
+                          errors.meta1 ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-primary/10'
                         }`}
                       />
                       {errors.meta1 && (
-                        <p className="text-[9px] text-destructive mt-1 font-semibold">{errors.meta1.message}</p>
+                        <p className="text-[9px] text-red-400 mt-1 font-semibold">{errors.meta1.message}</p>
                       )}
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Network Carrier</label>
+                      <label className="text-xs font-semibold text-[#bec8ce] block mb-1">Network Carrier</label>
                       <input 
                         type="text" 
                         placeholder="e.g. KORE Wireless"
                         {...register('meta2')}
-                        className={`flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
-                          errors.meta2 ? 'border-destructive focus-visible:ring-destructive' : 'border-input'
+                        className={`flex h-9 w-full rounded-lg border bg-primary/5 px-3 py-1 text-xs shadow-sm transition-all placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-[#d8e2fd] ${
+                          errors.meta2 ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-primary/10'
                         }`}
                       />
                       {errors.meta2 && (
-                        <p className="text-[9px] text-destructive mt-1 font-semibold">{errors.meta2.message}</p>
+                        <p className="text-[9px] text-red-400 mt-1 font-semibold">{errors.meta2.message}</p>
                       )}
                     </div>
                   </div>
                 )}
 
                 {singleAssetType === 'TRACKER' && (
-                  <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
+                  <div className="grid grid-cols-2 gap-3 border-t border-primary/10 pt-3">
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Firmware Version</label>
+                      <label className="text-xs font-semibold text-[#bec8ce] block mb-1">Firmware Version</label>
                       <input 
                         type="text" 
                         placeholder="e.g. v1.2.9"
                         {...register('meta1')}
-                        className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
+                        className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-[#d8e2fd] placeholder:text-muted-foreground/30"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Hardware Revision</label>
+                      <label className="text-xs font-semibold text-[#bec8ce] block mb-1">Hardware Revision</label>
                       <input 
                         type="text" 
                         placeholder="e.g. REV_C"
                         {...register('meta2')}
-                        className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
+                        className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-[#d8e2fd] placeholder:text-muted-foreground/30"
                       />
                     </div>
                   </div>
                 )}
 
                 {singleAssetType === 'SD_CARD' && (
-                  <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
+                  <div className="grid grid-cols-2 gap-3 border-t border-primary/10 pt-3">
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Storage Capacity</label>
+                      <label className="text-xs font-semibold text-[#bec8ce] block mb-1">Storage Capacity</label>
                       <input 
                         type="text" 
                         placeholder="e.g. 32GB"
                         {...register('meta1')}
-                        className={`flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
-                          errors.meta1 ? 'border-destructive focus-visible:ring-destructive' : 'border-input'
+                        className={`flex h-9 w-full rounded-lg border bg-primary/5 px-3 py-1 text-xs shadow-sm transition-all placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-[#d8e2fd] ${
+                          errors.meta1 ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-primary/10'
                         }`}
                       />
                       {errors.meta1 && (
-                        <p className="text-[9px] text-destructive mt-1 font-semibold">{errors.meta1.message}</p>
+                        <p className="text-[9px] text-red-400 mt-1 font-semibold">{errors.meta1.message}</p>
                       )}
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Speed Class</label>
+                      <label className="text-xs font-semibold text-[#bec8ce] block mb-1">Speed Class</label>
                       <input 
                         type="text" 
                         placeholder="e.g. Class 10 / U3"
                         {...register('meta2')}
-                        className={`flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
-                          errors.meta2 ? 'border-destructive focus-visible:ring-destructive' : 'border-input'
+                        className={`flex h-9 w-full rounded-lg border bg-primary/5 px-3 py-1 text-xs shadow-sm transition-all placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-[#d8e2fd] ${
+                          errors.meta2 ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-primary/10'
                         }`}
                       />
                       {errors.meta2 && (
-                        <p className="text-[9px] text-destructive mt-1 font-semibold">{errors.meta2.message}</p>
+                        <p className="text-[9px] text-red-400 mt-1 font-semibold">{errors.meta2.message}</p>
                       )}
                     </div>
                   </div>
                 )}
 
                 {singleAssetType === 'PANIC_BUTTON' && (
-                  <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
+                  <div className="grid grid-cols-2 gap-3 border-t border-primary/10 pt-3">
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">RF Frequency</label>
+                      <label className="text-xs font-semibold text-[#bec8ce] block mb-1">RF Frequency</label>
                       <input 
                         type="text" 
                         placeholder="e.g. 433 MHz"
                         {...register('meta1')}
-                        className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
+                        className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-[#d8e2fd] placeholder:text-muted-foreground/30"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Button Color</label>
+                      <label className="text-xs font-semibold text-[#bec8ce] block mb-1">Button Color</label>
                       <input 
                         type="text" 
                         placeholder="e.g. Red"
                         {...register('meta2')}
-                        className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
+                        className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-[#d8e2fd] placeholder:text-muted-foreground/30"
                       />
                     </div>
                   </div>
@@ -1333,48 +1319,41 @@ export const DeviceInventory = () => {
                   <button 
                     type="button" 
                     onClick={() => setActiveModal('none')}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-[#0f1524]/60 text-[#bec8ce] hover:text-[#d8e2fd] hover:bg-primary/5 h-9 px-4 cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit" 
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 active:scale-95 h-9 px-4 cursor-pointer"
                   >
                     {editingDeviceId ? 'Save Changes' : 'Add Device'}
                   </button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
+            </DialogContent>
+          </Dialog>
 
         {/* 2. Unified Modal: Bulk Operations */}
-        {activeModal === 'bulk' && (
-          <div 
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setActiveModal('none')}
-          >
-            <div 
-              className="border border-border rounded-lg bg-card shadow-lg max-w-4xl w-full max-h-[90vh] flex flex-col relative animate-in fade-in zoom-in-95 duration-150"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button onClick={() => setActiveModal('none')} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground z-10">
-                <X className="h-4 w-4" />
-              </button>
+        <Dialog open={activeModal === 'bulk'} onOpenChange={(open) => { if (!open) setActiveModal('none'); }}>
+          <DialogContent className="glass-panel-elevated rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
+            <DialogHeader className="hidden">
+              <DialogTitle>Bulk Operations</DialogTitle>
+              <DialogDescription>Stage Bulk Ingestions or Polymorphic Link pairings.</DialogDescription>
+            </DialogHeader>
 
               <div className="p-6 pb-0 flex flex-col gap-4">
                 {/* Tab Switcher */}
-                <div className="flex border-b border-border pb-2 gap-4">
+                <div className="flex border-b border-primary/10 pb-2 gap-4">
                   <button 
                     onClick={() => setBulkSubTab('ingest')}
-                    className={`text-sm font-semibold pb-1 border-b-2 transition-colors ${bulkSubTab === 'ingest' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+                    className={`text-xs font-bold uppercase tracking-wider pb-1 border-b-2 transition-colors cursor-pointer ${bulkSubTab === 'ingest' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-[#d8e2fd]'}`}
                   >
                     Bulk Ingestion
                   </button>
                   <button 
                     onClick={() => setBulkSubTab('link')}
-                    className={`text-sm font-semibold pb-1 border-b-2 transition-colors ${bulkSubTab === 'link' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+                    className={`text-xs font-bold uppercase tracking-wider pb-1 border-b-2 transition-colors cursor-pointer ${bulkSubTab === 'link' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-[#d8e2fd]'}`}
                   >
                     Polymorphic Linking
                   </button>
@@ -1388,35 +1367,35 @@ export const DeviceInventory = () => {
                 {bulkSubTab === 'ingest' && (
                   <div className="space-y-4">
                     <div>
-                      <h3 className="text-sm font-semibold">Mass Inventory Ingestion</h3>
-                      <p className="text-[11px] text-muted-foreground">Upload serial numbers or scan barcode tags to register new hardware into inventory.</p>
+                      <h3 className="text-sm font-extrabold text-[#d8e2fd]">Mass Inventory Ingestion</h3>
+                      <p className="text-[11px] text-[#bec8ce]">Upload serial numbers or scan barcode tags to register new hardware into inventory.</p>
                     </div>
 
                     {bulkIngestError && (
-                      <div className="bg-destructive/10 text-destructive text-xs p-2.5 rounded border border-destructive/20 font-medium">
+                      <div className="bg-red-500/10 text-red-400 text-xs p-2.5 rounded-lg border border-red-500/20 font-medium">
                         {bulkIngestError}
                       </div>
                     )}
 
                     {duplicateCountAlert > 0 && (
-                      <div className="bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/30 text-amber-800 dark:text-amber-500 text-xs p-2.5 rounded-lg flex items-center justify-between font-medium">
+                      <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs p-2.5 rounded-lg flex items-center justify-between font-medium">
                         <div className="flex items-center gap-2">
-                          <Info className="h-4 w-4 text-amber-600 dark:text-amber-500 shrink-0" />
+                          <span className="material-symbols-outlined text-[16px] text-amber-500 shrink-0">info</span>
                           <span>Filtered out {duplicateCountAlert} duplicate entries (already registered or in current list).</span>
                         </div>
-                        <button onClick={() => { setDuplicateCountAlert(0); }} className="text-[10px] underline hover:no-underline font-semibold ml-4">
+                        <button onClick={() => { setDuplicateCountAlert(0); }} className="text-[10px] underline hover:no-underline font-semibold ml-4 cursor-pointer">
                           Dismiss
                         </button>
                       </div>
                     )}
 
                     {patternCountAlert > 0 && (
-                      <div className="bg-rose-50 border border-rose-200 dark:bg-rose-950/20 dark:border-rose-900/30 text-rose-800 dark:text-rose-500 text-xs p-2.5 rounded-lg flex items-center justify-between font-medium animate-pulse">
+                      <div className="bg-red-500/10 border border-red-500/25 text-red-400 text-xs p-2.5 rounded-lg flex items-center justify-between font-medium animate-pulse">
                         <div className="flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4 text-rose-600 dark:text-rose-500 shrink-0" />
+                          <span className="material-symbols-outlined text-[16px] text-red-500 shrink-0">error</span>
                           <span>Filtered out {patternCountAlert} barcode(s) due to format mismatch with model pattern.</span>
                         </div>
-                        <button onClick={() => setPatternCountAlert(0)} className="text-[10px] underline hover:no-underline font-semibold ml-4">
+                        <button onClick={() => setPatternCountAlert(0)} className="text-[10px] underline hover:no-underline font-semibold ml-4 cursor-pointer">
                           Dismiss
                         </button>
                       </div>
@@ -1424,11 +1403,11 @@ export const DeviceInventory = () => {
 
                     {isCsvMapping ? (
                       /* STRIPE-STYLE COLUMN MAPPER WIZARD */
-                      <div className="space-y-6 border border-border p-5 rounded-lg bg-muted/5">
+                      <div className="space-y-6 border border-primary/10 p-5 rounded-xl bg-primary/5">
                         <div className="flex justify-between items-start">
                           <div>
-                            <h4 className="text-sm font-semibold text-foreground">CSV Column Import Wizard</h4>
-                            <p className="text-xs text-muted-foreground">Map your CSV column headers to the target model's database schema attributes.</p>
+                            <h4 className="text-sm font-bold text-[#d8e2fd]">CSV Column Import Wizard</h4>
+                            <p className="text-xs text-[#bec8ce]">Map your CSV column headers to the target model's database schema attributes.</p>
                           </div>
                           <button
                             type="button"
@@ -1437,7 +1416,7 @@ export const DeviceInventory = () => {
                               setCsvHeaders([]);
                               setCsvRows([]);
                             }}
-                            className="text-xs text-muted-foreground hover:text-foreground font-semibold underline"
+                            className="text-xs text-primary hover:brightness-110 font-bold underline cursor-pointer"
                           >
                             Cancel Mapping
                           </button>
@@ -1446,14 +1425,14 @@ export const DeviceInventory = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           {/* Mapping Identifier */}
                           <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-muted-foreground block">
-                              Identifier / Serial <span className="text-destructive">*</span>
+                            <label className="text-xs font-semibold text-[#bec8ce] block">
+                              Identifier / Serial <span className="text-red-400">*</span>
                             </label>
                             <Select
                               value={csvMappings.identifier}
                               onValueChange={(val) => setCsvMappings(prev => ({ ...prev, identifier: val }))}
                             >
-                              <SelectTrigger className="w-full text-xs h-9 bg-card">
+                              <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
                                 <SelectValue placeholder="Select identifier column" />
                               </SelectTrigger>
                               <SelectContent>
@@ -1466,7 +1445,7 @@ export const DeviceInventory = () => {
 
                           {/* Mapping Meta 1 */}
                           <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-muted-foreground block">
+                            <label className="text-xs font-semibold text-[#bec8ce] block">
                               {bulkAssetType === 'SIM' ? 'Phone Number (MSISDN)' :
                                bulkAssetType === 'SD_CARD' ? 'Storage Capacity' :
                                bulkAssetType === 'TRACKER' ? 'Firmware Version' :
@@ -1476,7 +1455,7 @@ export const DeviceInventory = () => {
                               value={csvMappings.meta1}
                               onValueChange={(val) => setCsvMappings(prev => ({ ...prev, meta1: val }))}
                             >
-                              <SelectTrigger className="w-full text-xs h-9 bg-card">
+                              <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
                                 <SelectValue placeholder="Select column (or none)" />
                               </SelectTrigger>
                               <SelectContent>
@@ -1490,7 +1469,7 @@ export const DeviceInventory = () => {
 
                           {/* Mapping Meta 2 */}
                           <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-muted-foreground block">
+                            <label className="text-xs font-semibold text-[#bec8ce] block">
                               {bulkAssetType === 'SIM' ? 'Network Carrier' :
                                bulkAssetType === 'SD_CARD' ? 'Speed Class' :
                                bulkAssetType === 'TRACKER' ? 'Hardware Revision' :
@@ -1500,7 +1479,7 @@ export const DeviceInventory = () => {
                               value={csvMappings.meta2}
                               onValueChange={(val) => setCsvMappings(prev => ({ ...prev, meta2: val }))}
                             >
-                              <SelectTrigger className="w-full text-xs h-9 bg-card">
+                              <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
                                 <SelectValue placeholder="Select column (or none)" />
                               </SelectTrigger>
                               <SelectContent>
@@ -1515,19 +1494,19 @@ export const DeviceInventory = () => {
 
                         {/* Preview Section */}
                         <div className="space-y-2">
-                          <div className="text-xs font-semibold text-muted-foreground">Preview Mapped Data (First 3 rows)</div>
-                          <div className="border border-border rounded-lg bg-card overflow-hidden">
+                          <div className="text-xs font-semibold text-[#bec8ce]">Preview Mapped Data (First 3 rows)</div>
+                          <div className="border border-primary/10 rounded-xl bg-[#081326] overflow-hidden">
                             <Table>
-                              <TableHeader>
+                              <TableHeader className="bg-[#0f1524]/60 border-b border-primary/10">
                                 <TableRow>
-                                  <TableHead className="px-3 text-[10px] font-semibold text-muted-foreground uppercase">Identifier / Serial</TableHead>
-                                  <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">
+                                  <TableHead className="px-3 text-[10px] font-bold text-[#bec8ce] uppercase tracking-wider">Identifier / Serial</TableHead>
+                                  <TableHead className="px-2 text-[10px] font-bold text-[#bec8ce] uppercase tracking-wider">
                                     {bulkAssetType === 'SIM' ? 'Phone Number' :
                                      bulkAssetType === 'SD_CARD' ? 'Capacity' :
                                      bulkAssetType === 'TRACKER' ? 'Firmware' :
                                      bulkAssetType === 'PANIC_BUTTON' ? 'RF Freq' : 'Meta 1'}
                                   </TableHead>
-                                  <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">
+                                  <TableHead className="px-2 text-[10px] font-bold text-[#bec8ce] uppercase tracking-wider">
                                     {bulkAssetType === 'SIM' ? 'Carrier' :
                                      bulkAssetType === 'SD_CARD' ? 'Speed' :
                                      bulkAssetType === 'TRACKER' ? 'HW Rev' :
@@ -1535,12 +1514,12 @@ export const DeviceInventory = () => {
                                   </TableHead>
                                 </TableRow>
                               </TableHeader>
-                              <TableBody className="font-mono">
+                              <TableBody className="font-mono text-xs">
                                 {getMappedPreviewRows().map((row, idx) => (
-                                  <TableRow key={idx}>
-                                    <TableCell className="px-3 text-foreground font-semibold">{row.identifier || <span className="text-muted-foreground italic">empty</span>}</TableCell>
-                                    <TableCell className="text-foreground">{row.meta1 || <span className="text-muted-foreground italic">-</span>}</TableCell>
-                                    <TableCell className="text-foreground">{row.meta2 || <span className="text-muted-foreground italic">-</span>}</TableCell>
+                                  <TableRow key={idx} className="hover:bg-primary/5 border-b border-primary/5 last:border-0 transition-colors">
+                                    <TableCell className="px-3 text-primary font-bold">{row.identifier || <span className="text-muted-foreground italic">empty</span>}</TableCell>
+                                    <TableCell className="text-[#d8e2fd]">{row.meta1 || <span className="text-muted-foreground italic">-</span>}</TableCell>
+                                    <TableCell className="text-[#d8e2fd]">{row.meta2 || <span className="text-muted-foreground italic">-</span>}</TableCell>
                                   </TableRow>
                                 ))}
                               </TableBody>
@@ -1557,7 +1536,7 @@ export const DeviceInventory = () => {
                               setCsvHeaders([]);
                               setCsvRows([]);
                             }}
-                            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium transition-colors border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4"
+                            className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-[#0f1524]/60 text-[#bec8ce] hover:text-[#d8e2fd] hover:bg-primary/5 h-9 px-4 cursor-pointer"
                           >
                             Cancel Mapping
                           </button>
@@ -1565,7 +1544,7 @@ export const DeviceInventory = () => {
                             type="button"
                             onClick={handleCommitCsvMapping}
                             disabled={!csvMappings.identifier}
-                            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-semibold bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 disabled:opacity-50"
+                            className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-9 px-4 disabled:opacity-50 cursor-pointer"
                           >
                             Commit Ingestion
                           </button>
@@ -1575,7 +1554,7 @@ export const DeviceInventory = () => {
                       <>
                         <div className="grid grid-cols-1">
                           <div>
-                            <label className="text-xs font-semibold text-muted-foreground block mb-1">Target Template Model</label>
+                            <label className="text-xs font-semibold text-[#bec8ce] block mb-1">Target Template Model</label>
                             <Select 
                               value={bulkSelectedModelId}
                               onValueChange={(val) => {
@@ -1585,7 +1564,7 @@ export const DeviceInventory = () => {
                                 setPatternCountAlert(0);
                               }}
                             >
-                              <SelectTrigger className="w-full text-sm h-9 bg-card">
+                              <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd]">
                                 <SelectValue placeholder="Select a model..." />
                               </SelectTrigger>
                               <SelectContent>
@@ -1598,22 +1577,22 @@ export const DeviceInventory = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="border border-border/80 rounded-lg p-4 bg-muted/10 flex flex-col justify-between space-y-4">
+                          <div className="border border-primary/10 rounded-xl p-4 bg-primary/5 flex flex-col justify-between space-y-4">
                             <div className="text-center">
-                              <FileSpreadsheet className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                              <h4 className="text-xs font-semibold">CSV List Upload</h4>
-                              <p className="text-[11px] text-muted-foreground mt-0.5">Drop a CSV file. Headers will be mapped dynamically.</p>
+                              <span className="material-symbols-outlined text-3xl mx-auto text-primary mb-2">table_chart</span>
+                              <h4 className="text-xs font-bold text-[#d8e2fd]">CSV List Upload</h4>
+                              <p className="text-[11px] text-[#bec8ce] mt-0.5">Drop a CSV file. Headers will be mapped dynamically.</p>
                             </div>
-                            <label className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-semibold border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 cursor-pointer">
+                            <label className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold border border-primary/10 bg-[#0f1524]/60 text-[#bec8ce] hover:text-[#d8e2fd] hover:bg-primary/5 h-9 cursor-pointer transition-all">
                               Browse CSV File
                               <input type="file" className="hidden" accept=".csv" onChange={handleIngestCSVUpload} />
                             </label>
                           </div>
 
-                          <div className="border border-border/80 rounded-lg p-4 bg-muted/10 space-y-3">
+                          <div className="border border-primary/10 rounded-xl p-4 bg-primary/5 space-y-3">
                             <div className="flex items-center gap-1.5 text-primary">
-                              <Scan className="h-4 w-4 animate-pulse" />
-                              <h4 className="text-xs font-semibold">Rapid Physical Scanner</h4>
+                              <span className="material-symbols-outlined text-sm animate-pulse text-primary">qr_code_scanner</span>
+                              <h4 className="text-xs font-bold text-[#d8e2fd]">Rapid Physical Scanner</h4>
                             </div>
                             <input 
                               ref={scanIngestInputRef}
@@ -1622,67 +1601,67 @@ export const DeviceInventory = () => {
                               value={scanInputText}
                               onChange={(e) => setScanInputText(e.target.value)}
                               onKeyDown={handleIngestScanKeyDown}
-                              className="flex h-9 w-full rounded-md border border-primary bg-transparent px-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 tracking-mono font-medium"
+                              className="flex h-9 w-full rounded-lg border border-primary/20 bg-primary/5 px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 tracking-mono font-medium text-[#d8e2fd] placeholder:text-muted-foreground/35"
                               autoFocus
                             />
-                            <p className="text-[10px] text-muted-foreground">Duplicates are automatically parsed out.</p>
+                            <p className="text-[10px] text-[#bec8ce]">Duplicates are automatically parsed out.</p>
                           </div>
                         </div>
 
                         {/* Reactive Form Ingestion Table */}
-                        <div className="border border-border rounded-lg bg-card overflow-hidden">
-                          <div className="bg-muted/40 p-2.5 px-4 text-xs font-semibold text-muted-foreground flex justify-between items-center border-b border-border sticky top-0 z-10">
+                        <div className="border border-primary/10 rounded-xl bg-[#081326] overflow-hidden">
+                          <div className="bg-[#0f1524]/60 p-2.5 px-4 text-xs font-semibold text-[#bec8ce] flex justify-between items-center border-b border-primary/10 sticky top-0 z-10">
                             <span>Prepared Ingestion Table ({bulkIngestList.length})</span>
                             {bulkIngestList.length > 0 && (
                               <button 
                                 onClick={() => { setBulkIngestList([]); setDuplicateCountAlert(0); setPatternCountAlert(0); }}
-                                className="text-[10px] text-destructive hover:underline font-semibold"
+                                className="text-[10px] text-red-400 hover:underline font-semibold cursor-pointer"
                               >
                                 Clear List
                               </button>
                             )}
                           </div>
 
-                          <div className="overflow-x-auto">
+                          <div className="overflow-x-auto max-h-[320px] overflow-y-auto">
                             {bulkIngestList.length > 0 ? (
                               <Table>
-                                <TableHeader>
+                                <TableHeader className="bg-[#0f1524]/40 border-b border-primary/10">
                                   <TableRow className="bg-card hover:bg-transparent">
-                                    <TableHead className="px-4 text-[10px] font-semibold text-muted-foreground uppercase">Serial / ISN</TableHead>
+                                    <TableHead className="px-4 text-[10px] font-bold text-[#bec8ce] uppercase tracking-wider">Serial / ISN</TableHead>
 
                                     {/* Dynamic headers depending on asset type */}
                                     {bulkAssetType === 'SIM' && (
                                       <>
-                                        <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">Phone Number (MSISDN)</TableHead>
-                                        <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">Carrier</TableHead>
+                                        <TableHead className="px-2 text-[10px] font-bold text-[#bec8ce] uppercase tracking-wider">Phone Number (MSISDN)</TableHead>
+                                        <TableHead className="px-2 text-[10px] font-bold text-[#bec8ce] uppercase tracking-wider">Carrier</TableHead>
                                       </>
                                     )}
                                     {bulkAssetType === 'TRACKER' && (
                                       <>
-                                        <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">Firmware</TableHead>
-                                        <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">HW Revision</TableHead>
+                                        <TableHead className="px-2 text-[10px] font-bold text-[#bec8ce] uppercase tracking-wider">Firmware</TableHead>
+                                        <TableHead className="px-2 text-[10px] font-bold text-[#bec8ce] uppercase tracking-wider">HW Revision</TableHead>
                                       </>
                                     )}
                                     {bulkAssetType === 'SD_CARD' && (
                                       <>
-                                        <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">Capacity</TableHead>
-                                        <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">Speed Class</TableHead>
+                                        <TableHead className="px-2 text-[10px] font-bold text-[#bec8ce] uppercase tracking-wider">Capacity</TableHead>
+                                        <TableHead className="px-2 text-[10px] font-bold text-[#bec8ce] uppercase tracking-wider">Speed Class</TableHead>
                                       </>
                                     )}
                                     {bulkAssetType === 'PANIC_BUTTON' && (
                                       <>
-                                        <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">RF Frequency</TableHead>
-                                        <TableHead className="px-2 text-[10px] font-semibold text-muted-foreground uppercase">Color</TableHead>
+                                        <TableHead className="px-2 text-[10px] font-bold text-[#bec8ce] uppercase tracking-wider">RF Frequency</TableHead>
+                                        <TableHead className="px-2 text-[10px] font-bold text-[#bec8ce] uppercase tracking-wider">Color</TableHead>
                                       </>
                                     )}
 
-                                    <TableHead className="px-2 text-right text-[10px] font-semibold text-muted-foreground uppercase">Actions</TableHead>
+                                    <TableHead className="px-2 text-right text-[10px] font-bold text-[#bec8ce] uppercase tracking-wider">Actions</TableHead>
                                   </TableRow>
                                 </TableHeader>
-                                <TableBody className="font-mono">
+                                <TableBody className="font-mono text-xs">
                                   {bulkIngestList.map((item, idx) => (
-                                    <TableRow key={idx} className="hover:bg-muted/30 transition-colors">
-                                      <TableCell className="px-4 font-medium tracking-mono text-xs">{item.identifier}</TableCell>
+                                    <TableRow key={idx} className="hover:bg-primary/5 border-b border-primary/5 last:border-0 transition-colors">
+                                      <TableCell className="px-4 font-bold text-primary tracking-mono">{item.identifier}</TableCell>
 
                                       {bulkAssetType === 'SIM' && (
                                         <>
@@ -1692,7 +1671,7 @@ export const DeviceInventory = () => {
                                               placeholder="Phone number" 
                                               value={item.metadata.phoneNumber || ''} 
                                               onChange={(e) => handleUpdateItemMeta(idx, 'phoneNumber', e.target.value)}
-                                              className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
+                                              className="h-7 w-full border border-primary/10 rounded bg-[#081326] px-2 py-0.5 text-xs focus:ring-1 focus:ring-primary/20 focus:outline-none text-[#d8e2fd] font-sans"
                                             />
                                           </TableCell>
                                           <TableCell className="p-1">
@@ -1701,7 +1680,7 @@ export const DeviceInventory = () => {
                                               placeholder="Carrier" 
                                               value={item.metadata.carrier || ''} 
                                               onChange={(e) => handleUpdateItemMeta(idx, 'carrier', e.target.value)}
-                                              className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
+                                              className="h-7 w-full border border-primary/10 rounded bg-[#081326] px-2 py-0.5 text-xs focus:ring-1 focus:ring-primary/20 focus:outline-none text-[#d8e2fd] font-sans"
                                             />
                                           </TableCell>
                                         </>
@@ -1715,7 +1694,7 @@ export const DeviceInventory = () => {
                                               placeholder="e.g. v1.2" 
                                               value={item.metadata.firmware || ''} 
                                               onChange={(e) => handleUpdateItemMeta(idx, 'firmware', e.target.value)}
-                                              className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
+                                              className="h-7 w-full border border-primary/10 rounded bg-[#081326] px-2 py-0.5 text-xs focus:ring-1 focus:ring-primary/20 focus:outline-none text-[#d8e2fd] font-sans"
                                             />
                                           </TableCell>
                                           <TableCell className="p-1">
@@ -1724,7 +1703,7 @@ export const DeviceInventory = () => {
                                               placeholder="e.g. REV_A" 
                                               value={item.metadata.hwRevision || ''} 
                                               onChange={(e) => handleUpdateItemMeta(idx, 'hwRevision', e.target.value)}
-                                              className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
+                                              className="h-7 w-full border border-primary/10 rounded bg-[#081326] px-2 py-0.5 text-xs focus:ring-1 focus:ring-primary/20 focus:outline-none text-[#d8e2fd] font-sans"
                                             />
                                           </TableCell>
                                         </>
@@ -1738,7 +1717,7 @@ export const DeviceInventory = () => {
                                               placeholder="e.g. 64GB" 
                                               value={item.metadata.capacity || ''} 
                                               onChange={(e) => handleUpdateItemMeta(idx, 'capacity', e.target.value)}
-                                              className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
+                                              className="h-7 w-full border border-primary/10 rounded bg-[#081326] px-2 py-0.5 text-xs focus:ring-1 focus:ring-primary/20 focus:outline-none text-[#d8e2fd] font-sans"
                                             />
                                           </TableCell>
                                           <TableCell className="p-1">
@@ -1747,7 +1726,7 @@ export const DeviceInventory = () => {
                                               placeholder="e.g. U3" 
                                               value={item.metadata.speedClass || ''} 
                                               onChange={(e) => handleUpdateItemMeta(idx, 'speedClass', e.target.value)}
-                                              className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
+                                              className="h-7 w-full border border-primary/10 rounded bg-[#081326] px-2 py-0.5 text-xs focus:ring-1 focus:ring-primary/20 focus:outline-none text-[#d8e2fd] font-sans"
                                             />
                                           </TableCell>
                                         </>
@@ -1761,7 +1740,7 @@ export const DeviceInventory = () => {
                                               placeholder="e.g. 433MHz" 
                                               value={item.metadata.rfFrequency || ''} 
                                               onChange={(e) => handleUpdateItemMeta(idx, 'rfFrequency', e.target.value)}
-                                              className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
+                                              className="h-7 w-full border border-primary/10 rounded bg-[#081326] px-2 py-0.5 text-xs focus:ring-1 focus:ring-primary/20 focus:outline-none text-[#d8e2fd] font-sans"
                                             />
                                           </TableCell>
                                           <TableCell className="p-1">
@@ -1770,7 +1749,7 @@ export const DeviceInventory = () => {
                                               placeholder="e.g. Red" 
                                               value={item.metadata.buttonColor || ''} 
                                               onChange={(e) => handleUpdateItemMeta(idx, 'buttonColor', e.target.value)}
-                                              className="h-7 w-full border border-input rounded bg-transparent px-2 py-0.5 text-xs focus:ring-1 focus:ring-ring font-sans"
+                                              className="h-7 w-full border border-primary/10 rounded bg-[#081326] px-2 py-0.5 text-xs focus:ring-1 focus:ring-primary/20 focus:outline-none text-[#d8e2fd] font-sans"
                                             />
                                           </TableCell>
                                         </>
@@ -1779,7 +1758,7 @@ export const DeviceInventory = () => {
                                       <TableCell className="px-2 text-right">
                                         <button 
                                           onClick={() => setBulkIngestList(bulkIngestList.filter((_, i) => i !== idx))} 
-                                          className="text-[10px] text-destructive hover:underline font-sans font-semibold"
+                                          className="text-[10px] text-red-400 hover:underline font-sans font-semibold cursor-pointer"
                                         >
                                           Remove
                                         </button>
@@ -1790,7 +1769,7 @@ export const DeviceInventory = () => {
                               </Table>
                             ) : (
                               <EmptyState
-                                icon={Scan}
+                                icon={() => <span className="material-symbols-outlined text-3xl opacity-20">qr_code_scanner</span>}
                                 title="No devices prepared"
                                 description="Scan barcodes or drop a CSV file to begin."
                               />
@@ -1802,37 +1781,36 @@ export const DeviceInventory = () => {
                   </div>
                 )}
 
-                {/* TAB CONTENT: Bulk Linking */}
                 {bulkSubTab === 'link' && (
                   <div className="space-y-4">
                     <div>
-                      <h3 className="text-sm font-semibold">Polymorphic Linking Engine</h3>
-                      <p className="text-[11px] text-muted-foreground">Establish links between trackers and secondary assets. Non-existent devices will be auto-created.</p>
+                      <h3 className="text-sm font-extrabold text-[#d8e2fd]">Polymorphic Linking Engine</h3>
+                      <p className="text-[11px] text-[#bec8ce]">Establish links between trackers and secondary assets. Non-existent devices will be auto-created.</p>
                     </div>
 
                     {linkError && (
-                      <div className="bg-destructive/10 text-destructive text-xs p-2.5 rounded border border-destructive/20 font-medium">
+                      <div className="bg-red-500/10 text-red-400 text-xs p-2.5 rounded-lg border border-red-500/20 font-medium">
                         {linkError}
                       </div>
                     )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="border border-border/80 rounded-lg p-4 bg-muted/10 flex flex-col justify-between space-y-4">
+                      <div className="border border-primary/10 rounded-xl p-4 bg-primary/5 flex flex-col justify-between space-y-4">
                         <div className="text-center">
-                          <FileSpreadsheet className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                          <h4 className="text-xs font-semibold">CSV Matrix Upload</h4>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">Drop a two-column CSV mapping primary to child device.</p>
+                          <span className="material-symbols-outlined text-3xl mx-auto text-primary mb-2">table_chart</span>
+                          <h4 className="text-xs font-bold text-[#d8e2fd]">CSV Matrix Upload</h4>
+                          <p className="text-[11px] text-[#bec8ce] mt-0.5">Drop a two-column CSV mapping primary to child device.</p>
                         </div>
-                        <label className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-semibold border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 cursor-pointer">
+                        <label className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold border border-primary/10 bg-[#0f1524]/60 text-[#bec8ce] hover:text-[#d8e2fd] hover:bg-primary/5 h-9 cursor-pointer transition-all">
                           Browse CSV File
                           <input type="file" className="hidden" accept=".csv" onChange={handleLinkCSVUpload} />
                         </label>
                       </div>
 
-                      <div className="border border-border/80 rounded-lg p-4 bg-muted/10 space-y-3">
+                      <div className="border border-primary/10 rounded-xl p-4 bg-primary/5 space-y-3">
                         <div className="flex items-center gap-1.5 text-primary">
-                          <Scan className="h-4 w-4 animate-pulse" />
-                          <h4 className="text-xs font-semibold">Scan Pairing Input</h4>
+                          <span className="material-symbols-outlined text-sm animate-pulse text-primary">qr_code_scanner</span>
+                          <h4 className="text-xs font-bold text-[#d8e2fd]">Scan Pairing Input</h4>
                         </div>
                         <div className="space-y-2">
                           <input 
@@ -1842,7 +1820,7 @@ export const DeviceInventory = () => {
                             value={primaryScan}
                             onChange={(e) => setPrimaryScan(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && scanLinkChildRef.current?.focus()}
-                            className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring tracking-mono font-medium"
+                            className="flex h-9 w-full rounded-lg border border-primary/10 bg-[#081326] px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 tracking-mono font-medium text-[#d8e2fd] placeholder:text-muted-foreground/30"
                           />
                           <input 
                             ref={scanLinkChildRef}
@@ -1851,60 +1829,60 @@ export const DeviceInventory = () => {
                             value={childScan}
                             onChange={(e) => setChildScan(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && triggerManualLinkScan()}
-                            className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring tracking-mono font-medium"
+                            className="flex h-9 w-full rounded-lg border border-primary/10 bg-[#081326] px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 tracking-mono font-medium text-[#d8e2fd] placeholder:text-muted-foreground/30"
                           />
                         </div>
                       </div>
                     </div>
 
-                    <div className="border border-border rounded-lg bg-card overflow-hidden">
-                      <div className="bg-muted/40 p-2.5 px-4 text-xs font-semibold text-muted-foreground flex justify-between items-center border-b border-border sticky top-0 z-10">
+                    <div className="border border-primary/10 rounded-xl bg-[#081326] overflow-hidden">
+                      <div className="bg-[#0f1524]/60 p-2.5 px-4 text-xs font-semibold text-[#bec8ce] flex justify-between items-center border-b border-primary/10 sticky top-0 z-10">
                         <span>Prepared Relationships ({linkPairs.length})</span>
                         {linkPairs.length > 0 && (
                           <button 
                             onClick={() => setLinkPairs([])}
-                            className="text-[10px] text-destructive hover:underline font-semibold"
+                            className="text-[10px] text-red-400 hover:underline font-semibold cursor-pointer"
                           >
                             Clear List
                           </button>
                         )}
                       </div>
-                      <div className="divide-y divide-border font-mono">
+                      <div className="divide-y divide-primary/5 font-mono text-xs">
                         {linkPairs.length > 0 ? (
                           linkPairs.map((pair, idx) => (
-                            <div key={idx} className={`p-2.5 px-4 flex justify-between items-center text-xs transition-colors ${pair.status === 'invalid' ? 'bg-destructive/5' : 'hover:bg-muted/50'}`}>
+                            <div key={idx} className={`p-2.5 px-4 flex justify-between items-center transition-colors ${pair.status === 'invalid' ? 'bg-red-500/5' : 'hover:bg-primary/5'}`}>
                               <div className="flex items-center gap-2">
-                                <span className="font-semibold tracking-mono">{pair.primaryISN}</span>
-                                <span className="text-muted-foreground">→</span>
-                                <span className="font-semibold tracking-mono text-muted-foreground">{pair.childISN}</span>
-                                <span className="bg-secondary text-secondary-foreground text-[9px] px-1.5 py-0.5 rounded font-semibold ml-2 font-sans">
+                                <span className="font-bold tracking-mono text-[#d8e2fd]">{pair.primaryISN}</span>
+                                <span className="text-primary font-bold">→</span>
+                                <span className="font-bold tracking-mono text-[#bec8ce]">{pair.childISN}</span>
+                                <span className="bg-primary/10 text-primary border border-primary/20 text-[9px] px-1.5 py-0.5 rounded font-semibold ml-2 font-sans uppercase">
                                   {pair.childType}
                                 </span>
                               </div>
                               <div className="flex items-center gap-3 font-sans">
                                 {pair.message && (
-                                  <span className="bg-amber-100/50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-500 border border-amber-200/50 px-2 py-0.5 rounded text-[10px] font-semibold">
+                                  <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
                                     {pair.message}
                                   </span>
                                 )}
                                 {pair.status === 'valid' ? (
-                                  <span className="inline-flex items-center text-emerald-600 dark:text-emerald-500 font-medium text-[11px]">
-                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Valid Link
+                                  <span className="inline-flex items-center text-emerald-400 font-bold text-[11px]">
+                                    <span className="material-symbols-outlined text-sm mr-1">check_circle</span> Valid Link
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center text-destructive font-medium text-[11px]" title={pair.message}>
-                                    <AlertCircle className="w-3.5 h-3.5 mr-1" /> Invalid
+                                  <span className="inline-flex items-center text-red-400 font-bold text-[11px]" title={pair.message}>
+                                    <span className="material-symbols-outlined text-sm mr-1">error</span> Invalid
                                   </span>
                                 )}
-                                <button onClick={() => setLinkPairs(linkPairs.filter((_, i) => i !== idx))} className="text-muted-foreground hover:text-destructive">
-                                  <X className="h-3.5 w-3.5" />
+                                <button onClick={() => setLinkPairs(linkPairs.filter((_, i) => i !== idx))} className="text-muted-foreground hover:text-red-400 p-1 rounded transition-colors cursor-pointer">
+                                  <span className="material-symbols-outlined text-sm">close</span>
                                 </button>
                               </div>
                             </div>
                           ))
                         ) : (
                           <EmptyState
-                            icon={LinkIcon}
+                            icon={() => <span className="material-symbols-outlined text-3xl opacity-20">link</span>}
                             title="No relationships prepared"
                             description="Scan parent/child barcode pairs or upload a CSV schema mapping matrix."
                           />
@@ -1918,11 +1896,11 @@ export const DeviceInventory = () => {
 
               {/* Fixed Footer */}
               {!isCsvMapping && (
-                <div className="p-6 pt-4 border-t border-border flex gap-2 justify-end bg-card rounded-b-xl">
+                <div className="p-6 pt-4 border-t border-primary/10 flex gap-2 justify-end bg-[#0f1524]/90 backdrop-blur-2xl rounded-b-2xl">
                   <button 
                     type="button" 
                     onClick={() => setActiveModal('none')}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-[#0f1524]/60 text-[#bec8ce] hover:text-[#d8e2fd] hover:bg-primary/5 h-9 px-4 cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -1930,7 +1908,7 @@ export const DeviceInventory = () => {
                     <button 
                       onClick={handleBulkIngestSubmit}
                       disabled={bulkIngestList.length === 0}
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 disabled:opacity-50"
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-9 px-4 disabled:opacity-50 cursor-pointer"
                     >
                       Commit Ingestion ({bulkIngestList.length})
                     </button>
@@ -1938,24 +1916,23 @@ export const DeviceInventory = () => {
                     <button 
                       onClick={handleLinkCommit}
                       disabled={linkPairs.filter(p => p.status === 'valid').length === 0}
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 disabled:opacity-50"
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-9 px-4 disabled:opacity-50 cursor-pointer"
                     >
                       Commit Relationships ({linkPairs.filter(p => p.status === 'valid').length})
                     </button>
                   )}
                 </div>
               )}
-            </div>
-          </div>
-        )}
+            </DialogContent>
+          </Dialog>
         {/* Toolbar & Filters */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 py-4">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4 glass-panel rounded-xl">
           <div className="flex items-center gap-2 flex-1 max-w-sm">
             <Input 
               placeholder="Filter devices..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="text-sm h-9"
+              className="text-sm h-9 bg-primary/5 border border-primary/10 text-[#d8e2fd] placeholder:text-muted-foreground/30 focus-visible:ring-primary/20"
             />
           </div>
           
@@ -1964,7 +1941,7 @@ export const DeviceInventory = () => {
               value={statusFilter || "all"}
               onValueChange={(val) => setStatusFilter(val === "all" ? "" : val)}
             >
-              <SelectTrigger className="w-[140px] text-xs h-9 bg-card">
+              <SelectTrigger className="w-[140px] text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -1980,7 +1957,7 @@ export const DeviceInventory = () => {
               value={modelFilter || "all"}
               onValueChange={(val) => setModelFilter(val === "all" ? "" : val)}
             >
-              <SelectTrigger className="w-[160px] text-xs h-9 bg-card">
+              <SelectTrigger className="w-[160px] text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
                 <SelectValue placeholder="All Models" />
               </SelectTrigger>
               <SelectContent>
@@ -1996,13 +1973,13 @@ export const DeviceInventory = () => {
               <button
                 type="button"
                 onClick={() => setIsColumnsDropdownOpen(!isColumnsDropdownOpen)}
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium transition-colors border border-input bg-card shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-3 gap-1.5"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-[#d8e2fd] h-9 px-3 gap-1.5 cursor-pointer"
               >
-                Columns <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                Columns <span className="material-symbols-outlined text-sm">filter_list</span>
               </button>
               {isColumnsDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 rounded-md border border-border bg-popover p-2 text-popover-foreground shadow-md z-40 space-y-1 font-sans">
-                  <div className="text-[10px] font-semibold text-muted-foreground px-2 py-1 uppercase tracking-wider">Toggle Columns</div>
+                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-primary/15 bg-[#0f1524]/95 backdrop-blur-2xl p-2 text-[#d8e2fd] shadow-xl z-40 space-y-1 font-sans">
+                  <div className="text-[10px] font-bold text-primary px-2 py-1 uppercase tracking-wider">Toggle Columns</div>
                   {Object.entries(visibleColumns).map(([colKey, isVisible]) => {
                     const label = colKey === 'identifier' ? 'Identifier' :
                                   colKey === 'type' ? 'Type' :
@@ -2012,7 +1989,7 @@ export const DeviceInventory = () => {
                                   colKey === 'linked' ? 'Polymorphic Components' :
                                   'Actions';
                     return (
-                      <label key={colKey} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/80 rounded cursor-pointer text-xs">
+                      <label key={colKey} className="flex items-center gap-2 px-2 py-1.5 hover:bg-primary/5 rounded-lg cursor-pointer text-xs">
                         <Checkbox
                           checked={isVisible}
                           onCheckedChange={() => setVisibleColumns({
@@ -2031,7 +2008,7 @@ export const DeviceInventory = () => {
         </div>
 
         {/* Data Region: High Density Table */}
-        <div className="border border-border rounded-md bg-card overflow-visible">
+        <div className="glass-panel rounded-xl overflow-visible">
           {/* Selection Alert Banner */}
           {(() => {
             const pageIds = paginatedDevices.map(d => d.id);
@@ -2040,9 +2017,9 @@ export const DeviceInventory = () => {
             if (!isAllPageSelected && !isAllSelectedGlobally) return null;
             
             return (
-              <div className="bg-primary/5 border-b border-border py-2.5 px-4 text-xs flex justify-between items-center text-foreground animate-in slide-in-from-top duration-200">
+              <div className="bg-primary/10 border-b border-primary/10 py-2.5 px-4 text-xs flex justify-between items-center text-[#d8e2fd] animate-in slide-in-from-top duration-200">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Info className="h-4 w-4 text-primary shrink-0" />
+                  <span className="material-symbols-outlined text-[16px] text-primary shrink-0">info</span>
                   <span>
                     {isAllSelectedGlobally ? (
                       <>All <strong>{devices.length}</strong> devices in inventory are selected.</>
@@ -2054,7 +2031,7 @@ export const DeviceInventory = () => {
                     <button
                       type="button"
                       onClick={() => setIsAllSelectedGlobally(true)}
-                      className="text-primary hover:underline font-semibold ml-2 text-left"
+                      className="text-primary hover:underline font-semibold ml-2 text-left cursor-pointer"
                     >
                       Select all {devices.length} devices in inventory
                     </button>
@@ -2066,7 +2043,7 @@ export const DeviceInventory = () => {
                         setIsAllSelectedGlobally(false);
                         setSelectedDeviceIds([]);
                       }}
-                      className="text-muted-foreground hover:underline ml-2 text-left"
+                      className="text-muted-foreground hover:underline ml-2 text-left cursor-pointer"
                     >
                       Clear selection
                     </button>
@@ -2077,7 +2054,11 @@ export const DeviceInventory = () => {
                     type="button"
                     onClick={async () => {
                       const idsToDelete = isAllSelectedGlobally ? devices.map(d => d.id) : selectedDeviceIds;
-                      if (!confirm(`Are you sure you want to bulk delete the ${idsToDelete.length} selected devices? This action will unlink and delete them permanently.`)) return;
+                      const isConfirmed = await confirm({
+                        title: 'Bulk Delete Devices?',
+                        message: `Are you sure you want to bulk delete the ${idsToDelete.length} selected devices? This action will unlink and delete them permanently.`
+                      });
+                      if (!isConfirmed) return;
                       
                       try {
                         const res = await fetch('http://localhost:3002/api/devices/bulk-delete', {
@@ -2087,22 +2068,20 @@ export const DeviceInventory = () => {
                         });
                         const data = await res.json();
                         if (data.success) {
-                          playSuccessBeep();
+                          toast.success('Bulk delete executed successfully');
                           setSelectedDeviceIds([]);
                           setIsAllSelectedGlobally(false);
                           fetchDevices();
                         } else {
-                          playErrorBuzz();
-                          alert(data.errors?.[0] || 'Bulk delete failed.');
+                          toast.error(data.errors?.[0] || 'Bulk delete failed.');
                         }
                       } catch (e) {
-                        playErrorBuzz();
-                        alert('Network error executing bulk delete.');
+                        toast.error('Network error executing bulk delete.');
                       }
                     }}
-                    className="inline-flex items-center gap-1 bg-destructive/15 text-destructive border border-destructive/20 hover:bg-destructive/25 text-xs px-2.5 py-1 rounded font-semibold transition-colors"
+                    className="inline-flex items-center gap-1 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/25 text-xs px-2.5 py-1 rounded font-semibold transition-colors cursor-pointer"
                   >
-                    <Trash2 className="h-3 w-3" /> Bulk Delete ({isAllSelectedGlobally ? devices.length : selectedDeviceIds.length})
+                    <span className="material-symbols-outlined text-sm">delete</span> Bulk Delete ({isAllSelectedGlobally ? devices.length : selectedDeviceIds.length})
                   </button>
                 </div>
               </div>
@@ -2123,9 +2102,9 @@ export const DeviceInventory = () => {
                     <button
                       type="button"
                       onClick={() => handleSort('identifier')}
-                      className="inline-flex items-center gap-1 hover:text-foreground text-left font-medium text-muted-foreground"
+                      className="inline-flex items-center gap-1 hover:text-foreground text-left font-medium text-muted-foreground cursor-pointer"
                     >
-                      Identifier (ISN) <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                      Identifier (ISN) <span className="material-symbols-outlined text-sm text-muted-foreground/70 shrink-0">unfold_more</span>
                     </button>
                   </TableHead>
                 )}
@@ -2134,9 +2113,9 @@ export const DeviceInventory = () => {
                     <button
                       type="button"
                       onClick={() => handleSort('type')}
-                      className="inline-flex items-center gap-1 hover:text-foreground text-left font-medium text-muted-foreground"
+                      className="inline-flex items-center gap-1 hover:text-foreground text-left font-medium text-muted-foreground cursor-pointer"
                     >
-                      Type <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                      Type <span className="material-symbols-outlined text-sm text-muted-foreground/70 shrink-0">unfold_more</span>
                     </button>
                   </TableHead>
                 )}
@@ -2145,9 +2124,9 @@ export const DeviceInventory = () => {
                     <button
                       type="button"
                       onClick={() => handleSort('modelName')}
-                      className="inline-flex items-center gap-1 hover:text-foreground text-left font-medium text-muted-foreground"
+                      className="inline-flex items-center gap-1 hover:text-foreground text-left font-medium text-muted-foreground cursor-pointer"
                     >
-                      Model Template <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                      Model Template <span className="material-symbols-outlined text-sm text-muted-foreground/70 shrink-0">unfold_more</span>
                     </button>
                   </TableHead>
                 )}
@@ -2156,9 +2135,9 @@ export const DeviceInventory = () => {
                     <button
                       type="button"
                       onClick={() => handleSort('status')}
-                      className="inline-flex items-center gap-1 hover:text-foreground text-left font-medium text-muted-foreground"
+                      className="inline-flex items-center gap-1 hover:text-foreground text-left font-medium text-muted-foreground cursor-pointer"
                     >
-                      Status <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                      Status <span className="material-symbols-outlined text-sm text-muted-foreground/70 shrink-0">unfold_more</span>
                     </button>
                   </TableHead>
                 )}
@@ -2190,29 +2169,49 @@ export const DeviceInventory = () => {
                 ))
               ) : paginatedDevices.length > 0 ? (
                 paginatedDevices.map((device) => (
-                  <TableRow key={device.id} className="group hover:bg-muted/30 transition-colors">
+                  <TableRow key={device.id} className="group hover:bg-primary/5 transition-colors">
                     <TableCell className="w-[40px] px-4">
                       <Checkbox 
                         checked={isAllSelectedGlobally || selectedDeviceIds.includes(device.id)}
                         onCheckedChange={() => toggleDeviceSelection(device.id)}
                       />
                     </TableCell>
-                    {visibleColumns.identifier && <TableCell className="font-medium tracking-mono">{device.identifier}</TableCell>}
+                    {visibleColumns.identifier && <TableCell className="font-medium tracking-mono font-mono text-[#d8e2fd]">{device.identifier}</TableCell>}
                     {visibleColumns.type && (
                       <TableCell>
-                        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground">
+                        <span className="inline-flex items-center rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary font-mono tracking-wider">
                           {device.type}
                         </span>
                       </TableCell>
                     )}
-                    {visibleColumns.modelName && <TableCell className="text-muted-foreground">{device.modelName}</TableCell>}
+                    {visibleColumns.modelName && <TableCell className="text-[#bec8ce]">{device.modelName}</TableCell>}
                     {visibleColumns.status && (
                       <TableCell className="text-xs font-semibold">
-                        {device.status === 'IN_STOCK' && <span className="text-emerald-600 dark:text-emerald-500 font-semibold">🟢 In Stock</span>}
-                        {device.status === 'DISPATCHED' && <span className="text-blue-600 dark:text-blue-400 font-semibold font-sans">🔵 Dispatched</span>}
-                        {device.status === 'TESTING' && <span className="text-amber-500 font-semibold">🟡 Testing</span>}
-                        {device.status === 'DAMAGED' && <span className="text-red-500 font-semibold">🔴 Damaged</span>}
-                        {device.status === 'RMA' && <span className="text-amber-600 font-semibold">🟠 RMA Swap</span>}
+                        {device.status === 'IN_STOCK' && (
+                          <span className="inline-flex items-center gap-1 text-emerald-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> In Stock
+                          </span>
+                        )}
+                        {device.status === 'DISPATCHED' && (
+                          <span className="inline-flex items-center gap-1 text-blue-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-blue-400" /> Dispatched
+                          </span>
+                        )}
+                        {device.status === 'TESTING' && (
+                          <span className="inline-flex items-center gap-1 text-amber-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" /> Testing
+                          </span>
+                        )}
+                        {device.status === 'DAMAGED' && (
+                          <span className="inline-flex items-center gap-1 text-red-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-red-400" /> Damaged
+                          </span>
+                        )}
+                        {device.status === 'RMA' && (
+                          <span className="inline-flex items-center gap-1 text-amber-500">
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" /> RMA Swap
+                          </span>
+                        )}
                         {!['IN_STOCK', 'DISPATCHED', 'TESTING', 'DAMAGED', 'RMA'].includes(device.status) && (
                           <span className="text-muted-foreground font-semibold">{device.status.replace('_', ' ')}</span>
                         )}
@@ -2221,29 +2220,29 @@ export const DeviceInventory = () => {
                     {visibleColumns.metadata && (
                       <TableCell className="text-xs">
                         {device.metadata && Object.keys(device.metadata).length > 0 ? (
-                          <div className="flex flex-col gap-0.5 text-muted-foreground max-w-xs truncate font-sans">
+                          <div className="flex flex-col gap-0.5 text-[#bec8ce] max-w-xs truncate font-sans">
                             {device.type === 'SIM' && (
                               <>
-                                <span className="font-semibold text-foreground">Phone: {device.metadata.phoneNumber || '-'}</span>
+                                <span className="font-semibold text-[#d8e2fd]">Phone: {device.metadata.phoneNumber || '-'}</span>
                                 <span>Carrier: {device.metadata.carrier || '-'}</span>
                               </>
                             )}
                             {device.type === 'SD_CARD' && (
                               <>
-                                <span className="font-semibold text-foreground">Capacity: {device.metadata.capacity || '-'}</span>
+                                <span className="font-semibold text-[#d8e2fd]">Capacity: {device.metadata.capacity || '-'}</span>
                                 <span>Speed: {device.metadata.speedClass || '-'}</span>
                               </>
                             )}
                             {device.type === 'TRACKER' && (
                               <>
-                                <span className="font-semibold text-foreground">Firmware: {device.metadata.firmware || '-'}</span>
+                                <span className="font-semibold text-[#d8e2fd]">Firmware: {device.metadata.firmware || '-'}</span>
                                 <span>Revision: {device.metadata.hwRevision || '-'}</span>
                               </>
                             )}
                             {device.type === 'PANIC_BUTTON' && (
                               <>
-                                <span className="font-semibold text-foreground">Freq: {device.metadata.rfFrequency || '-'}</span>
-                                <span>Color: {device.metadata.buttonColor || '-'}</span>
+                                <span className="font-semibold text-[#d8e2fd]">Freq: {device.metadata.rfFrequency || '-'}</span>
+                                <span>Button: {device.metadata.buttonColor || '-'}</span>
                               </>
                             )}
                           </div>
@@ -2253,10 +2252,10 @@ export const DeviceInventory = () => {
                       </TableCell>
                     )}
                     {visibleColumns.linked && (
-                      <TableCell className="text-right text-muted-foreground font-medium">
+                      <TableCell className="text-right text-[#bec8ce] font-medium">
                         {device.linked > 0 ? (
-                          <span className="text-foreground inline-flex items-center gap-1.5 bg-primary/5 px-2 py-1 rounded text-xs border border-primary/10">
-                            <Cpu className="h-3 w-3" /> {device.linked} linked
+                          <span className="text-[#d8e2fd] inline-flex items-center gap-1.5 bg-primary/5 px-2 py-1 rounded-lg text-xs border border-primary/10">
+                            <span className="material-symbols-outlined text-sm text-primary">developer_board</span> {device.linked} linked
                           </span>
                         ) : (
                           <span className="text-xs italic text-muted-foreground">-</span>
@@ -2268,17 +2267,17 @@ export const DeviceInventory = () => {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button 
-                              className="text-muted-foreground hover:text-foreground p-1 hover:bg-muted rounded transition-colors"
+                              className="text-muted-foreground hover:text-foreground p-1 hover:bg-primary/5 rounded-lg transition-colors cursor-pointer"
                             >
-                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="material-symbols-outlined text-[18px]">more_horiz</span>
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuContent align="end" className="w-48 bg-[#0f1524]/95 backdrop-blur-2xl border border-primary/15 text-[#d8e2fd] rounded-xl p-1 shadow-xl">
                             <DropdownMenuItem 
                               onClick={() => setViewModalDevice(device)}
-                              className="text-xs font-semibold cursor-pointer"
+                              className="text-xs font-semibold cursor-pointer flex items-center px-2.5 py-2 hover:bg-primary/5 focus:bg-primary/5 rounded-lg transition-colors"
                             >
-                              <Eye className="h-3.5 w-3.5 mr-2 text-primary" />
+                              <span className="material-symbols-outlined text-sm mr-2 text-primary">visibility</span>
                               View Asset Profile
                             </DropdownMenuItem>
                             <DropdownMenuItem 
@@ -2289,24 +2288,24 @@ export const DeviceInventory = () => {
                                 setLinkSearch('');
                                 fetchRelationships();
                               }}
-                              className="text-xs font-semibold cursor-pointer"
+                              className="text-xs font-semibold cursor-pointer flex items-center px-2.5 py-2 hover:bg-primary/5 focus:bg-primary/5 rounded-lg transition-colors"
                             >
-                              <LinkIcon className="h-3.5 w-3.5 mr-2" />
+                              <span className="material-symbols-outlined text-sm mr-2 text-primary">link</span>
                               Manage Relationships
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={() => handleOpenEditModal(device)}
-                              className="text-xs font-semibold cursor-pointer"
+                              className="text-xs font-semibold cursor-pointer flex items-center px-2.5 py-2 hover:bg-primary/5 focus:bg-primary/5 rounded-lg transition-colors"
                             >
-                              <Edit2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                              <span className="material-symbols-outlined text-sm mr-2 text-[#bec8ce]">edit</span>
                               Edit Properties
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
+                            <DropdownMenuSeparator className="bg-primary/10 my-1" />
                             <DropdownMenuItem 
                               onClick={() => handleDelete(device.id)}
-                              className="text-xs font-semibold text-destructive focus:text-destructive cursor-pointer"
+                              className="text-xs font-semibold text-red-400 focus:text-red-400 cursor-pointer flex items-center px-2.5 py-2 hover:bg-red-500/5 focus:bg-red-500/5 rounded-lg transition-colors"
                             >
-                              <Trash2 className="h-3.5 w-3.5 mr-2" />
+                              <span className="material-symbols-outlined text-sm mr-2 text-red-400">delete</span>
                               Decommission Unit
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -2319,7 +2318,7 @@ export const DeviceInventory = () => {
                 <TableRow className="hover:bg-transparent">
                   <TableCell colSpan={8} className="p-8">
                     <EmptyState
-                      icon={Search}
+                      icon={() => <span className="material-symbols-outlined text-3xl opacity-20">search</span>}
                       title="No devices found"
                       description="No matching devices in inventory database. Try modifying your filters or search query."
                     />
@@ -2331,7 +2330,7 @@ export const DeviceInventory = () => {
 
           {/* Pagination Controls */}
           {devices.length > 0 && (
-            <div className="flex items-center justify-between px-4 py-4 border-t border-border bg-transparent">
+            <div className="flex items-center justify-between px-4 py-4 border-t border-primary/10 bg-transparent">
               <div className="text-sm text-muted-foreground flex-1">
                 {isAllSelectedGlobally ? (
                   `All ${devices.length} of ${devices.length} row(s) selected.`
@@ -2346,7 +2345,7 @@ export const DeviceInventory = () => {
                     setCurrentPage(prev => Math.max(prev - 1, 1));
                   }}
                   disabled={currentPage === 1}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium transition-colors border border-border bg-background shadow-sm hover:bg-accent disabled:opacity-50 disabled:pointer-events-none h-8 px-3"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-[#d8e2fd] disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                 >
                   Previous
                 </button>
@@ -2356,7 +2355,7 @@ export const DeviceInventory = () => {
                     setCurrentPage(prev => Math.min(prev + 1, totalPages));
                   }}
                   disabled={currentPage === totalPages || totalPages === 0}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium transition-colors border border-border bg-background shadow-sm hover:bg-accent disabled:opacity-50 disabled:pointer-events-none h-8 px-3"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-[#d8e2fd] disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                 >
                   Next
                 </button>
@@ -2366,40 +2365,26 @@ export const DeviceInventory = () => {
         </div>
 
         {/* DIALOG MODAL: View Device Details */}
-        {viewModalDevice && (
-          <div 
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setViewModalDevice(null)}
-          >
-            <div 
-              className="border border-border p-6 rounded-lg bg-card shadow-lg max-w-lg w-full relative space-y-4 animate-in fade-in zoom-in-95 duration-150"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button 
-                type="button"
-                onClick={() => setViewModalDevice(null)} 
-                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
+        <Dialog open={!!viewModalDevice} onOpenChange={(open) => { if (!open) setViewModalDevice(null); }}>
+          {viewModalDevice && (
+            <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-lg w-full space-y-4 border-0 animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
+              <DialogHeader className="text-left space-y-0.5">
+                <DialogTitle className="text-lg font-extrabold tracking-tight text-[#d8e2fd] p-0">Device Inventory Profile</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">Comprehensive view of inventory entry details.</DialogDescription>
+              </DialogHeader>
 
-              <div>
-                <h3 className="text-lg font-semibold tracking-tight">Device Inventory Profile</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">Comprehensive view of inventory entry details.</p>
-              </div>
-
-              <div className="flex border-b border-border pb-2 gap-4">
+              <div className="flex border-b border-primary/10 pb-2 gap-4">
                 <button
                   type="button"
                   onClick={() => setDeviceDetailTab('info')}
-                  className={`text-sm font-semibold pb-1 border-b-2 transition-colors ${deviceDetailTab === 'info' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+                  className={`text-xs font-bold uppercase tracking-wider pb-1 border-b-2 transition-colors cursor-pointer ${deviceDetailTab === 'info' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-[#d8e2fd]'}`}
                 >
                   Information
                 </button>
                 <button
                   type="button"
                   onClick={() => setDeviceDetailTab('activity')}
-                  className={`text-sm font-semibold pb-1 border-b-2 transition-colors ${deviceDetailTab === 'activity' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+                  className={`text-xs font-bold uppercase tracking-wider pb-1 border-b-2 transition-colors cursor-pointer ${deviceDetailTab === 'activity' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-[#d8e2fd]'}`}
                 >
                   Activity History
                 </button>
@@ -2408,52 +2393,72 @@ export const DeviceInventory = () => {
               {deviceDetailTab === 'info' ? (
                 <div className="space-y-4 text-xs text-left">
                   {/* High Density Grid */}
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 border border-border/60 rounded-md bg-muted/20 p-3">
-                    <div className="flex flex-col justify-center py-1 border-b border-border/30">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Identifier</span>
-                      <span className="font-mono font-semibold text-foreground tracking-mono text-xs truncate">{viewModalDevice.identifier}</span>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 border border-primary/10 rounded-xl bg-primary/5 p-3">
+                    <div className="flex flex-col justify-center py-1 border-b border-primary/10">
+                      <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Identifier</span>
+                      <span className="font-mono font-bold text-[#d8e2fd] tracking-mono text-xs truncate">{viewModalDevice.identifier}</span>
                     </div>
-                    <div className="flex flex-col justify-center py-1 border-b border-border/30">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Asset Class</span>
+                    <div className="flex flex-col justify-center py-1 border-b border-primary/10">
+                      <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Asset Class</span>
                       <span>
-                        <span className="inline-flex items-center rounded-md border px-1.5 py-0.25 text-[10px] font-bold bg-secondary text-secondary-foreground border-border">
+                        <span className="inline-flex items-center rounded-md border border-primary/20 bg-primary/10 px-1.5 py-0.25 text-[10px] font-bold text-primary font-mono tracking-wider">
                           {viewModalDevice.type}
                         </span>
                       </span>
                     </div>
-                    <div className="flex flex-col justify-center py-1 border-b border-border/30">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Template Model</span>
-                      <span className="font-medium text-foreground text-xs truncate">{viewModalDevice.modelName}</span>
+                    <div className="flex flex-col justify-center py-1 border-b border-primary/10">
+                      <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Template Model</span>
+                      <span className="font-semibold text-[#d8e2fd] text-xs truncate">{viewModalDevice.modelName}</span>
                     </div>
-                    <div className="flex flex-col justify-center py-1 border-b border-border/30">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Current Status</span>
+                    <div className="flex flex-col justify-center py-1 border-b border-primary/10">
+                      <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Current Status</span>
                       <span className="inline-flex items-center gap-1.5">
-                        {viewModalDevice.status === 'IN_STOCK' && <span className="text-emerald-600 dark:text-emerald-500 font-semibold text-xs">🟢 In Stock</span>}
-                        {viewModalDevice.status === 'DISPATCHED' && <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">🔵 Dispatched</span>}
-                        {viewModalDevice.status === 'TESTING' && <span className="text-amber-500 font-semibold text-xs">🟡 Testing</span>}
-                        {viewModalDevice.status === 'DAMAGED' && <span className="text-red-500 font-semibold text-xs">🔴 Damaged</span>}
-                        {viewModalDevice.status === 'RMA' && <span className="text-amber-600 font-semibold text-xs">🟠 RMA Swap</span>}
+                        {viewModalDevice.status === 'IN_STOCK' && (
+                          <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold text-xs">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> In Stock
+                          </span>
+                        )}
+                        {viewModalDevice.status === 'DISPATCHED' && (
+                          <span className="inline-flex items-center gap-1 text-blue-400 font-semibold text-xs">
+                            <span className="h-1.5 w-1.5 rounded-full bg-blue-400" /> Dispatched
+                          </span>
+                        )}
+                        {viewModalDevice.status === 'TESTING' && (
+                          <span className="inline-flex items-center gap-1 text-amber-400 font-semibold text-xs">
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" /> Testing
+                          </span>
+                        )}
+                        {viewModalDevice.status === 'DAMAGED' && (
+                          <span className="inline-flex items-center gap-1 text-red-400 font-semibold text-xs">
+                            <span className="h-1.5 w-1.5 rounded-full bg-red-400" /> Damaged
+                          </span>
+                        )}
+                        {viewModalDevice.status === 'RMA' && (
+                          <span className="inline-flex items-center gap-1 text-amber-500 font-semibold text-xs">
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" /> RMA Swap
+                          </span>
+                        )}
                         {!['IN_STOCK', 'DISPATCHED', 'TESTING', 'DAMAGED', 'RMA'].includes(viewModalDevice.status) && (
-                          <span className="text-muted-foreground font-semibold text-xs">{viewModalDevice.status.replace('_', ' ')}</span>
+                          <span className="text-[#bec8ce] font-semibold text-xs">{viewModalDevice.status.replace('_', ' ')}</span>
                         )}
                       </span>
                     </div>
-                    <div className="flex flex-col justify-center py-1 border-b border-border/30 col-span-2 last:border-0 font-sans">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Paired Linkages</span>
-                      <span className="font-medium text-foreground text-xs">
+                    <div className="flex flex-col justify-center py-1 border-b border-primary/10 col-span-2 last:border-0 font-sans">
+                      <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Paired Linkages</span>
+                      <span className="font-semibold text-[#d8e2fd] text-xs">
                         {viewModalDevice.linked > 0 ? `${viewModalDevice.linked} active links` : 'Stand-alone'}
                       </span>
                     </div>
                   </div>
 
                   <div className="space-y-1 font-sans">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">Device Attributes</span>
+                    <span className="text-[10px] uppercase font-bold text-primary tracking-wider block mb-1">Device Attributes</span>
                     {viewModalDevice.metadata && Object.keys(viewModalDevice.metadata).length > 0 ? (
-                      <div className="bg-muted/40 border border-border/60 rounded-md p-3 text-xs grid grid-cols-2 gap-x-6 gap-y-2">
+                      <div className="bg-primary/5 border border-primary/10 rounded-xl p-3 text-xs grid grid-cols-2 gap-x-6 gap-y-2">
                         {Object.entries(viewModalDevice.metadata).map(([k, v]) => (
-                          <div key={k} className="flex flex-col justify-center py-1 border-b border-border/20 last:border-0">
-                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{k.replace(/([A-Z])/g, ' $1')}:</span>
-                            <span className="font-mono text-foreground font-semibold text-xs truncate">{String(v)}</span>
+                          <div key={k} className="flex flex-col justify-center py-1 border-b border-primary/10 last:border-0">
+                            <span className="text-[9px] font-bold text-primary uppercase tracking-wider mb-0.5">{k.replace(/([A-Z])/g, ' $1')}:</span>
+                            <span className="font-mono text-[#d8e2fd] font-bold text-xs truncate">{String(v)}</span>
                           </div>
                         ))}
                       </div>
@@ -2473,36 +2478,36 @@ export const DeviceInventory = () => {
                   ) : auditLogs.length === 0 ? (
                     <div className="py-4">
                       <EmptyState
-                        icon={History}
+                        icon={() => <span className="material-symbols-outlined text-3xl opacity-20">history</span>}
                         title="No activity history"
                         description="No activity logs found for this device."
                       />
                     </div>
                   ) : (
-                    <div className="relative border-l border-border pl-6 ml-3 space-y-6 text-left">
+                    <div className="relative border-l border-primary/10 pl-6 ml-3 space-y-6 text-left">
                       {auditLogs.map((log) => {
                         let dotColor = 'bg-zinc-400 border-zinc-500';
-                        if (log.actionType === 'INGEST') dotColor = 'bg-emerald-500 border-emerald-600';
-                        else if (log.actionType === 'STATUS_CHANGE') dotColor = 'bg-blue-500 border-blue-600';
-                        else if (log.actionType === 'TELEMETRY_CHECK') dotColor = 'bg-emerald-500 border-emerald-600';
-                        else if (log.actionType === 'DELETE') dotColor = 'bg-red-500 border-red-600';
-                        else if (log.actionType === 'SWAP') dotColor = 'bg-amber-500 border-amber-600';
-                        else if (log.actionType === 'LINK') dotColor = 'bg-blue-500 border-blue-600';
-                        else if (log.actionType === 'UNLINK') dotColor = 'bg-zinc-500 border-zinc-600';
+                        if (log.actionType === 'INGEST') dotColor = 'bg-emerald-400 border-emerald-500';
+                        else if (log.actionType === 'STATUS_CHANGE') dotColor = 'bg-blue-400 border-blue-500';
+                        else if (log.actionType === 'TELEMETRY_CHECK') dotColor = 'bg-emerald-400 border-emerald-500';
+                        else if (log.actionType === 'DELETE') dotColor = 'bg-red-400 border-red-500';
+                        else if (log.actionType === 'SWAP') dotColor = 'bg-amber-400 border-amber-500';
+                        else if (log.actionType === 'LINK') dotColor = 'bg-blue-400 border-blue-500';
+                        else if (log.actionType === 'UNLINK') dotColor = 'bg-zinc-400 border-zinc-500';
 
                         return (
                           <div key={log.id} className="relative">
-                            <span className={`absolute -left-[30px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-card ${dotColor} shadow`} />
+                            <span className={`absolute -left-[30px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-[#081326] ${dotColor} shadow`} />
                             <div className="flex flex-col gap-1 text-left">
                               <div className="flex items-center justify-between">
-                                <span className="font-mono text-[10px] font-bold uppercase bg-muted px-1.5 py-0.5 rounded text-muted-foreground border border-border">
+                                <span className="font-mono text-[10px] font-bold uppercase bg-primary/10 px-1.5 py-0.5 rounded text-primary border border-primary/20">
                                   {log.actionType}
                                 </span>
                                 <span className="font-mono text-[10px] text-muted-foreground">
                                   {new Date(log.createdAt).toLocaleString()}
                                 </span>
                               </div>
-                              <p className="text-xs text-foreground/90 font-sans">{log.details}</p>
+                              <p className="text-xs text-[#d8e2fd]/90 font-sans">{log.details}</p>
                             </div>
                           </div>
                         );
@@ -2512,83 +2517,74 @@ export const DeviceInventory = () => {
                 </ScrollArea>
               )}
 
-              <div className="flex justify-end pt-2 border-t border-border">
+              <div className="flex justify-end pt-2 border-t border-primary/10">
                 <button
                   type="button"
                   onClick={() => setViewModalDevice(null)}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-[#0f1524]/60 text-[#bec8ce] hover:text-[#d8e2fd] hover:bg-primary/5 h-9 px-4 cursor-pointer"
                 >
                   Close Profile
                 </button>
               </div>
-            </div>
-          </div>
-        )}
+            </DialogContent>
+          )}
+        </Dialog>
 
         {/* DIALOG MODAL: Manual Single Link */}
-        {linkModalDevice && (() => {
-          // Frontend cycle check helper
-          const isAncestor = (possibleAncestorId: string, currentDeviceId: string): boolean => {
-            const rel = relationships.find(r => r.linkedDeviceId === currentDeviceId);
-            let parentId = rel?.primaryDeviceId;
-            
-            if (!parentId) {
-              const staged = stagedLinks.find(s => s.childId === currentDeviceId);
-              parentId = staged?.primaryId;
-            }
-            
-            if (!parentId) return false;
-            if (parentId === possibleAncestorId) return true;
-            return isAncestor(possibleAncestorId, parentId);
-          };
+        <Dialog open={!!linkModalDevice} onOpenChange={(open) => { if (!open) setLinkModalDevice(null); }}>
+          {linkModalDevice && (() => {
+            // Frontend cycle check helper
+            const isAncestor = (possibleAncestorId: string, currentDeviceId: string): boolean => {
+              const rel = relationships.find(r => r.linkedDeviceId === currentDeviceId);
+              let parentId = rel?.primaryDeviceId;
+              
+              if (!parentId) {
+                const staged = stagedLinks.find(s => s.childId === currentDeviceId);
+                parentId = staged?.primaryId;
+              }
+              
+              if (!parentId) return false;
+              if (parentId === possibleAncestorId) return true;
+              return isAncestor(possibleAncestorId, parentId);
+            };
 
-          const parentRel = relationships.find(r => r.linkedDeviceId === linkModalDevice.id);
-          const parentDev = parentRel ? devices.find(d => d.id === parentRel.primaryDeviceId) : null;
-          const stagedParent = stagedLinks.find(s => s.childId === linkModalDevice.id);
+            const parentRel = relationships.find(r => r.linkedDeviceId === linkModalDevice.id);
+            const parentDev = parentRel ? devices.find(d => d.id === parentRel.primaryDeviceId) : null;
+            const stagedParent = stagedLinks.find(s => s.childId === linkModalDevice.id);
 
-          return (
-            <div 
-              className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-              onClick={() => setLinkModalDevice(null)}
-            >
-              <div 
-                className="border border-border p-6 rounded-lg bg-card shadow-lg max-w-lg w-full max-h-[90vh] overflow-y-auto relative space-y-6 animate-in fade-in zoom-in-95 duration-150"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button 
-                  type="button"
-                  onClick={() => setLinkModalDevice(null)} 
-                  className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+            return (
+              <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto space-y-6 border-0 animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
+                <DialogHeader className="hidden">
+                  <DialogTitle>Manage Relationships</DialogTitle>
+                  <DialogDescription>Link accessories or parents to device</DialogDescription>
+                </DialogHeader>
 
                 <div>
-                  <h3 className="text-lg font-semibold tracking-tight">Manage Hardware Links</h3>
+                  <h3 className="text-lg font-extrabold tracking-tight text-[#d8e2fd]">Manage Hardware Links</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">Establish or edit custom device relationship mappings.</p>
                 </div>
 
                 {linkModalError && (
-                  <div className="bg-destructive/10 text-destructive text-xs p-2.5 rounded border border-destructive/20 font-medium">
+                  <div className="bg-red-500/10 text-red-400 text-xs p-2.5 rounded-lg border border-red-500/20 font-medium">
                     {linkModalError}
                   </div>
                 )}
 
                 <div className="space-y-6 text-left">
-                  <div className="text-xs border border-border p-3 rounded-lg bg-muted/20 space-y-1">
-                    <div className="font-semibold text-foreground">Selected Device:</div>
-                    <div className="font-mono text-foreground font-semibold">{linkModalDevice.identifier}</div>
-                    <div className="text-muted-foreground">{linkModalDevice.modelName} ({linkModalDevice.type}) — Status: {linkModalDevice.status}</div>
+                  <div className="text-xs border border-primary/10 p-3 rounded-xl bg-primary/5 space-y-1">
+                    <div className="font-semibold text-primary">Selected Device:</div>
+                    <div className="font-mono text-[#d8e2fd] font-bold text-sm tracking-wider">{linkModalDevice.identifier}</div>
+                    <div className="text-[#bec8ce]">{linkModalDevice.modelName} ({linkModalDevice.type}) — Status: {linkModalDevice.status}</div>
                   </div>
 
                   {/* Section 1: Parent Device Connection */}
-                  <div className="space-y-2 border-t border-border pt-4">
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Parent Connection</h4>
+                  <div className="space-y-2 border-t border-primary/10 pt-4">
+                    <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Parent Connection</h4>
                     
                     {parentDev ? (
-                      <div className="border border-border rounded-lg bg-card overflow-hidden p-2.5 px-3 flex justify-between items-center text-xs">
+                      <div className="border border-primary/10 rounded-xl bg-primary/5 overflow-hidden p-2.5 px-3 flex justify-between items-center text-xs">
                         <div>
-                          <div className="font-semibold text-foreground font-mono">{parentDev.identifier}</div>
+                          <div className="font-bold text-[#d8e2fd] font-mono tracking-wider">{parentDev.identifier}</div>
                           <div className="text-muted-foreground text-[10px]">{parentDev.modelName} ({parentDev.type})</div>
                         </div>
                         <button
@@ -2616,17 +2612,17 @@ export const DeviceInventory = () => {
                               playErrorBuzz();
                             }
                           }}
-                          className="text-xs text-destructive hover:bg-destructive/10 p-1.5 rounded transition-colors"
+                          className="text-xs text-red-400 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"
                           title="Unlink from parent"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <span className="material-symbols-outlined text-sm">delete</span>
                         </button>
                       </div>
                     ) : stagedParent ? (
-                      <div className="border border-primary/25 rounded-lg bg-primary/5 p-2.5 px-3 flex justify-between items-center text-xs">
+                      <div className="border border-primary/25 rounded-xl bg-primary/5 p-2.5 px-3 flex justify-between items-center text-xs">
                         <div>
-                          <div className="font-semibold text-foreground font-mono flex items-center gap-1.5">
-                            <span className="text-primary text-[10px] font-semibold bg-primary/10 px-1.5 py-0.5 rounded">Staged Parent</span>
+                          <div className="font-bold text-[#d8e2fd] font-mono flex items-center gap-1.5">
+                            <span className="text-primary text-[10px] font-bold bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded">Staged Parent</span>
                             {stagedParent.primaryISN}
                           </div>
                           <div className="text-muted-foreground text-[10px]">{stagedParent.primaryModelName}</div>
@@ -2636,10 +2632,10 @@ export const DeviceInventory = () => {
                           onClick={() => {
                             setStagedLinks(stagedLinks.filter(s => s.childId !== linkModalDevice.id));
                           }}
-                          className="text-xs text-muted-foreground hover:text-destructive p-1 rounded transition-colors"
+                          className="text-xs text-muted-foreground hover:text-red-400 p-1 rounded transition-colors cursor-pointer"
                           title="Remove staged parent link"
                         >
-                          <X className="h-3.5 w-3.5" />
+                          <span className="material-symbols-outlined text-sm">close</span>
                         </button>
                       </div>
                     ) : (
@@ -2673,7 +2669,7 @@ export const DeviceInventory = () => {
                         if (parentCandidates.length === 0) {
                           return (
                             <EmptyState
-                              icon={Cpu}
+                              icon={() => <span className="material-symbols-outlined text-3xl opacity-20">developer_board</span>}
                               title="No parents available"
                               description="No compatible in-stock parent hardware available."
                               className="p-4"
@@ -2692,19 +2688,19 @@ export const DeviceInventory = () => {
                           <div className="space-y-2">
                             <div className="relative">
                               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
-                                <Search className="h-3.5 w-3.5" />
+                                <span className="material-symbols-outlined text-sm">search</span>
                               </div>
                               <input
                                 type="text"
                                 placeholder="Search compatible parent devices..."
                                 value={linkParentSearch}
                                 onChange={(e) => setLinkParentSearch(e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-card pl-9 pr-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-sans"
+                                className="flex h-9 w-full rounded-lg border border-primary/10 bg-[#081326]/50 pl-9 pr-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-[#d8e2fd] font-sans"
                               />
                             </div>
 
-                            <ScrollArea className="border border-border rounded-lg max-h-32 bg-card">
-                              <div className="divide-y divide-border">
+                            <ScrollArea className="border border-primary/10 rounded-xl max-h-32 bg-[#081326]/95 backdrop-blur-2xl">
+                              <div className="divide-y divide-primary/10">
                               {filteredParentCandidates.length > 0 ? (
                                 filteredParentCandidates.map(d => (
                                   <button
@@ -2731,15 +2727,15 @@ export const DeviceInventory = () => {
                                       setLinkModalError('');
                                       playSuccessBeep();
                                     }}
-                                    className="w-full text-left px-3 py-2 hover:bg-muted/80 transition-colors font-medium flex flex-col gap-0.5"
+                                    className="w-full text-left px-3 py-2 hover:bg-primary/5 transition-colors font-medium flex flex-col gap-0.5 cursor-pointer"
                                   >
-                                    <div className="font-semibold text-foreground font-mono text-xs">{d.identifier}</div>
+                                    <div className="font-bold text-[#d8e2fd] font-mono text-xs">{d.identifier}</div>
                                     <div className="text-muted-foreground text-[10px]">{d.modelName} ({d.type})</div>
                                   </button>
                                 ))
                               ) : (
                                 <EmptyState
-                                  icon={Search}
+                                  icon={() => <span className="material-symbols-outlined text-3xl opacity-20">search</span>}
                                   title="No parents found"
                                   description="No matching compatible parent devices."
                                   className="p-4 border-none bg-transparent animate-none"
@@ -2797,20 +2793,20 @@ export const DeviceInventory = () => {
                     );
 
                     return (
-                      <div className="space-y-2 border-t border-border pt-4">
-                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Child Components (Accessories)</h4>
+                      <div className="space-y-2 border-t border-primary/10 pt-4">
+                        <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Child Components (Accessories)</h4>
                         
                         {/* Current Active & Staged Children */}
                         {(childRels.length > 0 || stagedChildren.length > 0) ? (
-                          <div className="border border-border rounded-lg bg-card overflow-hidden divide-y divide-border mb-3">
+                          <div className="border border-primary/10 rounded-xl bg-primary/5 overflow-hidden divide-y divide-primary/10 mb-3">
                             {childRels.map(rel => {
                               const childDev = devices.find(d => d.id === rel.linkedDeviceId);
                               if (!childDev) return null;
                               return (
                                 <div key={rel.id} className="p-2.5 px-3 flex justify-between items-center text-xs">
                                   <div>
-                                    <div className="font-semibold text-foreground font-mono">{childDev.identifier}</div>
-                                    <div className="text-muted-foreground text-[10px]">{childDev.modelName} ({childDev.type})</div>
+                                    <div className="font-bold text-[#d8e2fd] font-mono tracking-wider">{childDev.identifier}</div>
+                                    <div className="text-[#bec8ce] text-[10px]">{childDev.modelName} ({childDev.type})</div>
                                   </div>
                                   <button
                                     type="button"
@@ -2837,10 +2833,10 @@ export const DeviceInventory = () => {
                                         playErrorBuzz();
                                       }
                                     }}
-                                    className="text-xs text-destructive hover:bg-destructive/10 p-1.5 rounded transition-colors"
+                                    className="text-xs text-red-400 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"
                                     title="Unlink child component"
                                   >
-                                    <Trash2 className="h-3.5 w-3.5" />
+                                    <span className="material-symbols-outlined text-sm">delete</span>
                                   </button>
                                 </div>
                               );
@@ -2849,21 +2845,21 @@ export const DeviceInventory = () => {
                             {stagedChildren.map((staged, idx) => (
                               <div key={`staged-${idx}`} className="p-2.5 px-3 bg-primary/5 flex justify-between items-center text-xs">
                                 <div>
-                                  <div className="font-semibold text-foreground font-mono flex items-center gap-1.5">
-                                    <span className="text-primary text-[10px] font-semibold bg-primary/10 px-1.5 py-0.5 rounded">Staged Child</span>
+                                  <div className="font-bold text-[#d8e2fd] font-mono flex items-center gap-1.5">
+                                    <span className="text-primary text-[10px] font-bold bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded">Staged Child</span>
                                     {staged.childISN}
                                   </div>
-                                  <div className="text-muted-foreground text-[10px]">{staged.childModelName} ({staged.childType})</div>
+                                  <div className="text-[#bec8ce] text-[10px]">{staged.childModelName} ({staged.childType})</div>
                                 </div>
                                 <button
                                   type="button"
                                   onClick={() => {
                                     setStagedLinks(stagedLinks.filter(s => s.childId !== staged.childId));
                                   }}
-                                  className="text-xs text-muted-foreground hover:text-destructive p-1 rounded transition-colors"
+                                  className="text-xs text-muted-foreground hover:text-red-400 p-1 rounded transition-colors cursor-pointer"
                                   title="Remove staged child link"
                                 >
-                                  <X className="h-3.5 w-3.5" />
+                                  <span className="material-symbols-outlined text-sm">close</span>
                                 </button>
                               </div>
                             ))}
@@ -2875,19 +2871,19 @@ export const DeviceInventory = () => {
                           <div className="space-y-2">
                             <div className="relative">
                               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
-                                <Search className="h-3.5 w-3.5" />
+                                <span className="material-symbols-outlined text-sm">search</span>
                               </div>
                               <input
                                 type="text"
                                 placeholder="Search compatible child components..."
                                 value={linkSearch}
                                 onChange={(e) => setLinkSearch(e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-card pl-9 pr-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-sans"
+                                className="flex h-9 w-full rounded-lg border border-primary/10 bg-[#081326]/50 pl-9 pr-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-[#d8e2fd] font-sans"
                               />
                             </div>
 
-                            <ScrollArea className="border border-border rounded-lg max-h-32 bg-card">
-                              <div className="divide-y divide-border">
+                            <ScrollArea className="border border-primary/10 rounded-xl max-h-32 bg-[#081326]/95 backdrop-blur-2xl">
+                              <div className="divide-y divide-primary/10">
                               {filteredChildCandidates.length > 0 ? (
                                 filteredChildCandidates.map(d => (
                                   <button
@@ -2913,15 +2909,15 @@ export const DeviceInventory = () => {
                                       setLinkModalError('');
                                       playSuccessBeep();
                                     }}
-                                    className="w-full text-left px-3 py-2 hover:bg-muted/80 transition-colors font-medium flex flex-col gap-0.5"
+                                    className="w-full text-left px-3 py-2 hover:bg-primary/5 transition-colors font-medium flex flex-col gap-0.5 cursor-pointer"
                                   >
-                                    <div className="font-semibold text-foreground font-mono text-xs">{d.identifier}</div>
+                                    <div className="font-bold text-[#d8e2fd] font-mono text-xs">{d.identifier}</div>
                                     <div className="text-muted-foreground text-[10px]">{d.modelName} ({d.type})</div>
                                   </button>
                                 ))
                               ) : (
                                 <EmptyState
-                                  icon={Search}
+                                  icon={() => <span className="material-symbols-outlined text-3xl opacity-20">search</span>}
                                   title="No children found"
                                   description="No matching compatible child components."
                                   className="p-4 border-none bg-transparent animate-none"
@@ -2932,7 +2928,7 @@ export const DeviceInventory = () => {
                           </div>
                         ) : (
                           <EmptyState
-                            icon={Cpu}
+                            icon={() => <span className="material-symbols-outlined text-3xl opacity-20">developer_board</span>}
                             title="No children available"
                             description="No compatible in-stock child components available."
                             className="p-4"
@@ -2942,11 +2938,11 @@ export const DeviceInventory = () => {
                     );
                   })()}
 
-                  <div className="flex gap-2 justify-end pt-4 border-t border-border">
+                  <div className="flex gap-2 justify-end pt-4 border-t border-primary/10">
                     <button
                       type="button"
                       onClick={() => setLinkModalDevice(null)}
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 flex-1"
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-[#0f1524]/60 text-[#bec8ce] hover:text-[#d8e2fd] hover:bg-primary/5 h-9 px-4 flex-1 cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -2981,19 +2977,18 @@ export const DeviceInventory = () => {
                             playErrorBuzz();
                           }
                         }}
-                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 flex-1"
+                        className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-9 px-4 flex-1 cursor-pointer"
                       >
                         Commit ({stagedLinks.length}) Links
                       </button>
                     )}
                   </div>
                 </div>
-              </div>
-            </div>
-          );
-        })()}
+              </DialogContent>
+            );
+          })()}
+        </Dialog>
 
       </div>
-    </AppShell>
   );
 };
