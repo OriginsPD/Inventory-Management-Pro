@@ -4,7 +4,7 @@ import { cors } from "@elysiajs/cors";
 import { randomUUID } from "crypto";
 import { db } from "./db/index.js";
 import * as schema from "./db/schema.js";
-import { eq, and, or, like, desc, sql } from "drizzle-orm";
+import { eq, and, or, like, ilike, desc, sql } from "drizzle-orm";
 
 let useDb = false;
 
@@ -665,7 +665,18 @@ const app = new Elysia()
     .get("/", async ({ query }) => {
       if (useDb) {
         try {
-          const data = await db
+          const conditions = [];
+          if (query.search) {
+            conditions.push(ilike(schema.devices.identifier, `%${query.search}%`));
+          }
+          if (query.status) {
+            conditions.push(eq(schema.devices.status, query.status as any));
+          }
+          if (query.modelId) {
+            conditions.push(eq(schema.devices.modelId, query.modelId));
+          }
+
+          let dbQuery = db
             .select({
               id: schema.devices.id,
               identifier: schema.devices.identifier,
@@ -678,21 +689,18 @@ const app = new Elysia()
               updatedAt: schema.devices.updatedAt,
               modelName: schema.deviceModels.name,
               type: schema.deviceModels.assetType,
+              linked: sql<number>`coalesce((select count(*)::int from ${schema.deviceRelationships} where ${schema.deviceRelationships.primaryDeviceId} = ${schema.devices.id}), 0)`
             })
             .from(schema.devices)
             .innerJoin(schema.deviceModels, eq(schema.devices.modelId, schema.deviceModels.id))
             .leftJoin(schema.customers, eq(schema.devices.customerId, schema.customers.id));
-          
-          return await Promise.all(data.map(async (d) => {
-            const relationships = await db
-              .select()
-              .from(schema.deviceRelationships)
-              .where(eq(schema.deviceRelationships.primaryDeviceId, d.id));
-            return {
-              ...d,
-              linked: relationships.length
-            };
-          }));
+
+          if (conditions.length > 0) {
+            dbQuery = dbQuery.where(and(...conditions)) as any;
+          }
+
+          const data = await dbQuery;
+          return data;
         } catch (e) {
           console.error(e);
         }
@@ -1176,8 +1184,8 @@ const app = new Elysia()
       if (oldIdx === -1) return { error: "Faulty device not found" };
       if (newIdx === -1) return { error: "Replacement device not found" };
 
-      const oldDevice = mockDevices[oldIdx];
-      const newDevice = mockDevices[newIdx];
+      const oldDevice = mockDevices[oldIdx] as Device;
+      const newDevice = mockDevices[newIdx] as Device;
 
       if (newDevice.status !== "IN_STOCK") {
         return { error: `Replacement device is not in stock (current status: ${newDevice.status})` };

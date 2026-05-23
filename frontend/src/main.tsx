@@ -9,7 +9,9 @@ import { HardwareSwaps } from './components/screens/HardwareSwaps';
 import { Customers } from './components/screens/Customers';
 import { SettingsScreen } from './components/screens/SettingsScreen';
 import { ReportsScreen } from './components/screens/Reports';
+import { AppShell } from './components/layout/AppShell';
 import { ThemeProvider } from 'next-themes';
+import { FeedbackProvider } from './components/ui/feedback-provider';
 import './index.css';
 
 const App = () => {
@@ -44,45 +46,51 @@ const App = () => {
     };
   }, []);
   
-  if (path === '/models') {
-    return <DeviceModels />;
-  }
+  const renderScreen = () => {
+    if (path === '/models') {
+      return <DeviceModels />;
+    }
 
-  if (path === '/dispatch') {
-    return <CustomerDispatch />;
-  }
+    if (path === '/dispatch') {
+      return <CustomerDispatch />;
+    }
 
-  if (path === '/qc') {
-    return <QCBench />;
-  }
+    if (path === '/qc') {
+      return <QCBench />;
+    }
 
-  if (path === '/swaps') {
-    return <HardwareSwaps />;
-  }
+    if (path === '/swaps') {
+      return <HardwareSwaps />;
+    }
 
-  if (path === '/customers') {
-    return <Customers />;
-  }
+    if (path === '/customers') {
+      return <Customers />;
+    }
 
-  if (path === '/inventory') {
-    return <DeviceInventory />;
-  }
+    if (path === '/inventory') {
+      return <DeviceInventory />;
+    }
 
-  if (path === '/settings') {
-    return <SettingsScreen />;
-  }
+    if (path === '/settings') {
+      return <SettingsScreen />;
+    }
 
-  if (path === '/reports') {
-    return <ReportsScreen />;
-  }
-  
-  return <DashboardScreen />;
+    if (path === '/reports') {
+      return <ReportsScreen />;
+    }
+    
+    return <DashboardScreen />;
+  };
+
+  return <AppShell>{renderScreen()}</AppShell>;
 };
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <App />
+      <FeedbackProvider>
+        <App />
+      </FeedbackProvider>
     </ThemeProvider>
   </React.StrictMode>
 );
