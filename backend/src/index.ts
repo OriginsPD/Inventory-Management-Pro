@@ -17,8 +17,13 @@ async function initDbConnection() {
     useDb = true;
     console.log("⚡ [IMS API] Successfully connected to Neon DB / Postgres instance.");
   } catch (e: any) {
-    console.log("⚠️ [IMS API] Neon DB connection failed. Falling back to local In-Memory Database engine.");
+    console.log("⚠️ [IMS API] Neon DB connection failed.");
     console.log(`   ❌ Error: ${e?.message || String(e)}`);
+    if (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL) {
+      console.error("🚨 [IMS API] Database is configured but connection failed. Crashing server to prevent silent data loss.");
+      process.exit(1);
+    }
+    console.log("ℹ️ [IMS API] Falling back to local In-Memory Database engine.");
     useDb = false;
   }
 }
@@ -76,7 +81,10 @@ interface AuditLog {
   createdAt: string;
   deviceId?: string;
   deviceIdentifier?: string;
+  customerId?: string;
 }
+
+let mockQcReports: any[] = [];
 
 let mockDeviceModels: DeviceModel[] = [
   {
@@ -197,14 +205,21 @@ let mockDeviceAuditLogs: AuditLog[] = [
 ];
 
 // Helper to write audit logs to Neon or in-memory
-async function writeAudit(action: string, text: string, deviceId?: string, deviceIdentifier?: string) {
+async function writeAudit(
+  action: string,
+  text: string,
+  deviceId?: string | null,
+  deviceIdentifier?: string | null,
+  customerId?: string | null
+) {
   if (useDb) {
     try {
       await db.insert(schema.deviceAuditLogs).values({
         actionType: action,
         details: text,
         deviceId: deviceId || null,
-        deviceIdentifier: deviceIdentifier || null
+        deviceIdentifier: deviceIdentifier || null,
+        customerId: customerId || null
       });
     } catch (e) {
       console.error("Failed to write db audit log", e);
@@ -216,6 +231,7 @@ async function writeAudit(action: string, text: string, deviceId?: string, devic
       details: text,
       deviceId: deviceId || undefined,
       deviceIdentifier: deviceIdentifier || undefined,
+      customerId: customerId || undefined,
       createdAt: new Date().toISOString()
     });
     // Cap at 100 entries for memory health
@@ -223,6 +239,16 @@ async function writeAudit(action: string, text: string, deviceId?: string, devic
       mockDeviceAuditLogs.pop();
     }
   }
+}
+
+const regexCache = new Map<string, RegExp>();
+function getCachedRegex(pattern: string): RegExp {
+  let regex = regexCache.get(pattern);
+  if (!regex) {
+    regex = new RegExp(pattern, "i");
+    regexCache.set(pattern, regex);
+  }
+  return regex;
 }
 
 // Helper to infer device classification from serial string
@@ -233,7 +259,7 @@ function inferAssetType(isn: string, models: any[]): string {
   for (const m of models) {
     if (m.identifierPattern) {
       try {
-        const regex = new RegExp(m.identifierPattern, "i");
+        const regex = getCachedRegex(m.identifierPattern);
         if (regex.test(isn)) {
           return m.assetType;
         }
@@ -249,6 +275,7 @@ function inferAssetType(isn: string, models: any[]): string {
   if (upper.includes("SOS") || upper.includes("PANIC") || upper.includes("FOB")) return "PANIC_BUTTON";
   return "TRACKER";
 }
+
 
 // Strict tree hierarchy helpers
 async function hasParentDb(deviceId: string): Promise<boolean> {
@@ -269,33 +296,60 @@ function hasParentMemory(deviceId: string): boolean {
   return mockDeviceRelationships.some(r => r.linkedDeviceId === deviceId);
 }
 
-async function isAncestorDb(possibleAncestorId: string, currentDeviceId: string): Promise<boolean> {
+async function isAncestorDb(possibleAncestorId: string, currentDeviceId: string, tx?: any): Promise<boolean> {
   if (possibleAncestorId === currentDeviceId) return true;
   try {
-    const parentRes = await db
-      .select()
-      .from(schema.deviceRelationships)
-      .where(eq(schema.deviceRelationships.linkedDeviceId, currentDeviceId))
-      .limit(1);
-    
-    if (parentRes.length > 0 && parentRes[0]) {
-      const parentId = parentRes[0].primaryDeviceId;
-      if (parentId === possibleAncestorId) return true;
-      return await isAncestorDb(possibleAncestorId, parentId);
-    }
+    const client = tx || db;
+    const result = await client.execute(sql`
+      WITH RECURSIVE device_path AS (
+        SELECT primary_device_id, linked_device_id 
+        FROM device_relationships 
+        WHERE linked_device_id = ${currentDeviceId}
+        UNION ALL
+        SELECT r.primary_device_id, r.linked_device_id 
+        FROM device_relationships r
+        INNER JOIN device_path dp ON r.linked_device_id = dp.primary_device_id
+      )
+      SELECT primary_device_id FROM device_path;
+    `);
+    const rows = Array.isArray(result) ? result : (result.rows || []);
+    const ancestorIds = rows.map((row: any) => row.primary_device_id);
+    return ancestorIds.includes(possibleAncestorId);
   } catch (e) {
     console.error("Error in isAncestorDb:", e);
   }
   return false;
 }
 
-function isAncestorMemory(possibleAncestorId: string, currentDeviceId: string): boolean {
+function buildRelationshipMaps() {
+  const parentToChildren = new Map<string, string[]>();
+  const childToParent = new Map<string, string>();
+  for (const rel of mockDeviceRelationships) {
+    childToParent.set(rel.linkedDeviceId, rel.primaryDeviceId);
+    const children = parentToChildren.get(rel.primaryDeviceId) || [];
+    children.push(rel.linkedDeviceId);
+    parentToChildren.set(rel.primaryDeviceId, children);
+  }
+  return { parentToChildren, childToParent };
+}
+
+function isAncestorMemory(
+  possibleAncestorId: string,
+  currentDeviceId: string,
+  childToParentMap?: Map<string, string>
+): boolean {
   if (possibleAncestorId === currentDeviceId) return true;
-  const rel = mockDeviceRelationships.find(r => r.linkedDeviceId === currentDeviceId);
-  if (rel) {
-    const parentId = rel.primaryDeviceId;
+  const parentMap = childToParentMap || buildRelationshipMaps().childToParent;
+  
+  let currentId = currentDeviceId;
+  const visited = new Set<string>();
+  while (currentId) {
+    if (visited.has(currentId)) break;
+    visited.add(currentId);
+    const parentId = parentMap.get(currentId);
+    if (!parentId) break;
     if (parentId === possibleAncestorId) return true;
-    return isAncestorMemory(possibleAncestorId, parentId);
+    currentId = parentId;
   }
   return false;
 }
@@ -309,61 +363,72 @@ async function cascadeDeviceStatusDb(
 ): Promise<void> {
   try {
     const client = tx || db;
-    const relationships = await client
-      .select()
-      .from(schema.deviceRelationships)
-      .where(eq(schema.deviceRelationships.primaryDeviceId, deviceId));
+    // 1. Fetch descendants recursively in a single query
+    const descendants = await client.execute(sql`
+      WITH RECURSIVE descendant_path AS (
+        SELECT linked_device_id FROM device_relationships WHERE primary_device_id = ${deviceId}
+        UNION ALL
+        SELECT r.linked_device_id FROM device_relationships r
+        INNER JOIN descendant_path dp ON r.primary_device_id = dp.linked_device_id
+      )
+      SELECT linked_device_id FROM descendant_path;
+    `);
 
-    for (const rel of relationships) {
-      const childRes = await client
-        .select()
-        .from(schema.devices)
-        .where(eq(schema.devices.id, rel.linkedDeviceId))
-        .limit(1);
+    const rows = Array.isArray(descendants) ? descendants : (descendants.rows || []);
+    const childIds: string[] = rows.map((row: any) => row.linked_device_id);
 
-      const child = childRes[0];
-      if (child) {
-        const childMetadata = {
-          ...(child.metadata as Record<string, any> || {}),
-          customerName: metadata.customerName,
-          dispatchedAt: metadata.dispatchedAt,
-          swappedAt: metadata.swappedAt,
-          qcStatus: metadata.qcStatus,
-          qcTestedAt: metadata.qcTestedAt
-        };
-        if (!metadata.customerName) delete childMetadata.customerName;
-        if (!metadata.dispatchedAt) delete childMetadata.dispatchedAt;
+    if (childIds.length > 0) {
+      const patch: Record<string, any> = {};
+      if (metadata.customerName) patch.customerName = metadata.customerName;
+      if (metadata.dispatchedAt) patch.dispatchedAt = metadata.dispatchedAt;
+      if (metadata.swappedAt) patch.swappedAt = metadata.swappedAt;
+      if (metadata.qcStatus) patch.qcStatus = metadata.qcStatus;
+      if (metadata.qcTestedAt) patch.qcTestedAt = metadata.qcTestedAt;
 
-        await client
-          .update(schema.devices)
-          .set({
-            status: status as any,
-            customerId: customerId,
-            metadata: childMetadata,
-            updatedAt: new Date()
-          })
-          .where(eq(schema.devices.id, rel.linkedDeviceId));
-
-        await cascadeDeviceStatusDb(rel.linkedDeviceId, status, customerId, metadata, client);
+      let metadataExpr = sql`metadata || ${JSON.stringify(patch)}::jsonb`;
+      if (!metadata.customerName) {
+        metadataExpr = sql`${metadataExpr} - 'customerName'`;
       }
+      if (!metadata.dispatchedAt) {
+        metadataExpr = sql`${metadataExpr} - 'dispatchedAt'`;
+      }
+
+      await client
+        .update(schema.devices)
+        .set({
+          status: status as any,
+          customerId: customerId,
+          metadata: sql`${metadataExpr}`,
+          updatedAt: new Date()
+        })
+        .where(sql`id IN (${sql.join(childIds.map(id => sql`${id}`), sql`, `)})`);
     }
   } catch (e) {
     console.error("Error cascading status in DB:", e);
   }
 }
 
-
 function cascadeDeviceStatusMemory(
   deviceId: string,
   status: string,
   customerId: string | undefined,
-  metadata: any
+  metadata: any,
+  parentToChildrenMap?: Map<string, string[]>
 ): void {
-  const relationships = mockDeviceRelationships.filter(r => r.primaryDeviceId === deviceId);
-  for (const rel of relationships) {
-    const childIdx = mockDevices.findIndex(d => d.id === rel.linkedDeviceId);
-    if (childIdx !== -1) {
-      const child = mockDevices[childIdx];
+  const childrenMap = parentToChildrenMap || buildRelationshipMaps().parentToChildren;
+  const devicesMap = new Map(mockDevices.map(d => [d.id, d]));
+  
+  const queue = [deviceId];
+  const visited = new Set<string>();
+  
+  while (queue.length > 0) {
+    const currentId = queue.shift()!;
+    if (visited.has(currentId)) continue;
+    visited.add(currentId);
+    
+    const children = childrenMap.get(currentId) || [];
+    for (const childId of children) {
+      const child = devicesMap.get(childId);
       if (child) {
         const childMetadata = {
           ...(child.metadata || {}),
@@ -375,21 +440,18 @@ function cascadeDeviceStatusMemory(
         };
         if (!metadata.customerName) delete childMetadata.customerName;
         if (!metadata.dispatchedAt) delete childMetadata.dispatchedAt;
-
-        const updatedChild: Device = {
-          ...child,
-          status,
-          customerId,
-          metadata: childMetadata,
-          updatedAt: new Date().toISOString()
-        };
-        mockDevices[childIdx] = updatedChild;
-
-        cascadeDeviceStatusMemory(rel.linkedDeviceId, status, customerId, metadata);
+        
+        child.status = status;
+        child.customerId = customerId;
+        child.metadata = childMetadata;
+        child.updatedAt = new Date().toISOString();
+        
+        queue.push(childId);
       }
     }
   }
 }
+
 
 const app = new Elysia()
   .use(swagger())
@@ -420,20 +482,37 @@ const app = new Elysia()
   .get("/api/analytics/dispatches", async () => {
     const baseline = [14, 18, 15, 23, 20, 29, 36];
     let auditList: any[] = [];
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
     if (useDb) {
       try {
         auditList = await db
           .select()
           .from(schema.deviceAuditLogs)
-          .where(eq(schema.deviceAuditLogs.actionType, "LINK"))
-          .orderBy(desc(schema.deviceAuditLogs.createdAt))
-          .limit(150);
+          .where(
+            and(
+              eq(schema.deviceAuditLogs.actionType, "DISPATCH"),
+              sql`created_at >= ${sevenDaysAgo}`
+            )
+          )
+          .orderBy(desc(schema.deviceAuditLogs.createdAt));
       } catch (e) {
         console.error(e);
       }
     } else {
-      auditList = mockDeviceAuditLogs.filter(log => log.actionType === "LINK");
+      const thresholdTime = sevenDaysAgo.getTime();
+      auditList = mockDeviceAuditLogs.filter(
+        log => log.actionType === "DISPATCH" && new Date(log.createdAt).getTime() >= thresholdTime
+      );
+    }
+
+    const dateCounts = new Map<string, number>();
+    for (const log of auditList) {
+      const logDateKey = new Date(log.createdAt).toISOString().split("T")[0];
+      if (logDateKey) {
+        dateCounts.set(logDateKey, (dateCounts.get(logDateKey) || 0) + 1);
+      }
     }
 
     const result = [];
@@ -443,10 +522,7 @@ const app = new Elysia()
       const dateStr = date.toLocaleDateString("en-US", { weekday: "short" });
       const dateKey = date.toISOString().split("T")[0];
       
-      const realCount = auditList.filter(log => {
-        const logDate = new Date(log.createdAt).toISOString().split("T")[0];
-        return logDate === dateKey;
-      }).length;
+      const realCount = dateKey ? (dateCounts.get(dateKey) || 0) : 0;
 
       result.push({
         day: dateStr,
@@ -506,12 +582,12 @@ const app = new Elysia()
     .get("/", async () => {
       if (useDb) {
         try {
-          return await db.select().from(schema.deviceModels);
+          return await db.select().from(schema.deviceModels).orderBy(schema.deviceModels.name);
         } catch (e) {
           console.error(e);
         }
       }
-      return mockDeviceModels;
+      return [...mockDeviceModels].sort((a, b) => a.name.localeCompare(b.name));
     })
     .post("/", async ({ body }) => {
       const payload = {
@@ -665,6 +741,18 @@ const app = new Elysia()
     .get("/", async ({ query }) => {
       if (useDb) {
         try {
+          const conditions = [];
+          if (query.search) {
+            conditions.push(like(schema.devices.identifier, `%${query.search}%`));
+          }
+          if (query.status) {
+            conditions.push(eq(schema.devices.status, query.status as any));
+          }
+          if (query.modelId) {
+            conditions.push(eq(schema.devices.modelId, query.modelId));
+          }
+          const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
           const data = await db
             .select({
               id: schema.devices.id,
@@ -678,23 +766,26 @@ const app = new Elysia()
               updatedAt: schema.devices.updatedAt,
               modelName: schema.deviceModels.name,
               type: schema.deviceModels.assetType,
+              linked: sql<number>`count(${schema.deviceRelationships.id})::int`
             })
             .from(schema.devices)
             .innerJoin(schema.deviceModels, eq(schema.devices.modelId, schema.deviceModels.id))
-            .leftJoin(schema.customers, eq(schema.devices.customerId, schema.customers.id));
+            .leftJoin(schema.customers, eq(schema.devices.customerId, schema.customers.id))
+            .leftJoin(schema.deviceRelationships, eq(schema.devices.id, schema.deviceRelationships.primaryDeviceId))
+            .where(whereClause)
+            .groupBy(
+              schema.devices.id,
+              schema.deviceModels.id,
+              schema.deviceModels.name,
+              schema.deviceModels.assetType,
+              schema.customers.id,
+              schema.customers.name
+            );
           
-          return await Promise.all(data.map(async (d) => {
-            const relationships = await db
-              .select()
-              .from(schema.deviceRelationships)
-              .where(eq(schema.deviceRelationships.primaryDeviceId, d.id));
-            return {
-              ...d,
-              linked: relationships.length
-            };
-          }));
+          return data;
         } catch (e) {
           console.error(e);
+          return [];
         }
       }
 
@@ -710,9 +801,15 @@ const app = new Elysia()
         filtered = filtered.filter(d => d.modelId === query.modelId);
       }
 
+      const modelMap = new Map(mockDeviceModels.map(m => [m.id, m]));
+      const relCountMap = new Map<string, number>();
+      for (const rel of mockDeviceRelationships) {
+        relCountMap.set(rel.primaryDeviceId, (relCountMap.get(rel.primaryDeviceId) || 0) + 1);
+      }
+
       return filtered.map(d => {
-        const model = mockDeviceModels.find(m => m.id === d.modelId);
-        const linkedCount = mockDeviceRelationships.filter(r => r.primaryDeviceId === d.id).length;
+        const model = modelMap.get(d.modelId);
+        const linkedCount = relCountMap.get(d.id) || 0;
         return {
           ...d,
           modelName: model ? model.name : "Unknown Model",
@@ -800,50 +897,24 @@ const app = new Elysia()
       const added: any[] = [];
       const errors: string[] = [];
       const allModels = useDb ? await db.select().from(schema.deviceModels) : mockDeviceModels;
+      const modelMap = new Map(allModels.map(m => [m.id, m]));
 
-      if (useDb) {
-        try {
-          for (const item of body.devices) {
-            try {
-              // Pattern Validation
-              const model = allModels.find(m => m.id === item.modelId);
-              if (model && model.identifierPattern) {
-                const regex = new RegExp(model.identifierPattern, "i");
-                if (!regex.test(item.identifier)) {
-                  errors.push(`Device '${item.identifier}': Does not match validation pattern '${model.identifierPattern}'`);
-                  continue;
-                }
-              }
-
-              const inserted = await db.insert(schema.devices).values({
-                identifier: item.identifier,
-                modelId: item.modelId,
-                status: (item.status || "IN_STOCK") as any,
-                metadata: item.metadata || {}
-              }).returning();
-              if (inserted[0]) {
-                added.push(inserted[0]);
-                await writeAudit("INGEST", `Registered single device '${item.identifier}' in stock via bulk upload`, inserted[0].id, item.identifier);
-              }
-            } catch (e: any) {
-              errors.push(`Device '${item.identifier}': ${e.message}`);
-            }
-          }
-          if (added.length > 0) {
-            await writeAudit("INGEST", `Batch ingested ${added.length} devices into inventory`);
-          }
-          return { success: true, addedCount: added.length, errors };
-        } catch (e) {
-          console.error(e);
-        }
-      }
+      // 1. Intra-batch duplicates check
+      const batchIdentifiers = new Set<string>();
+      const itemsToIngest: typeof body.devices = [];
 
       for (const item of body.devices) {
+        if (batchIdentifiers.has(item.identifier)) {
+          errors.push(`Device '${item.identifier}': Duplicate serial in upload batch`);
+          continue;
+        }
+        batchIdentifiers.add(item.identifier);
+
         // Pattern Validation
-        const model = allModels.find(m => m.id === item.modelId);
+        const model = modelMap.get(item.modelId);
         if (model && model.identifierPattern) {
           try {
-            const regex = new RegExp(model.identifierPattern, "i");
+            const regex = getCachedRegex(model.identifierPattern);
             if (!regex.test(item.identifier)) {
               errors.push(`Device '${item.identifier}': Does not match validation pattern '${model.identifierPattern}'`);
               continue;
@@ -852,9 +923,71 @@ const app = new Elysia()
             console.error("Invalid regex format configured:", model.identifierPattern);
           }
         }
+        itemsToIngest.push(item);
+      }
 
-        const existing = mockDevices.find(d => d.identifier === item.identifier);
-        if (existing) {
+      if (itemsToIngest.length === 0) {
+        return { success: true, addedCount: 0, errors };
+      }
+
+      if (useDb) {
+        try {
+          // Check DB duplicate serials in bulk
+          const existingDevices = await db
+            .select({ identifier: schema.devices.identifier })
+            .from(schema.devices)
+            .where(sql`identifier IN (${sql.join(itemsToIngest.map(item => sql`${item.identifier}`), sql`, `)})`);
+          
+          const dbDuplicates = new Set(existingDevices.map(d => d.identifier));
+          const finalInsertItems: any[] = [];
+
+          for (const item of itemsToIngest) {
+            if (dbDuplicates.has(item.identifier)) {
+              errors.push(`Device '${item.identifier}': Serial already exists in database`);
+              continue;
+            }
+            finalInsertItems.push({
+              identifier: item.identifier,
+              modelId: item.modelId,
+              status: (item.status || "IN_STOCK") as any,
+              metadata: item.metadata || {}
+            });
+          }
+
+          if (finalInsertItems.length > 0) {
+            // Transaction for bulk inserts
+            await db.transaction(async (tx) => {
+              const inserted = await tx.insert(schema.devices).values(finalInsertItems).returning();
+              added.push(...inserted);
+
+              // Bulk write audit logs
+              const auditValues = inserted.map(device => ({
+                actionType: "INGEST",
+                details: `Registered single device '${device.identifier}' in stock via bulk upload`,
+                deviceId: device.id,
+                deviceIdentifier: device.identifier
+              }));
+              await tx.insert(schema.deviceAuditLogs).values(auditValues);
+              
+              // Summary Audit Log
+              await tx.insert(schema.deviceAuditLogs).values({
+                actionType: "INGEST",
+                details: `Batch ingested ${inserted.length} devices into inventory`
+              });
+            });
+          }
+
+          return { success: true, addedCount: added.length, errors };
+        } catch (e: any) {
+          console.error("Database bulk ingestion failed:", e);
+          return { success: false, addedCount: 0, errors: [...errors, e.message || String(e)] };
+        }
+      }
+
+      // Memory Mode
+      const existingInSystem = new Set(mockDevices.map(d => d.identifier));
+      for (const item of itemsToIngest) {
+        if (existingInSystem.has(item.identifier)) {
           errors.push(`Device '${item.identifier}' already exists`);
           continue;
         }
@@ -894,34 +1027,56 @@ const app = new Elysia()
       const deletedIds: string[] = [];
       const errors: string[] = [];
 
+      if (body.ids.length === 0) {
+        return { success: true, deletedCount: 0, errors };
+      }
+
       if (useDb) {
         try {
-          for (const id of body.ids) {
-            try {
-              const dev = await db.select().from(schema.devices).where(eq(schema.devices.id, id));
-              const deviceObj = dev[0];
-              if (deviceObj) {
-                // Delete relationships first to avoid constraint issues
-                await db.delete(schema.deviceRelationships).where(
+          const idsToQuery = body.ids;
+          const devicesToDelete = await db
+            .select({ id: schema.devices.id, identifier: schema.devices.identifier })
+            .from(schema.devices)
+            .where(sql`id IN (${sql.join(idsToQuery.map(id => sql`${id}`), sql`, `)})`);
+          
+          if (devicesToDelete.length > 0) {
+            const foundIds = devicesToDelete.map(d => d.id);
+            await db.transaction(async (tx) => {
+              // Delete relationships first to avoid constraint issues
+              await tx
+                .delete(schema.deviceRelationships)
+                .where(
                   or(
-                    eq(schema.deviceRelationships.primaryDeviceId, id),
-                    eq(schema.deviceRelationships.linkedDeviceId, id)
+                    sql`primary_device_id IN (${sql.join(foundIds.map(id => sql`${id}`), sql`, `)})`,
+                    sql`linked_device_id IN (${sql.join(foundIds.map(id => sql`${id}`), sql`, `)})`
                   )
                 );
-                await db.delete(schema.devices).where(eq(schema.devices.id, id));
-                deletedIds.push(id);
-                await writeAudit("DELETE", `Removed device '${deviceObj.identifier}' via bulk delete`);
-              }
-            } catch (e: any) {
-              errors.push(`Device ID '${id}': ${e.message}`);
-            }
+              
+              // Delete devices
+              await tx
+                .delete(schema.devices)
+                .where(sql`id IN (${sql.join(foundIds.map(id => sql`${id}`), sql`, `)})`);
+              
+              // Bulk audit logs
+              const auditValues = devicesToDelete.map(d => ({
+                actionType: "DELETE",
+                details: `Removed device '${d.identifier}' via bulk delete`,
+                deviceId: null,
+                deviceIdentifier: d.identifier
+              }));
+              await tx.insert(schema.deviceAuditLogs).values(auditValues);
+              
+              deletedIds.push(...foundIds);
+            });
           }
           return { success: true, deletedCount: deletedIds.length, errors };
-        } catch (e) {
-          console.error(e);
+        } catch (e: any) {
+          console.error("Database bulk delete failed:", e);
+          return { success: false, deletedCount: 0, errors: [...errors, e.message || String(e)] };
         }
       }
 
+      // Memory Mode
       for (const id of body.ids) {
         const idx = mockDevices.findIndex(d => d.id === id);
         if (idx !== -1) {
@@ -968,21 +1123,33 @@ const app = new Elysia()
             await cascadeDeviceStatusDb(params.id, body.status, payload.customerId, metadata);
           }
 
+          // If a new QC checklist is submitted, log to the qcReports table
+          if (metadata && metadata.qcChecklist && metadata.qcStatus) {
+            await db.insert(schema.qcReports).values({
+              deviceId: params.id,
+              technicianId: metadata.technicianId || "Default Technician",
+              items: metadata.qcChecklist,
+              overallStatus: metadata.qcStatus,
+              completedAt: new Date()
+            });
+          }
+
           // Audit change
           if (oldDevice) {
             if (metadata.replacedBy) {
-              await writeAudit("SWAP", `Hardware Swap: Unit replaced by '${metadata.replacedBy}' (Status updated to DAMAGED)`, params.id, body.identifier);
+              await writeAudit("SWAP", `Hardware Swap: Unit replaced by '${metadata.replacedBy}' (Status updated to DAMAGED)`, params.id, body.identifier, null);
             } else if (metadata.replacesUnit) {
-              await writeAudit("SWAP", `Hardware Swap: Unit deployed as replacement for '${metadata.replacesUnit}'`, params.id, body.identifier);
+              await writeAudit("SWAP", `Hardware Swap: Unit deployed as replacement for '${metadata.replacesUnit}'`, params.id, body.identifier, null);
             } else if (oldDevice.status !== payload.status) {
-              await writeAudit("STATUS_CHANGE", `Status changed from ${oldDevice.status} to ${payload.status}`, params.id, body.identifier);
+              await writeAudit("STATUS_CHANGE", `Status changed from ${oldDevice.status} to ${payload.status}`, params.id, body.identifier, null);
             }
             if (oldDevice.customerId !== payload.customerId) {
               const action = payload.customerId ? "DISPATCH" : "RETURN";
               const detailText = payload.customerId 
                 ? `Device '${body.identifier}' dispatched to customer`
                 : `Device '${body.identifier}' returned to warehouse stock`;
-              await writeAudit(action, detailText, params.id, body.identifier);
+              const targetCustomerId = payload.customerId || oldDevice.customerId;
+              await writeAudit(action, detailText, params.id, body.identifier, targetCustomerId);
             }
           }
 
@@ -1013,20 +1180,33 @@ const app = new Elysia()
         cascadeDeviceStatusMemory(params.id, body.status, updatedDevice.customerId, metadata);
       }
 
+      // Log QC reports in memory
+      if (metadata && metadata.qcChecklist && metadata.qcStatus) {
+        mockQcReports.push({
+          id: randomUUID(),
+          deviceId: params.id,
+          technicianId: metadata.technicianId || "Default Technician",
+          items: metadata.qcChecklist,
+          overallStatus: metadata.qcStatus,
+          completedAt: new Date().toISOString()
+        });
+      }
+
       // Audit change
       if (metadata.replacedBy) {
-        await writeAudit("SWAP", `Hardware Swap: Unit replaced by '${metadata.replacedBy}' (Status updated to DAMAGED)`, params.id, body.identifier);
+        await writeAudit("SWAP", `Hardware Swap: Unit replaced by '${metadata.replacedBy}' (Status updated to DAMAGED)`, params.id, body.identifier, null);
       } else if (metadata.replacesUnit) {
-        await writeAudit("SWAP", `Hardware Swap: Unit deployed as replacement for '${metadata.replacesUnit}'`, params.id, body.identifier);
+        await writeAudit("SWAP", `Hardware Swap: Unit deployed as replacement for '${metadata.replacesUnit}'`, params.id, body.identifier, null);
       } else if (oldStatus !== payload.status) {
-        await writeAudit("STATUS_CHANGE", `Status changed from ${oldStatus} to ${payload.status}`, params.id, body.identifier);
+        await writeAudit("STATUS_CHANGE", `Status changed from ${oldStatus} to ${payload.status}`, params.id, body.identifier, null);
       }
       if (oldCustomerId !== payload.customerId) {
         const action = payload.customerId ? "DISPATCH" : "RETURN";
         const detailText = payload.customerId 
           ? `Device '${body.identifier}' dispatched to customer`
           : `Device '${body.identifier}' returned to warehouse stock`;
-        await writeAudit(action, detailText, params.id, body.identifier);
+        const targetCustomerId = payload.customerId || oldCustomerId;
+        await writeAudit(action, detailText, params.id, body.identifier, targetCustomerId);
       }
 
       return updatedDevice;
@@ -1068,16 +1248,49 @@ const app = new Elysia()
               return { error: `Replacement device is not in stock (current status: ${newDevice.status})` };
             }
 
-            const customerId = oldDevice.customerId;
-            const customerName = (oldDevice.metadata as Record<string, any>)?.customerName || "RMA Replacement Client";
+            // Capability Matrix Validation
+            const newModelRes = await tx
+              .select()
+              .from(schema.deviceModels)
+              .where(eq(schema.deviceModels.id, newDevice.modelId))
+              .limit(1);
+            const newModel = newModelRes[0];
+            if (!newModel) {
+              return { error: "Replacement device model not found" };
+            }
 
-            // 1. Get child relationships that need to be transferred
+            const allowed = Array.isArray(newModel.allowedChildren) 
+              ? newModel.allowedChildren 
+              : JSON.parse((newModel.allowedChildren as string) || "[]");
+
             const childRels = await tx
               .select()
               .from(schema.deviceRelationships)
               .where(eq(schema.deviceRelationships.primaryDeviceId, body.oldDeviceId));
 
-            // 2. Transfer relationships
+            if (childRels.length > 0) {
+              const childIds = childRels.map(r => r.linkedDeviceId);
+              const children = await tx
+                .select({
+                  id: schema.devices.id,
+                  identifier: schema.devices.identifier,
+                  assetType: schema.deviceModels.assetType
+                })
+                .from(schema.devices)
+                .innerJoin(schema.deviceModels, eq(schema.devices.modelId, schema.deviceModels.id))
+                .where(sql`devices.id IN (${sql.join(childIds.map(id => sql`${id}`), sql`, `)})`);
+              
+              for (const child of children) {
+                if (!allowed.includes(child.assetType)) {
+                  throw new Error(`Replacement model '${newModel.name}' does not accept child component '${child.identifier}' of type '${child.assetType}'`);
+                }
+              }
+            }
+
+            const customerId = oldDevice.customerId;
+            const customerName = (oldDevice.metadata as Record<string, any>)?.customerName || "RMA Replacement Client";
+
+            // Transfer relationships
             if (childRels.length > 0) {
               await tx
                 .update(schema.deviceRelationships)
@@ -1085,7 +1298,7 @@ const app = new Elysia()
                 .where(eq(schema.deviceRelationships.primaryDeviceId, body.oldDeviceId));
             }
 
-            // 3. Update old device: status DAMAGED, customerId null
+            // Update old device
             const updatedOldMetadata = {
               ...(oldDevice.metadata as Record<string, any> || {}),
               replacedBy: newDevice.identifier,
@@ -1102,7 +1315,7 @@ const app = new Elysia()
               })
               .where(eq(schema.devices.id, body.oldDeviceId));
 
-            // 4. Update new device: status DISPATCHED, customerId oldDevice.customerId
+            // Update new device
             const updatedNewMetadata = {
               ...(newDevice.metadata as Record<string, any> || {}),
               customerName,
@@ -1121,10 +1334,10 @@ const app = new Elysia()
               })
               .where(eq(schema.devices.id, body.newDeviceId));
 
-            // 5. Cascade status recursively to inherited child devices
+            // Cascade status recursively
             await cascadeDeviceStatusDb(body.newDeviceId, "DISPATCHED", customerId, updatedNewMetadata, tx);
 
-            // 6. Write Audit Logs inside transaction
+            // Audit logs
             await tx.insert(schema.deviceAuditLogs).values({
               actionType: "SWAP",
               details: `Hardware Swap: Unit replaced by '${newDevice.identifier}' (Status updated to DAMAGED)`,
@@ -1139,38 +1352,41 @@ const app = new Elysia()
               deviceIdentifier: newDevice.identifier
             });
 
-            for (const rel of childRels) {
-              const childRes = await tx
-                .select()
+            if (childRels.length > 0) {
+              const childIds = childRels.map(r => r.linkedDeviceId);
+              const children = await tx
+                .select({ id: schema.devices.id, identifier: schema.devices.identifier })
                 .from(schema.devices)
-                .where(eq(schema.devices.id, rel.linkedDeviceId))
-                .limit(1);
-              const child = childRes[0];
-              if (child) {
-                await tx.insert(schema.deviceAuditLogs).values({
+                .where(sql`id IN (${sql.join(childIds.map(id => sql`${id}`), sql`, `)})`);
+              
+              const auditValues = children.flatMap(child => [
+                {
                   actionType: "LINK",
                   details: `Inherited child asset '${child.identifier}' from faulty unit '${oldDevice.identifier}' during swap`,
                   deviceId: newDevice.id,
                   deviceIdentifier: newDevice.identifier
-                });
-                await tx.insert(schema.deviceAuditLogs).values({
+                },
+                {
                   actionType: "LINK",
                   details: `Linked to replacement unit '${newDevice.identifier}' due to swap from '${oldDevice.identifier}'`,
                   deviceId: child.id,
                   deviceIdentifier: child.identifier
-                });
+                }
+              ]);
+              if (auditValues.length > 0) {
+                await tx.insert(schema.deviceAuditLogs).values(auditValues);
               }
             }
 
             return { success: true };
           });
         } catch (e: any) {
-          console.error("Database transaction swap failed", e);
+          console.error("Database transaction swap failed:", e);
           return { error: e.message || "Database execution failed" };
         }
       }
 
-      // Memory Mode fallback
+      // Memory Mode
       const oldIdx = mockDevices.findIndex(d => d.id === body.oldDeviceId);
       const newIdx = mockDevices.findIndex(d => d.id === body.newDeviceId);
       if (oldIdx === -1) return { error: "Faulty device not found" };
@@ -1179,28 +1395,45 @@ const app = new Elysia()
       const oldDevice = mockDevices[oldIdx];
       const newDevice = mockDevices[newIdx];
 
+      if (!oldDevice || !newDevice) {
+        return { error: "Faulty or replacement device not found in memory" };
+      }
+
       if (newDevice.status !== "IN_STOCK") {
         return { error: `Replacement device is not in stock (current status: ${newDevice.status})` };
+      }
+
+      // Capability Matrix check in Memory
+      const newModel = mockDeviceModels.find(m => m.id === newDevice.modelId);
+      if (!newModel) return { error: "Replacement device model not found" };
+      const allowed = newModel.allowedChildren || [];
+
+      const childRels = mockDeviceRelationships.filter(r => r.primaryDeviceId === body.oldDeviceId);
+      for (const rel of childRels) {
+        const child = mockDevices.find(d => d.id === rel.linkedDeviceId);
+        if (child) {
+          const childModel = mockDeviceModels.find(m => m.id === child.modelId);
+          if (childModel && !allowed.includes(childModel.assetType)) {
+            return { error: `Validation failure: Replacement model '${newModel.name}' does not accept child component '${child.identifier}' of type '${childModel.assetType}'` };
+          }
+        }
       }
 
       const customerId = oldDevice.customerId;
       const customerName = oldDevice.metadata?.customerName || "RMA Replacement Client";
 
-      // 1. Get child relationships that need to be transferred
-      const childRels = mockDeviceRelationships.filter(r => r.primaryDeviceId === body.oldDeviceId);
-
-      // 2. Transfer relationships in memory
+      // Transfer relationships in memory
       for (const rel of childRels) {
         rel.primaryDeviceId = body.newDeviceId;
       }
 
-      // 3. Update old device
+      // Update old device
       const updatedOldMetadata = {
         ...(oldDevice.metadata || {}),
         replacedBy: newDevice.identifier,
         swappedAt: new Date().toISOString()
       };
-      const updatedOldDevice = {
+      const updatedOldDevice: Device = {
         ...oldDevice,
         status: "DAMAGED",
         customerId: undefined,
@@ -1209,7 +1442,7 @@ const app = new Elysia()
       };
       mockDevices[oldIdx] = updatedOldDevice;
 
-      // 4. Update new device
+      // Update new device
       const updatedNewMetadata = {
         ...(newDevice.metadata || {}),
         customerName,
@@ -1217,7 +1450,7 @@ const app = new Elysia()
         dispatchedAt: new Date().toISOString(),
         swappedAt: new Date().toISOString()
       };
-      const updatedNewDevice = {
+      const updatedNewDevice: Device = {
         ...newDevice,
         status: "DISPATCHED",
         customerId: customerId,
@@ -1226,10 +1459,10 @@ const app = new Elysia()
       };
       mockDevices[newIdx] = updatedNewDevice;
 
-      // 5. Cascade status recursively to inherited child devices in memory
+      // Cascade status recursively
       cascadeDeviceStatusMemory(body.newDeviceId, "DISPATCHED", customerId, updatedNewMetadata);
 
-      // 6. Write Audit Logs in memory
+      // Audit logs in memory
       mockDeviceAuditLogs.unshift({
         id: randomUUID(),
         actionType: "SWAP",
@@ -1281,6 +1514,7 @@ const app = new Elysia()
         newDeviceId: t.String()
       })
     })
+
 
     .delete("/:id", async ({ params }) => {
       let identifier = "";
@@ -1616,92 +1850,146 @@ const app = new Elysia()
       const errors: string[] = [];
       const allModels = useDb ? await db.select().from(schema.deviceModels) : mockDeviceModels;
 
+      // Intra-batch duplicates check
+      const childToParentBatch = new Map<string, string>();
       for (const link of body.links) {
-        let primary: any = null;
-        let child: any = null;
+        const existingParent = childToParentBatch.get(link.childISN);
+        if (existingParent && existingParent !== link.primaryISN) {
+          return {
+            success: false,
+            createdCount: 0,
+            errors: [`Intra-batch error: child serial '${link.childISN}' is linked to multiple parents in the same request.`]
+          };
+        }
+        childToParentBatch.set(link.childISN, link.primaryISN);
+      }
 
-        // Auto-create missing devices beforehand if marked
-        if (useDb) {
-          try {
-            // Find or create primary
-            const pRes = await db.select().from(schema.devices).where(eq(schema.devices.identifier, link.primaryISN));
-            if (pRes.length > 0) {
-              primary = pRes[0];
-            } else {
-              // Find default tracker model
-              const mRes = await db.select().from(schema.deviceModels).where(eq(schema.deviceModels.assetType, "TRACKER" as any)).limit(1);
-              const primaryTemplate = mRes[0];
-              if (primaryTemplate) {
-                const inserted = await db.insert(schema.devices).values({
-                  identifier: link.primaryISN,
-                  modelId: primaryTemplate.id,
-                  status: "IN_STOCK",
-                  metadata: {}
-                }).returning();
-                primary = inserted[0];
-                await writeAudit("INGEST", `Auto-created primary tracker '${link.primaryISN}' during pairing`);
+      if (useDb) {
+        try {
+          const result = await db.transaction(async (tx) => {
+            const addedCount = { val: 0 };
+            
+            // Pre-fetch default tracker template model
+            const primaryTemplateRes = await tx
+              .select()
+              .from(schema.deviceModels)
+              .where(eq(schema.deviceModels.assetType, "TRACKER" as any))
+              .limit(1);
+            const defaultTrackerTemplate = primaryTemplateRes[0];
+
+            for (const link of body.links) {
+              let primary: any = null;
+              let child: any = null;
+
+              // Find or create primary
+              const pRes = await tx.select().from(schema.devices).where(eq(schema.devices.identifier, link.primaryISN));
+              if (pRes.length > 0) {
+                primary = pRes[0];
+              } else {
+                if (defaultTrackerTemplate) {
+                  const inserted = await tx.insert(schema.devices).values({
+                    identifier: link.primaryISN,
+                    modelId: defaultTrackerTemplate.id,
+                    status: "IN_STOCK",
+                    metadata: {}
+                  }).returning();
+                  primary = inserted[0];
+                  await tx.insert(schema.deviceAuditLogs).values({
+                    actionType: "INGEST",
+                    details: `Auto-created primary tracker '${link.primaryISN}' during pairing`,
+                    deviceId: primary.id,
+                    deviceIdentifier: primary.identifier
+                  });
+                }
+              }
+
+              // Find or create child
+              const cRes = await tx.select().from(schema.devices).where(eq(schema.devices.identifier, link.childISN));
+              if (cRes.length > 0) {
+                child = cRes[0];
+              } else {
+                const childType = inferAssetType(link.childISN, allModels);
+                const mRes = await tx
+                  .select()
+                  .from(schema.deviceModels)
+                  .where(eq(schema.deviceModels.assetType, childType as any))
+                  .limit(1);
+                const childTemplate = mRes[0];
+                if (childTemplate) {
+                  const inserted = await tx.insert(schema.devices).values({
+                    identifier: link.childISN,
+                    modelId: childTemplate.id,
+                    status: "IN_STOCK",
+                    metadata: {}
+                  }).returning();
+                  child = inserted[0];
+                  await tx.insert(schema.deviceAuditLogs).values({
+                    actionType: "INGEST",
+                    details: `Auto-created child asset '${link.childISN}' (${childType}) during pairing`,
+                    deviceId: child.id,
+                    deviceIdentifier: child.identifier
+                  });
+                }
+              }
+
+              if (primary && child) {
+                // 1. Single Parent Constraint
+                const otherParent = await tx
+                  .select()
+                  .from(schema.deviceRelationships)
+                  .where(eq(schema.deviceRelationships.linkedDeviceId, child.id))
+                  .limit(1);
+                const firstParent = otherParent[0];
+                if (firstParent && firstParent.primaryDeviceId !== primary.id) {
+                  throw new Error(`Child '${link.childISN}' is already linked to another parent.`);
+                }
+
+                // 2. Cycle Detection
+                const isCycle = await isAncestorDb(child.id, primary.id, tx);
+                if (isCycle) {
+                  throw new Error(`Circular dependency loop detected between '${link.childISN}' and '${link.primaryISN}'.`);
+                }
+
+                const dup = await tx
+                  .select()
+                  .from(schema.deviceRelationships)
+                  .where(
+                    and(
+                      eq(schema.deviceRelationships.primaryDeviceId, primary.id),
+                      eq(schema.deviceRelationships.linkedDeviceId, child.id)
+                    )
+                  );
+                if (dup.length === 0) {
+                  await tx.insert(schema.deviceRelationships).values({
+                    primaryDeviceId: primary.id,
+                    linkedDeviceId: child.id
+                  });
+                  addedCount.val++;
+                  await tx.insert(schema.deviceAuditLogs).values({
+                    actionType: "LINK",
+                    details: `Linked tracker '${link.primaryISN}' with component '${link.childISN}'`,
+                    deviceId: primary.id,
+                    deviceIdentifier: link.primaryISN
+                  });
+                }
+              } else {
+                throw new Error(`Could not resolve primary or child templates for '${link.primaryISN}' -> '${link.childISN}'.`);
               }
             }
+            return { success: true, createdCount: addedCount.val };
+          });
+          return result;
+        } catch (e: any) {
+          console.error("Database relationship commit transaction rolled back:", e);
+          return { success: false, createdCount: 0, errors: [e.message || String(e)] };
+        }
+      }
 
-            // Find or create child
-            const cRes = await db.select().from(schema.devices).where(eq(schema.devices.identifier, link.childISN));
-            if (cRes.length > 0) {
-              child = cRes[0];
-            } else {
-              const childType = inferAssetType(link.childISN, allModels);
-              const mRes = await db.select().from(schema.deviceModels).where(eq(schema.deviceModels.assetType, childType as any)).limit(1);
-              const childTemplate = mRes[0];
-              if (childTemplate) {
-                const inserted = await db.insert(schema.devices).values({
-                  identifier: link.childISN,
-                  modelId: childTemplate.id,
-                  status: "IN_STOCK",
-                  metadata: {}
-                }).returning();
-                child = inserted[0];
-                await writeAudit("INGEST", `Auto-created child asset '${link.childISN}' (${childType}) during pairing`);
-              }
-            }
-
-            // Create relationship link
-            if (primary && child) {
-              // 1. Single Parent Constraint
-              const otherParent = await db.select().from(schema.deviceRelationships)
-                .where(eq(schema.deviceRelationships.linkedDeviceId, child.id)).limit(1);
-              const firstParent = otherParent[0];
-              if (firstParent && firstParent.primaryDeviceId !== primary.id) {
-                errors.push(`Linking '${link.primaryISN}' to '${link.childISN}' failed: Child is already linked to another parent.`);
-                continue;
-              }
-
-              // 2. Cycle Detection
-              const isCycle = await isAncestorDb(child.id, primary.id);
-              if (isCycle) {
-                errors.push(`Linking '${link.primaryISN}' to '${link.childISN}' failed: Circular dependency loop detected.`);
-                continue;
-              }
-
-              const dup = await db.select().from(schema.deviceRelationships).where(
-                and(
-                  eq(schema.deviceRelationships.primaryDeviceId, primary.id),
-                  eq(schema.deviceRelationships.linkedDeviceId, child.id)
-                )
-              );
-              if (dup.length === 0) {
-                await db.insert(schema.deviceRelationships).values({
-                  primaryDeviceId: primary.id,
-                  linkedDeviceId: child.id
-                });
-                created++;
-                await writeAudit("LINK", `Linked tracker '${link.primaryISN}' with component '${link.childISN}'`);
-              }
-            }
-          } catch (e: any) {
-            errors.push(`Linking failed: ${e.message}`);
-          }
-        } else {
-          // Memory Mode Auto-creation
-          primary = mockDevices.find(d => d.identifier === link.primaryISN);
+      // Memory Mode
+      try {
+        const childToParentMap = buildRelationshipMaps().childToParent;
+        for (const link of body.links) {
+          let primary = mockDevices.find(d => d.identifier === link.primaryISN);
           if (!primary) {
             const m = mockDeviceModels.find(model => model.assetType === "TRACKER");
             if (m) {
@@ -1715,11 +2003,11 @@ const app = new Elysia()
                 updatedAt: new Date().toISOString()
               };
               mockDevices.push(primary);
-              await writeAudit("INGEST", `Auto-created primary tracker '${link.primaryISN}' during pairing`);
+              await writeAudit("INGEST", `Auto-created primary tracker '${link.primaryISN}' during pairing`, primary.id, link.primaryISN);
             }
           }
 
-          child = mockDevices.find(d => d.identifier === link.childISN);
+          let child = mockDevices.find(d => d.identifier === link.childISN);
           if (!child) {
             const childType = inferAssetType(link.childISN, allModels);
             const m = mockDeviceModels.find(model => model.assetType === childType);
@@ -1734,27 +2022,23 @@ const app = new Elysia()
                 updatedAt: new Date().toISOString()
               };
               mockDevices.push(child);
-              await writeAudit("INGEST", `Auto-created child asset '${link.childISN}' (${childType}) during pairing`);
+              await writeAudit("INGEST", `Auto-created child asset '${link.childISN}' (${childType}) during pairing`, child.id, link.childISN);
             }
           }
 
           if (primary && child) {
-            // 1. Single Parent Constraint
-            const otherParent = mockDeviceRelationships.find(r => r.linkedDeviceId === child.id);
-            if (otherParent && otherParent.primaryDeviceId !== primary.id) {
-              errors.push(`Linking '${link.primaryISN}' to '${link.childISN}' failed: Child is already linked to another parent.`);
-              continue;
+            const otherParentId = childToParentMap.get(child.id);
+            if (otherParentId && otherParentId !== primary.id) {
+              throw new Error(`Child '${link.childISN}' is already linked to another parent.`);
             }
 
-            // 2. Cycle Detection
-            const isCycle = isAncestorMemory(child.id, primary.id);
+            const isCycle = isAncestorMemory(child.id, primary.id, childToParentMap);
             if (isCycle) {
-              errors.push(`Linking '${link.primaryISN}' to '${link.childISN}' failed: Circular dependency loop detected.`);
-              continue;
+              throw new Error(`Circular dependency loop detected between '${link.childISN}' and '${link.primaryISN}'.`);
             }
 
             const duplicate = mockDeviceRelationships.find(
-              r => r.primaryDeviceId === primary.id && r.linkedDeviceId === child.id
+              r => r.primaryDeviceId === primary!.id && r.linkedDeviceId === child!.id
             );
             if (!duplicate) {
               mockDeviceRelationships.push({
@@ -1764,13 +2048,17 @@ const app = new Elysia()
                 createdAt: new Date().toISOString()
               });
               created++;
-              await writeAudit("LINK", `Linked tracker '${link.primaryISN}' with component '${link.childISN}'`);
+              childToParentMap.set(child.id, primary.id);
+              await writeAudit("LINK", `Linked tracker '${link.primaryISN}' with component '${link.childISN}'`, primary.id, link.primaryISN);
             }
+          } else {
+            throw new Error(`Could not resolve primary or child templates for '${link.primaryISN}' -> '${link.childISN}'.`);
           }
         }
+        return { success: true, createdCount: created, errors };
+      } catch (e: any) {
+        return { success: false, createdCount: 0, errors: [e.message || String(e)] };
       }
-
-      return { success: true, createdCount: created, errors };
     }, {
       body: t.Object({
         links: t.Array(t.Object({
@@ -1875,16 +2163,47 @@ const app = new Elysia()
             .innerJoin(schema.deviceModels, eq(schema.devices.modelId, schema.deviceModels.id))
             .where(eq(schema.devices.customerId, params.id));
 
-          return {
-            dispatched,
-            // In a real system, we'd query returned devices from audit logs or a dedicated dispatches table
-            // For now, we'll return an empty list or mock some data if needed.
-            returned: [] 
-          };
+          // Returned devices
+          const returnedLogs = await db
+            .select({
+              id: schema.deviceAuditLogs.deviceId,
+              identifier: schema.deviceAuditLogs.deviceIdentifier,
+              returnedAt: schema.deviceAuditLogs.createdAt,
+              modelName: schema.deviceModels.name
+            })
+            .from(schema.deviceAuditLogs)
+            .leftJoin(schema.devices, eq(schema.deviceAuditLogs.deviceId, schema.devices.id))
+            .leftJoin(schema.deviceModels, eq(schema.devices.modelId, schema.deviceModels.id))
+            .where(
+              and(
+                eq(schema.deviceAuditLogs.customerId, params.id),
+                eq(schema.deviceAuditLogs.actionType, "RETURN")
+              )
+            )
+            .orderBy(desc(schema.deviceAuditLogs.createdAt));
+          
+          const seen = new Set<string>();
+          const returned = [];
+          for (const log of returnedLogs) {
+            const serial = log.identifier;
+            if (serial && !seen.has(serial)) {
+              seen.add(serial);
+              returned.push({
+                id: log.id,
+                identifier: log.identifier,
+                status: "IN_STOCK",
+                modelName: log.modelName || "Unknown Model",
+                returnedAt: log.returnedAt
+              });
+            }
+          }
+
+          return { dispatched, returned };
         } catch (e) {
           console.error(e);
         }
       }
+
       const dispatched = mockDevices
         .filter(d => d.customerId === params.id && d.status === 'DISPATCHED')
         .map(d => ({
@@ -1892,7 +2211,29 @@ const app = new Elysia()
           modelName: mockDeviceModels.find(m => m.id === d.modelId)?.name || 'Unknown',
           dispatchedAt: d.metadata.dispatchedAt
         }));
-      return { dispatched, returned: [] };
+
+      const returnedLogs = mockDeviceAuditLogs.filter(
+        log => log.customerId === params.id && log.actionType === 'RETURN'
+      );
+      const seenMem = new Set<string>();
+      const returned = [];
+      for (const log of returnedLogs) {
+        const serial = log.deviceIdentifier;
+        if (serial && !seenMem.has(serial)) {
+          seenMem.add(serial);
+          const dev = mockDevices.find(d => d.id === log.deviceId || d.identifier === serial);
+          const modelName = dev ? (mockDeviceModels.find(m => m.id === dev.modelId)?.name || 'Unknown') : 'Unknown Model';
+          returned.push({
+            id: log.deviceId || '',
+            identifier: serial,
+            status: "IN_STOCK",
+            modelName,
+            returnedAt: log.createdAt
+          });
+        }
+      }
+
+      return { dispatched, returned };
     })
     .post("/", async ({ body }) => {
       const payload = {

@@ -59,12 +59,14 @@ export const deviceAuditLogs = pgTable('device_audit_logs', {
   id: uuid('id').defaultRandom().primaryKey(),
   deviceId: uuid('device_id').references(() => devices.id, { onDelete: 'set null' }),
   deviceIdentifier: varchar('device_identifier', { length: 255 }),
-  actionType: varchar('action_type', { length: 50 }).notNull(), // 'INGEST', 'LINK', 'DELETE', 'STATUS_CHANGE'
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  actionType: varchar('action_type', { length: 50 }).notNull(), // 'INGEST', 'LINK', 'DELETE', 'STATUS_CHANGE', 'RETURN', 'DISPATCH'
   details: text('details').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
   deviceIdIdx: index('device_audit_logs_device_id_idx').on(table.deviceId),
   deviceIdentifierIdx: index('device_audit_logs_device_identifier_idx').on(table.deviceIdentifier),
+  customerIdIdx: index('device_audit_logs_customer_id_idx').on(table.customerId),
 }));
 
 export const customerTypeEnum = pgEnum('customer_type', ['PERSON', 'COMPANY']);
@@ -81,3 +83,17 @@ export const customers = pgTable('customers', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+export const qcReports = pgTable('qc_reports', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  deviceId: uuid('device_id')
+    .references(() => devices.id, { onDelete: 'cascade' })
+    .notNull(),
+  technicianId: varchar('technician_id', { length: 255 }),
+  items: jsonb('items').default('[]').notNull(),
+  overallStatus: varchar('overall_status', { length: 10 }).notNull(), // 'PASSED', 'FAILED'
+  completedAt: timestamp('completed_at').defaultNow().notNull(),
+}, (table) => ({
+  deviceIdIdx: index('qc_reports_device_id_idx').on(table.deviceId),
+}));
+
