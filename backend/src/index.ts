@@ -4,7 +4,8 @@ import { cors } from "@elysiajs/cors";
 import { randomUUID } from "crypto";
 import { db } from "./db/index.js";
 import * as schema from "./db/schema.js";
-import { eq, and, or, like, ilike, desc, sql } from "drizzle-orm";
+import { eq, ne, and, or, like, ilike, desc, sql } from "drizzle-orm";
+import { getBetterAuth, mockUsers, mockSessions, type InMemoryUser } from "./auth-service.js";
 
 let useDb = false;
 
@@ -16,6 +17,29 @@ async function initDbConnection() {
     await db.select().from(schema.deviceModels).limit(1);
     useDb = true;
     console.log("⚡ [IMS API] Successfully connected to Neon DB / Postgres instance.");
+
+    // Seed default admin user if not exists
+    try {
+      const existingAdmin = await db.select().from(schema.users).where(eq(schema.users.email, "admin@imspro.com")).limit(1);
+      if (existingAdmin.length === 0) {
+        console.log("Seeding default Super User admin@imspro.com in database...");
+        const auth = getBetterAuth(true);
+        if (auth) {
+          await auth.api.signUpEmail({
+            body: {
+              email: "admin@imspro.com",
+              password: "AdminPass123!",
+              name: "System Admin"
+            }
+          });
+          // Update the role to SUPER_USER
+          await db.update(schema.users).set({ role: "SUPER_USER" }).where(eq(schema.users.email, "admin@imspro.com"));
+          console.log("⚡ Super User admin@imspro.com seeded successfully.");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to seed default Super User in database:", err);
+    }
   } catch (e: any) {
     console.log("⚠️ [IMS API] Neon DB connection failed. Falling back to local In-Memory Database engine.");
     console.log(`   ❌ Error: ${e?.message || String(e)}`);
@@ -391,9 +415,497 @@ function cascadeDeviceStatusMemory(
   }
 }
 
+function toBetterAuthRequest(request: Request): Request {
+  const url = new URL(request.url);
+  const baseURL = process.env.BETTER_AUTH_URL || "http://localhost:3002";
+  const targetUrl = new URL(url.pathname + url.search, baseURL);
+  
+  const headers = new Headers(request.headers);
+  headers.set("host", targetUrl.host);
+  
+  const init: RequestInit = {
+    method: request.method,
+    headers
+  };
+  
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    init.body = request.body;
+    // @ts-expect-error: duplex property is required for request bodies in modern fetch
+    init.duplex = "half";
+  }
+  
+  return new Request(targetUrl.toString(), init);
+}
+
 const app = new Elysia()
   .use(swagger())
-  .use(cors())
+  .use(cors({
+    credentials: true,
+    origin: (request) => {
+      const origin = request.headers.get("origin");
+      if (!origin) return true;
+      try {
+        const url = new URL(origin);
+        if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+          return origin;
+        }
+      } catch (_) {
+        // ignore
+      }
+      return process.env.CORS_ORIGIN || "http://localhost:5173";
+    }
+  }))
+  .derive(async ({ request }: { request: Request }) => {
+    let user: any = null;
+    let session: any = null;
+
+    const cookies = request.headers.get("cookie") || "";
+    let token = "";
+    const match = cookies.match(/(?:^|; )better-auth\.session-token=([^;]*)/);
+    if (match && match[1]) {
+      token = decodeURIComponent(match[1]);
+    }
+    if (!token) {
+      const authHeader = request.headers.get("authorization") || "";
+      if (authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (useDb) {
+      try {
+        const auth = getBetterAuth(useDb);
+        if (auth) {
+          const authSession = await auth.api.getSession({ headers: request.headers });
+          if (authSession) {
+            user = authSession.user;
+            session = authSession.session;
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    } else {
+      if (token) {
+        const mockSession = mockSessions.get(token);
+        if (mockSession && mockSession.expiresAt > Date.now()) {
+          const mockUser = Array.from(mockUsers.values()).find(u => u.id === mockSession.userId);
+          if (mockUser) {
+            user = {
+              id: mockUser.id,
+              name: mockUser.name,
+              email: mockUser.email,
+              role: mockUser.role
+            };
+            session = {
+              id: token,
+              userId: mockUser.id,
+              expiresAt: mockSession.expiresAt,
+              token
+            };
+          }
+        }
+      }
+    }
+
+    return { user, session } as { user: any; session: any };
+  })
+  .onBeforeHandle(({ request, user, set }: { request: Request; user: any; set: any }) => {
+    const url = new URL(request.url);
+    const path = url.pathname;
+    const method = request.method;
+
+    if (path.startsWith("/api") && !path.startsWith("/api/auth")) {
+      if (!user) {
+        set.status = 401;
+        return { error: "Unauthorized: Session expired or invalid" };
+      }
+
+      if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+        if (path.startsWith("/api/device-models")) {
+          if (user.role !== "SUPER_USER") {
+            set.status = 403;
+            return { error: "Forbidden: Super User access required to manage device models" };
+          }
+        } else if (path.startsWith("/api/users")) {
+          if (user.role !== "SUPER_USER") {
+            set.status = 403;
+            return { error: "Forbidden: Super User access required to manage users" };
+          }
+        } else {
+          if (user.role !== "SUPER_USER" && user.role !== "TECHNICIAN") {
+            set.status = 403;
+            return { error: "Forbidden: Authorized Technician or Super User access required" };
+          }
+        }
+      }
+    }
+  })
+
+  // -- Auth routes --
+  .group("/api/auth", (app) => app
+    .post("/sign-in/email", async ({ body, set }) => {
+      const { email, password } = body;
+      
+      if (useDb) {
+        try {
+          const auth = getBetterAuth(useDb);
+          if (auth) {
+            const baseURL = process.env.BETTER_AUTH_URL || "http://localhost:3002";
+            const targetUrl = new URL("/api/auth/sign-in/email", baseURL);
+            const rawResponse = await auth.handler(new Request(targetUrl.toString(), {
+              method: "POST",
+              headers: { 
+                "Content-Type": "application/json",
+                "host": targetUrl.host
+              },
+              body: JSON.stringify({ email, password })
+            }));
+            const setCookie = rawResponse.headers.get("set-cookie");
+            if (setCookie) {
+              set.headers["set-cookie"] = setCookie;
+            }
+            const data = await rawResponse.json();
+            if (rawResponse.status >= 400) {
+              set.status = rawResponse.status;
+              return { error: data.message || "Invalid credentials" };
+            }
+            return data;
+          }
+        } catch (e: any) {
+          set.status = 400;
+          return { error: e.message || "Invalid credentials" };
+        }
+      }
+      
+      // Fallback Mock Sign-In
+      const user = mockUsers.get(email);
+      if (!user || user.passwordHash !== password) {
+        set.status = 400;
+        return { error: "Invalid email or password" };
+      }
+      
+      const token = randomUUID();
+      const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 7; // 7 days
+      mockSessions.set(token, {
+        id: token,
+        userId: user.id,
+        token: token,
+        expiresAt,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      
+      set.headers["set-cookie"] = `better-auth.session-token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`;
+      return {
+        session: {
+          id: token,
+          userId: user.id,
+          expiresAt: new Date(expiresAt).toISOString(),
+          token
+        },
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }
+      };
+    }, {
+      body: t.Object({
+        email: t.String(),
+        password: t.String()
+      })
+    })
+
+    .get("/get-session", async ({ request, set }) => {
+      const cookies = request.headers.get("cookie") || "";
+      let token = "";
+      const match = cookies.match(/(?:^|; )better-auth\.session-token=([^;]*)/);
+      if (match && match[1]) {
+        token = decodeURIComponent(match[1]);
+      }
+      if (!token) {
+        const authHeader = request.headers.get("authorization") || "";
+        if (authHeader.startsWith("Bearer ")) {
+          token = authHeader.substring(7);
+        }
+      }
+
+      if (useDb) {
+        const auth = getBetterAuth(useDb);
+        if (auth) {
+          return await auth.handler(toBetterAuthRequest(request));
+        }
+      }
+
+      // Fallback Mock session
+      if (!token) {
+        set.status = 401;
+        return { session: null, user: null };
+      }
+
+      const mockSession = mockSessions.get(token);
+      if (!mockSession || mockSession.expiresAt < Date.now()) {
+        set.status = 401;
+        return { session: null, user: null };
+      }
+
+      const mockUser = Array.from(mockUsers.values()).find(u => u.id === mockSession.userId);
+      if (!mockUser) {
+        set.status = 401;
+        return { session: null, user: null };
+      }
+
+      return {
+        session: {
+          id: token,
+          userId: mockUser.id,
+          expiresAt: new Date(mockSession.expiresAt).toISOString(),
+          token
+        },
+        user: {
+          id: mockUser.id,
+          name: mockUser.name,
+          email: mockUser.email,
+          role: mockUser.role
+        }
+      };
+    })
+
+    .post("/sign-out", async ({ request, set }) => {
+      if (useDb) {
+        const auth = getBetterAuth(useDb);
+        if (auth) {
+          return await auth.handler(toBetterAuthRequest(request));
+        }
+      }
+
+      const cookies = request.headers.get("cookie") || "";
+      let token = "";
+      const match = cookies.match(/(?:^|; )better-auth\.session-token=([^;]*)/);
+      if (match && match[1]) {
+        token = decodeURIComponent(match[1]);
+      }
+
+      if (token) {
+        mockSessions.delete(token);
+      }
+
+      set.headers["set-cookie"] = `better-auth.session-token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+      return { success: true };
+    })
+  )
+
+  // -- Users CRUD (Super User only) --
+  .group("/api/users", (app: any) => app
+    .onBeforeHandle(({ user, set }: any) => {
+      if (!user || user.role !== "SUPER_USER") {
+        set.status = 403;
+        return { error: "Forbidden: Super User access required" };
+      }
+    })
+    
+    .get("/", async () => {
+      if (useDb) {
+        try {
+          return await db
+            .select({
+              id: schema.users.id,
+              name: schema.users.name,
+              email: schema.users.email,
+              role: schema.users.role,
+              createdAt: schema.users.createdAt,
+              updatedAt: schema.users.updatedAt
+            })
+            .from(schema.users);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      
+      return Array.from(mockUsers.values()).map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        createdAt: u.createdAt,
+        updatedAt: u.updatedAt
+      }));
+    })
+    
+    .post("/", async ({ body, set }: any) => {
+      const { name, email, password, role } = body;
+      
+      if (useDb) {
+        try {
+          const auth = getBetterAuth(useDb);
+          if (auth) {
+            // Check if user already exists
+            const existing = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
+            if (existing.length > 0) {
+              set.status = 400;
+              return { error: "User with this email already exists" };
+            }
+            
+            const response = await auth.api.signUpEmail({
+              body: { email, password, name }
+            });
+            // Update the role (signUpEmail doesn't take role directly)
+            await db.update(schema.users).set({ role }).where(eq(schema.users.email, email));
+            return { success: true, user: { ...response.user, role } };
+          }
+        } catch (e: any) {
+          set.status = 400;
+          return { error: e.message || "Failed to create user" };
+        }
+      }
+      
+      // Fallback Mock
+      if (mockUsers.has(email)) {
+        set.status = 400;
+        return { error: "User with this email already exists" };
+      }
+      
+      const newUser: InMemoryUser = {
+        id: randomUUID(),
+        name,
+        email,
+        role,
+        passwordHash: password,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      mockUsers.set(email, newUser);
+      
+      return {
+        success: true,
+        user: {
+          id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+          createdAt: newUser.createdAt
+        }
+      };
+    }, {
+      body: t.Object({
+        name: t.String(),
+        email: t.String(),
+        password: t.String(),
+        role: t.String()
+      })
+    })
+
+    .put("/:id", async ({ params, body, set }: any) => {
+      const { name, email, role } = body;
+      
+      if (useDb) {
+        try {
+          const existing = await db
+            .select()
+            .from(schema.users)
+            .where(and(eq(schema.users.email, email), ne(schema.users.id, params.id)))
+            .limit(1);
+          if (existing.length > 0) {
+            set.status = 400;
+            return { error: "User with this email already exists" };
+          }
+          
+          const updated = await db
+            .update(schema.users)
+            .set({ name, email, role, updatedAt: new Date() })
+            .where(eq(schema.users.id, params.id))
+            .returning();
+            
+          return { success: true, user: updated[0] };
+        } catch (e: any) {
+          set.status = 400;
+          return { error: e.message || "Failed to update user" };
+        }
+      }
+      
+      // Fallback Mock
+      let foundUser: InMemoryUser | null = null;
+      for (const u of mockUsers.values()) {
+        if (u.id === params.id) {
+          foundUser = u;
+          break;
+        }
+      }
+      
+      if (!foundUser) {
+        set.status = 404;
+        return { error: "User not found" };
+      }
+      
+      const clashingUser = mockUsers.get(email);
+      if (clashingUser && clashingUser.id !== params.id) {
+        set.status = 400;
+        return { error: "User with this email already exists" };
+      }
+      
+      mockUsers.delete(foundUser.email);
+      const updatedUser: InMemoryUser = {
+        ...foundUser,
+        name,
+        email,
+        role,
+        updatedAt: new Date()
+      };
+      mockUsers.set(email, updatedUser);
+      
+      return {
+        success: true,
+        user: {
+          id: updatedUser.id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role
+        }
+      };
+    }, {
+      body: t.Object({
+        name: t.String(),
+        email: t.String(),
+        role: t.String()
+      })
+    })
+
+    .delete("/:id", async ({ params, set, user }: any) => {
+      if (user && user.id === params.id) {
+        set.status = 400;
+        return { error: "You cannot delete your own account" };
+      }
+      
+      if (useDb) {
+        try {
+          await db.delete(schema.users).where(eq(schema.users.id, params.id));
+          return { success: true };
+        } catch (e: any) {
+          set.status = 400;
+          return { error: e.message || "Failed to delete user" };
+        }
+      }
+      
+      let emailToDelete = "";
+      for (const u of mockUsers.values()) {
+        if (u.id === params.id) {
+          emailToDelete = u.email;
+          break;
+        }
+      }
+      
+      if (!emailToDelete) {
+        set.status = 404;
+        return { error: "User not found" };
+      }
+      
+      mockUsers.delete(emailToDelete);
+      return { success: true };
+    })
+  )
+
   .get("/", () => ({
     status: "online",
     engine: useDb ? "Neon PostgreSQL" : "Local In-Memory Engine",

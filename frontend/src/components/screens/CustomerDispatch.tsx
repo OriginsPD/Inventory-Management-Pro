@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { apiClient } from '../../lib/api-client';
 import { useFeedback } from '../ui/feedback-provider';
+import { useAuth } from '../ui/auth-context';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -59,8 +61,8 @@ const dispatchSchema = z.object({
 
 type DispatchFormValues = z.infer<typeof dispatchSchema>;
 
-export const CustomerDispatch = () => {
-  const { toast, confirm } = useFeedback();
+export const CustomerDispatch = () => {  const { toast, confirm } = useFeedback();
+  const { user } = useAuth();
   const [devices, setDevices] = useState<Device[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
@@ -112,16 +114,13 @@ export const CustomerDispatch = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const devRes = await fetch('http://localhost:3002/api/devices');
-      const devData = await devRes.json();
+      const devData = await apiClient.get<Device[]>('/api/devices');
       setDevices(devData);
 
-      const custRes = await fetch('http://localhost:3002/api/customers');
-      const custData = await custRes.json();
+      const custData = await apiClient.get<Customer[]>('/api/customers');
       setCustomers(custData);
 
-      const relRes = await fetch('http://localhost:3002/api/device-links');
-      const relData = await relRes.json();
+      const relData = await apiClient.get<Relationship[]>('/api/device-links');
       setRelationships(relData);
     } catch (e) {
       console.error(e);
@@ -168,16 +167,12 @@ export const CustomerDispatch = () => {
           dispatchedAt: dispatchTime
         };
 
-        return fetch(`http://localhost:3002/api/devices/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            identifier: selectedDevice.identifier,
-            modelId: selectedDevice.modelId,
-            status: 'DISPATCHED',
-            customerId: values.customerId,
-            metadata: updatedMetadata
-          })
+        return apiClient.put(`/api/devices/${id}`, {
+          identifier: selectedDevice.identifier,
+          modelId: selectedDevice.modelId,
+          status: 'DISPATCHED',
+          customerId: values.customerId,
+          metadata: updatedMetadata
         });
       }));
 
@@ -214,16 +209,12 @@ export const CustomerDispatch = () => {
         delete cleanMetadata.customerName;
         delete cleanMetadata.dispatchedAt;
 
-        return fetch(`http://localhost:3002/api/devices/${dev.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            identifier: dev.identifier,
-            modelId: dev.modelId,
-            status: 'IN_STOCK',
-            customerId: null,
-            metadata: cleanMetadata
-          })
+        return apiClient.put(`/api/devices/${dev.id}`, {
+          identifier: dev.identifier,
+          modelId: dev.modelId,
+          status: 'IN_STOCK',
+          customerId: null,
+          metadata: cleanMetadata
         });
       }));
 
@@ -470,13 +461,19 @@ export const CustomerDispatch = () => {
                       )}
                     </div>
 
-                    <button 
-                      type="submit" 
-                      disabled={stagedDeviceIds.length === 0 || isSubmitting}
-                      className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 active:scale-95 h-9 px-4 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
-                    >
-                      {isSubmitting ? 'Processing Dispatch...' : `Confirm Dispatch Batch (${stagedDeviceIds.length})`}
-                    </button>
+                    {user?.role !== 'REVIEWER' ? (
+                      <button 
+                        type="submit" 
+                        disabled={stagedDeviceIds.length === 0 || isSubmitting}
+                        className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 active:scale-95 h-9 px-4 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+                      >
+                        {isSubmitting ? 'Processing Dispatch...' : `Confirm Dispatch Batch (${stagedDeviceIds.length})`}
+                      </button>
+                    ) : (
+                      <div className="text-center text-xs text-muted-foreground p-3 border border-primary/10 rounded-xl bg-primary/5">
+                        Read-only access. Dispatching is disabled.
+                      </div>
+                    )}
                   </form>
                 </div>
               )}
@@ -491,7 +488,7 @@ export const CustomerDispatch = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {stagedDeviceIds.length > 0 && (
+                  {stagedDeviceIds.length > 0 && user?.role !== 'REVIEWER' && (
                     <button 
                       type="button" 
                       onClick={onClearQueue}
@@ -500,13 +497,15 @@ export const CustomerDispatch = () => {
                       Clear Queue
                     </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={handleOpenSelectModal}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-7 px-3 gap-1 cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-sm">add</span> Stage Devices
-                  </button>
+                  {user?.role !== 'REVIEWER' && (
+                    <button
+                      type="button"
+                      onClick={handleOpenSelectModal}
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-7 px-3 gap-1 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-sm">add</span> Stage Devices
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -708,14 +707,16 @@ export const CustomerDispatch = () => {
                                 >
                                   <span className="material-symbols-outlined text-sm">visibility</span> View Details
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleReturnBatch(batch)}
-                                  disabled={isSubmitting}
-                                  className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-red-500/10 hover:text-red-400 text-[#d8e2fd] h-8 px-2.5 gap-1 cursor-pointer disabled:opacity-50"
-                                >
-                                  <span className="material-symbols-outlined text-sm">sync</span> Return Stock
-                                </button>
+                                 {user?.role !== 'REVIEWER' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleReturnBatch(batch)}
+                                    disabled={isSubmitting}
+                                    className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-red-500/10 hover:text-red-400 text-[#d8e2fd] h-8 px-2.5 gap-1 cursor-pointer disabled:opacity-50"
+                                  >
+                                    <span className="material-symbols-outlined text-sm">sync</span> Return Stock
+                                  </button>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -1001,14 +1002,16 @@ export const CustomerDispatch = () => {
                   Batch Total: {viewBatch.devices.length} unit(s)
                 </span>
                 <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleReturnBatch(viewBatch)}
-                    disabled={isSubmitting}
-                    className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-red-500/10 hover:text-red-400 text-[#d8e2fd] h-9 px-4 gap-1 cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-sm">sync</span> Return Entire Batch
-                  </button>
+                  {user?.role !== 'REVIEWER' && (
+                    <button
+                      type="button"
+                      onClick={() => handleReturnBatch(viewBatch)}
+                      disabled={isSubmitting}
+                      className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-red-500/10 hover:text-red-400 text-[#d8e2fd] h-9 px-4 gap-1 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-sm">sync</span> Return Entire Batch
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setViewBatch(null)}

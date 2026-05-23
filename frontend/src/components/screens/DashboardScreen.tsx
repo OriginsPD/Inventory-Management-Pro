@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { apiClient } from '../../lib/api-client';
 
 import { ScrollArea } from '../ui/scroll-area';
 
@@ -71,8 +72,7 @@ export const DashboardScreen = () => {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('http://localhost:3002/api/devices');
-      const data = await res.json();
+      const data = await apiClient.get<any[]>('/api/devices');
       setDevices(data);
       
       const statsObj = {
@@ -90,8 +90,7 @@ export const DashboardScreen = () => {
 
   const fetchModels = async () => {
     try {
-      const res = await fetch('http://localhost:3002/api/device-models');
-      const data = await res.json();
+      const data = await apiClient.get<any[]>('/api/device-models');
       setModels(data);
     } catch (e) {
       console.error(e);
@@ -100,8 +99,7 @@ export const DashboardScreen = () => {
 
   const fetchStockAlerts = async () => {
     try {
-      const res = await fetch('http://localhost:3002/api/stock-alerts');
-      const data = await res.json();
+      const data = await apiClient.get<any[]>('/api/stock-alerts');
       setStockAlerts(data);
     } catch (e) {
       console.error(e);
@@ -110,8 +108,7 @@ export const DashboardScreen = () => {
 
   const fetchAuditLogs = async () => {
     try {
-      const res = await fetch('http://localhost:3002/api/audit-logs');
-      const logs = await res.json();
+      const logs = await apiClient.get<AuditLog[]>('/api/audit-logs');
       setRecentLogs(logs);
     } catch (e) {
       console.error(e);
@@ -120,8 +117,7 @@ export const DashboardScreen = () => {
 
   const fetchTrendData = async () => {
     try {
-      const res = await fetch('http://localhost:3002/api/analytics/dispatches');
-      const trend = await res.json();
+      const trend = await apiClient.get<DispatchTrend[]>('/api/analytics/dispatches');
       setTrendData(trend);
     } catch (e) {
       console.error(e);
@@ -130,8 +126,7 @@ export const DashboardScreen = () => {
 
   const fetchBreakdownData = async () => {
     try {
-      const res = await fetch('http://localhost:3002/api/analytics/breakdown');
-      const data = await res.json();
+      const data = await apiClient.get<AssetBreakdown[]>('/api/analytics/breakdown');
       setBreakdown(data);
     } catch (e) {
       console.error(e);

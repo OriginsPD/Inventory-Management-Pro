@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useFeedback } from '../ui/feedback-provider';
+import { apiClient } from '../../lib/api-client';
+import { useAuth } from '../ui/auth-context';
 
 import { Skeleton } from '../ui/skeleton';
 import { Button } from '../ui/button';
@@ -64,6 +66,7 @@ interface Device {
 
 export const QCBench = () => {
   const { toast } = useFeedback();
+  const { user } = useAuth();
   const [devices, setDevices] = useState<Device[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -84,8 +87,7 @@ export const QCBench = () => {
   const fetchDevices = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:3002/api/devices');
-      const data = await res.json();
+      const data = await apiClient.get<Device[]>('/api/devices');
       setDevices(data);
     } catch (e) {
       console.error(e);
@@ -141,8 +143,7 @@ export const QCBench = () => {
     setDiagnosticsResult(null);
     playChirp();
     try {
-      const res = await fetch(`http://localhost:3002/api/devices/${selectedDevice.id}/telemetry-check`);
-      const data = await res.json();
+      const data = await apiClient.get<any>(`/api/devices/${selectedDevice.id}/telemetry-check`);
       if (data.success && data.telemetry) {
         const tel = data.telemetry;
         setDiagnosticsResult(tel);
@@ -206,28 +207,20 @@ export const QCBench = () => {
       // If it fails, it moves to DAMAGED (Locked)
       const newStatus = overallStatus === 'PASSED' ? 'IN_STOCK' : 'DAMAGED';
 
-      const res = await fetch(`http://localhost:3002/api/devices/${selectedDevice.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          identifier: selectedDevice.identifier,
-          modelId: selectedDevice.modelId,
-          status: newStatus,
-          metadata: updatedMetadata
-        })
+      await apiClient.put(`/api/devices/${selectedDevice.id}`, {
+        identifier: selectedDevice.identifier,
+        modelId: selectedDevice.modelId,
+        status: newStatus,
+        metadata: updatedMetadata
       });
 
-      if (res.ok) {
-        if (overallStatus === 'PASSED') {
-          toast.success(`QC Bench Report complete: ${selectedDevice.identifier} passed testing.`);
-        } else {
-          toast.info(`QC Bench Report complete: ${selectedDevice.identifier} failed critical checks.`);
-        }
-        await fetchDevices();
-        setSelectedDevice(null);
+      if (overallStatus === 'PASSED') {
+        toast.success(`QC Bench Report complete: ${selectedDevice.identifier} passed testing.`);
       } else {
-        toast.error('Failed to submit QC report.');
+        toast.info(`QC Bench Report complete: ${selectedDevice.identifier} failed critical checks.`);
       }
+      await fetchDevices();
+      setSelectedDevice(null);
     } catch (e) {
       console.error('Failed to submit QC report', e);
       playErrorBuzz();
@@ -287,7 +280,7 @@ export const QCBench = () => {
               </div>
               <Button
                 onClick={runLiveDiagnostics}
-                disabled={isRunningDiagnostics}
+                disabled={isRunningDiagnostics || user?.role === 'REVIEWER'}
                 variant="outline"
                 className="h-9 px-4 text-xs font-bold shrink-0 gap-1.5 bg-primary/10 border border-primary/20 hover:bg-primary/20 text-primary"
               >
@@ -439,8 +432,9 @@ export const QCBench = () => {
                           result.status === 'PASSED' 
                             ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_15px_rgba(52,211,153,0.1)]' 
                             : 'bg-transparent border-primary/10 text-muted-foreground hover:text-foreground hover:bg-primary/5'
-                        }`}
+                        } disabled:opacity-50 disabled:pointer-events-none`}
                         onClick={() => handleUpdateStatus(check.id, 'PASSED')}
+                        disabled={user?.role === 'REVIEWER'}
                       >
                         <span className="material-symbols-outlined text-sm">check</span>
                         <span>Pass</span>
@@ -450,8 +444,9 @@ export const QCBench = () => {
                           result.status === 'FAILED' 
                             ? 'bg-red-500/20 text-red-400 border-red-500/40 shadow-[0_0_15px_rgba(248,113,113,0.1)]' 
                             : 'bg-transparent border-primary/10 text-muted-foreground hover:text-foreground hover:bg-primary/5'
-                        }`}
+                        } disabled:opacity-50 disabled:pointer-events-none`}
                         onClick={() => handleUpdateStatus(check.id, 'FAILED')}
+                        disabled={user?.role === 'REVIEWER'}
                       >
                         <span className="material-symbols-outlined text-sm">close</span>
                         <span>Fail</span>
@@ -461,9 +456,10 @@ export const QCBench = () => {
                     <div className="md:col-span-4">
                       <input 
                         placeholder="Add comments (optional)..." 
-                        className="w-full bg-[#081326] border border-primary/10 rounded-lg py-1.5 px-3 text-xs font-medium placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary focus:outline-none focus:border-primary text-[#d8e2fd]"
+                        className="w-full bg-[#081326] border border-primary/10 rounded-lg py-1.5 px-3 text-xs font-medium placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary focus:outline-none focus:border-primary text-[#d8e2fd] disabled:opacity-50"
                         value={result.notes}
                         onChange={(e) => handleUpdateNotes(check.id, e.target.value)}
+                        disabled={user?.role === 'REVIEWER'}
                       />
                     </div>
                   </div>
@@ -476,18 +472,24 @@ export const QCBench = () => {
                 <span className="material-symbols-outlined text-sm text-[#bec8ce]">info</span>
                 <span>Submit only after all items have been verified.</span>
               </div>
-              <Button 
-                disabled={!isComplete || isSubmitting}
-                onClick={handleSubmit}
-                className="gap-2 px-6 bg-primary text-[#081326] font-bold hover:brightness-110 active:scale-95 transition-all rounded-lg"
-              >
-                {isSubmitting ? (
-                  <span className="material-symbols-outlined text-sm animate-spin">sync</span>
-                ) : (
-                  <span className="material-symbols-outlined text-sm">done_all</span>
-                )}
-                Complete QC Report
-              </Button>
+              {user?.role !== 'REVIEWER' ? (
+                <Button 
+                  disabled={!isComplete || isSubmitting}
+                  onClick={handleSubmit}
+                  className="gap-2 px-6 bg-primary text-[#081326] font-bold hover:brightness-110 active:scale-95 transition-all rounded-lg"
+                >
+                  {isSubmitting ? (
+                    <span className="material-symbols-outlined text-sm animate-spin">sync</span>
+                  ) : (
+                    <span className="material-symbols-outlined text-sm">done_all</span>
+                  )}
+                  Complete QC Report
+                </Button>
+              ) : (
+                <div className="text-xs text-muted-foreground border border-primary/10 rounded-lg px-4 py-2 bg-primary/5">
+                  Read-only view. Report completion is disabled.
+                </div>
+              )}
             </div>
           </div>
         </div>

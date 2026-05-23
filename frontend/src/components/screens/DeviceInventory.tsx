@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useFeedback } from '../ui/feedback-provider';
+import { apiClient } from '../../lib/api-client';
+import { useAuth } from '../ui/auth-context';
 
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -155,6 +157,7 @@ const playChirp = () => {
 };
 
 export const DeviceInventory = () => {
+  const { user } = useAuth();
   const { toast, confirm } = useFeedback();
   const [devices, setDevices] = useState<Device[]>([]);
   const [models, setModels] = useState<DeviceModel[]>([]);
@@ -436,12 +439,7 @@ export const DeviceInventory = () => {
     if (items.length === 0) return;
 
     try {
-      const res = await fetch('http://localhost:3002/api/devices/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ devices: items })
-      });
-      const data = await res.json();
+      const data = await apiClient.post<any>('/api/devices/bulk', { devices: items });
       if (data.success) {
         localStorage.removeItem('ims_pending_sync');
         setPendingSyncItems([]);
@@ -522,13 +520,8 @@ export const DeviceInventory = () => {
       const fetchAuditLogs = async () => {
         setIsAuditLogsLoading(true);
         try {
-          const res = await fetch(`http://localhost:3002/api/devices/${viewModalDevice.id}/audit-logs`);
-          if (res.ok) {
-            const data = await res.json();
-            setAuditLogs(data);
-          } else {
-            console.error('Failed to fetch audit logs');
-          }
+          const data = await apiClient.get<any[]>(`/api/devices/${viewModalDevice.id}/audit-logs`);
+          setAuditLogs(data);
         } catch (err) {
           console.error('Error fetching audit logs:', err);
         } finally {
@@ -562,8 +555,7 @@ export const DeviceInventory = () => {
       if (statusFilter) params.append('status', statusFilter);
       if (modelFilter) params.append('modelId', modelFilter);
 
-      const res = await fetch(`http://localhost:3002/api/devices?${params.toString()}`);
-      const data = await res.json();
+      const data = await apiClient.get<Device[]>(`/api/devices?${params.toString()}`);
       setDevices(data);
     } catch (e) {
       console.error(e);
@@ -574,8 +566,7 @@ export const DeviceInventory = () => {
 
   const fetchModels = async () => {
     try {
-      const res = await fetch('http://localhost:3002/api/device-models');
-      const data = await res.json();
+      const data = await apiClient.get<DeviceModel[]>('/api/device-models');
       setModels(data);
       if (data.length > 0) {
         setValue('modelId', data[0].id);
@@ -588,8 +579,7 @@ export const DeviceInventory = () => {
 
   const fetchRelationships = async () => {
     try {
-      const res = await fetch('http://localhost:3002/api/device-links');
-      const data = await res.json();
+      const data = await apiClient.get<any[]>('/api/device-links');
       setRelationships(data);
     } catch (e) {
       console.error(e);
@@ -639,23 +629,21 @@ export const DeviceInventory = () => {
     }
 
     try {
-      const url = editingDeviceId 
-        ? `http://localhost:3002/api/devices/${editingDeviceId}` 
-        : 'http://localhost:3002/api/devices';
-      const method = editingDeviceId ? 'PUT' : 'POST';
+      const path = editingDeviceId 
+        ? `/api/devices/${editingDeviceId}` 
+        : '/api/devices';
+      const body = {
+        identifier: values.identifier,
+        modelId: values.modelId,
+        status: 'IN_STOCK',
+        metadata
+      };
 
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          identifier: values.identifier,
-          modelId: values.modelId,
-          status: 'IN_STOCK',
-          metadata
-        })
-      });
-      const data = await res.json();
-      if (data.error) {
+      const data = editingDeviceId 
+        ? await apiClient.put<any>(path, body)
+        : await apiClient.post<any>(path, body);
+
+      if (data && data.error) {
         setError('identifier', { type: 'manual', message: data.error });
         toast.error(data.error || 'Failed to save device.');
         playErrorBuzz();
@@ -711,15 +699,9 @@ export const DeviceInventory = () => {
     });
     if (!isConfirmed) return;
     try {
-      const res = await fetch(`http://localhost:3002/api/devices/${id}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        toast.success('Device deleted successfully');
-        fetchDevices();
-      } else {
-        toast.error('Failed to delete device');
-      }
+      await apiClient.delete(`/api/devices/${id}`);
+      toast.success('Device deleted successfully');
+      fetchDevices();
     } catch (e) {
       toast.error('An unexpected error occurred while deleting the device.');
     }
@@ -916,17 +898,7 @@ export const DeviceInventory = () => {
     }
 
     try {
-      const res = await fetch('http://localhost:3002/api/devices/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ devices: payload })
-      });
-      
-      if (!res.ok) {
-        throw new Error('Server returned non-ok status');
-      }
-
-      const data = await res.json();
+      const data = await apiClient.post<any>('/api/devices/bulk', { devices: payload });
       if (data.success) {
         toast.success(`Successfully ingested ${payload.length} devices.`);
         setBulkIngestList([]);
@@ -992,12 +964,7 @@ export const DeviceInventory = () => {
       }).filter(pair => pair.primaryISN && pair.childISN);
 
       try {
-        const res = await fetch('http://localhost:3002/api/device-links/preview', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ links })
-        });
-        const data = await res.json();
+        const data = await apiClient.post<any>('/api/device-links/preview', { links });
         setLinkPairs(data);
         if (data.some((d: any) => d.status === 'invalid')) {
           playErrorBuzz();
@@ -1016,12 +983,7 @@ export const DeviceInventory = () => {
   const triggerManualLinkScanWithParams = async (pScan: string, cScan: string) => {
     setLinkError('');
     try {
-      const res = await fetch('http://localhost:3002/api/device-links/preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ links: [{ primaryISN: pScan, childISN: cScan }] })
-      });
-      const data = await res.json();
+      const data = await apiClient.post<any>('/api/device-links/preview', { links: [{ primaryISN: pScan, childISN: cScan }] });
       if (data && data[0]) {
         setLinkPairs(prev => [data[0], ...prev]);
         setPrimaryScan('');
@@ -1062,12 +1024,7 @@ export const DeviceInventory = () => {
     }
 
     try {
-      const res = await fetch('http://localhost:3002/api/device-links/commit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ links: valid })
-      });
-      const data = await res.json();
+      const data = await apiClient.post<any>('/api/device-links/commit', { links: valid });
       if (data.success) {
         toast.success(`Successfully committed ${valid.length} linked relationships.`);
         setLinkPairs([]);
@@ -1138,27 +1095,31 @@ export const DeviceInventory = () => {
               <span className="material-symbols-outlined text-[16px] text-primary">volume_up</span>
               <span>Synth Audio feedback active</span>
             </div>
-            <button 
-              onClick={openBulkModal}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-[#d8e2fd] h-9 px-4 gap-1.5 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-sm">upload</span> Bulk Operations
-            </button>
-            <button 
-              onClick={() => { 
-                setEditingDeviceId(null);
-                reset({
-                  identifier: '',
-                  modelId: models[0]?.id || '',
-                  meta1: '',
-                  meta2: ''
-                });
-                setActiveModal('single'); 
-              }}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-9 px-4 gap-1.5 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-sm">add</span> Single Entry
-            </button>
+            {user?.role !== 'REVIEWER' && (
+              <>
+                <button 
+                  onClick={openBulkModal}
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-[#d8e2fd] h-9 px-4 gap-1.5 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm">upload</span> Bulk Operations
+                </button>
+                <button 
+                  onClick={() => { 
+                    setEditingDeviceId(null);
+                    reset({
+                      identifier: '',
+                      modelId: models[0]?.id || '',
+                      meta1: '',
+                      meta2: ''
+                    });
+                    setActiveModal('single'); 
+                  }}
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-9 px-4 gap-1.5 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm">add</span> Single Entry
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -2074,12 +2035,7 @@ export const DeviceInventory = () => {
                       if (!isConfirmed) return;
                       
                       try {
-                        const res = await fetch('http://localhost:3002/api/devices/bulk-delete', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ ids: idsToDelete })
-                        });
-                        const data = await res.json();
+                        const data = await apiClient.post<any>('/api/devices/bulk-delete', { ids: idsToDelete });
                         if (data.success) {
                           toast.success('Bulk delete executed successfully');
                           setSelectedDeviceIds([]);
@@ -2108,6 +2064,7 @@ export const DeviceInventory = () => {
                   <Checkbox 
                     checked={isAllSelectedGlobally || (paginatedDevices.length > 0 && paginatedDevices.every(d => selectedDeviceIds.includes(d.id)))}
                     onCheckedChange={togglePageSelection}
+                    disabled={user?.role === 'REVIEWER'}
                   />
                 </TableHead>
                 {visibleColumns.identifier && (
@@ -2187,6 +2144,7 @@ export const DeviceInventory = () => {
                       <Checkbox 
                         checked={isAllSelectedGlobally || selectedDeviceIds.includes(device.id)}
                         onCheckedChange={() => toggleDeviceSelection(device.id)}
+                        disabled={user?.role === 'REVIEWER'}
                       />
                     </TableCell>
                     {visibleColumns.identifier && <TableCell className="font-medium tracking-mono font-mono text-[#d8e2fd]">{device.identifier}</TableCell>}
@@ -2293,34 +2251,38 @@ export const DeviceInventory = () => {
                               <span className="material-symbols-outlined text-sm mr-2 text-primary">visibility</span>
                               View Asset Profile
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => {
-                                setLinkModalDevice(device);
-                                setLinkModalError('');
-                                setStagedLinks([]);
-                                setLinkSearch('');
-                                fetchRelationships();
-                              }}
-                              className="text-xs font-semibold cursor-pointer flex items-center px-2.5 py-2 hover:bg-primary/5 focus:bg-primary/5 rounded-lg transition-colors"
-                            >
-                              <span className="material-symbols-outlined text-sm mr-2 text-primary">link</span>
-                              Manage Relationships
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleOpenEditModal(device)}
-                              className="text-xs font-semibold cursor-pointer flex items-center px-2.5 py-2 hover:bg-primary/5 focus:bg-primary/5 rounded-lg transition-colors"
-                            >
-                              <span className="material-symbols-outlined text-sm mr-2 text-[#bec8ce]">edit</span>
-                              Edit Properties
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-primary/10 my-1" />
-                            <DropdownMenuItem 
-                              onClick={() => handleDelete(device.id)}
-                              className="text-xs font-semibold text-red-400 focus:text-red-400 cursor-pointer flex items-center px-2.5 py-2 hover:bg-red-500/5 focus:bg-red-500/5 rounded-lg transition-colors"
-                            >
-                              <span className="material-symbols-outlined text-sm mr-2 text-red-400">delete</span>
-                              Decommission Unit
-                            </DropdownMenuItem>
+                            {user?.role !== 'REVIEWER' && (
+                              <>
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    setLinkModalDevice(device);
+                                    setLinkModalError('');
+                                    setStagedLinks([]);
+                                    setLinkSearch('');
+                                    fetchRelationships();
+                                  }}
+                                  className="text-xs font-semibold cursor-pointer flex items-center px-2.5 py-2 hover:bg-primary/5 focus:bg-primary/5 rounded-lg transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-sm mr-2 text-primary">link</span>
+                                  Manage Relationships
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => handleOpenEditModal(device)}
+                                  className="text-xs font-semibold cursor-pointer flex items-center px-2.5 py-2 hover:bg-primary/5 focus:bg-primary/5 rounded-lg transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-sm mr-2 text-[#bec8ce]">edit</span>
+                                  Edit Properties
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="bg-primary/10 my-1" />
+                                <DropdownMenuItem 
+                                  onClick={() => handleDelete(device.id)}
+                                  className="text-xs font-semibold text-red-400 focus:text-red-400 cursor-pointer flex items-center px-2.5 py-2 hover:bg-red-500/5 focus:bg-red-500/5 rounded-lg transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-sm mr-2 text-red-400">delete</span>
+                                  Decommission Unit
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -2604,14 +2566,9 @@ export const DeviceInventory = () => {
                           type="button"
                           onClick={async () => {
                             try {
-                              const res = await fetch('http://localhost:3002/api/device-links/unlink', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  links: [{ primaryISN: parentDev.identifier, childISN: linkModalDevice.identifier }]
-                                })
+                              const data = await apiClient.post<any>('/api/device-links/unlink', {
+                                links: [{ primaryISN: parentDev.identifier, childISN: linkModalDevice.identifier }]
                               });
-                              const data = await res.json();
                               if (data.success) {
                                 toast.success('Parent device unlinked successfully.');
                                 playSuccessBeep();
@@ -2828,14 +2785,9 @@ export const DeviceInventory = () => {
                                     type="button"
                                     onClick={async () => {
                                       try {
-                                        const res = await fetch('http://localhost:3002/api/device-links/unlink', {
-                                          method: 'POST',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({
-                                            links: [{ primaryISN: linkModalDevice.identifier, childISN: childDev.identifier }]
-                                          })
+                                        const data = await apiClient.post<any>('/api/device-links/unlink', {
+                                          links: [{ primaryISN: linkModalDevice.identifier, childISN: childDev.identifier }]
                                         });
-                                        const data = await res.json();
                                         if (data.success) {
                                           toast.success('Child component unlinked successfully.');
                                           playSuccessBeep();
@@ -2970,17 +2922,12 @@ export const DeviceInventory = () => {
                         type="button"
                         onClick={async () => {
                           try {
-                            const res = await fetch('http://localhost:3002/api/device-links/commit', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                links: stagedLinks.map(s => ({
-                                  primaryISN: s.primaryISN,
-                                  childISN: s.childISN
-                                }))
-                              })
+                            const data = await apiClient.post<any>('/api/device-links/commit', {
+                              links: stagedLinks.map(s => ({
+                                primaryISN: s.primaryISN,
+                                childISN: s.childISN
+                              }))
                             });
-                            const data = await res.json();
                             if (data.success) {
                               playSuccessBeep();
                               setStagedLinks([]);
