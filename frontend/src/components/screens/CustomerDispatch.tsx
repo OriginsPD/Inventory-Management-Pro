@@ -61,7 +61,8 @@ const dispatchSchema = z.object({
 
 type DispatchFormValues = z.infer<typeof dispatchSchema>;
 
-export const CustomerDispatch = () => {  const { toast, confirm } = useFeedback();
+export const CustomerDispatch = () => {
+  const { toast, confirm } = useFeedback();
   const { user } = useAuth();
   const [devices, setDevices] = useState<Device[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);

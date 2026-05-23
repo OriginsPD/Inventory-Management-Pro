@@ -38,7 +38,8 @@ const swapSchema = z.object({
 
 type SwapFormValues = z.infer<typeof swapSchema>;
 
-  const { toast } = useFeedback();
+export const HardwareSwaps = () => {
+  const { toast, confirm } = useFeedback();
   const { user } = useAuth();
   const [devices, setDevices] = useState<Device[]>([]);
   const [relationships, setRelationships] = useState<any[]>([]);
