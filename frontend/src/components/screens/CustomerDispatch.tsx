@@ -60,7 +60,7 @@ const dispatchSchema = z.object({
 type DispatchFormValues = z.infer<typeof dispatchSchema>;
 
 export const CustomerDispatch = () => {
-  const { confirm } = useFeedback();
+  const { toast, confirm } = useFeedback();
   const [devices, setDevices] = useState<Device[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
@@ -91,7 +91,7 @@ export const CustomerDispatch = () => {
     devices: Device[];
   } | null>(null);
 
-  const [dispatchSuccess, setDispatchSuccess] = useState(false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Pagination State for batches
@@ -158,7 +158,7 @@ export const CustomerDispatch = () => {
       const dispatchTime = new Date().toISOString();
       const customer = customers.find(c => c.id === values.customerId);
 
-      await Promise.all(stagedDeviceIds.map(async (id) => {
+      const results = await Promise.all(stagedDeviceIds.map(async (id) => {
         const selectedDevice = devices.find(d => d.id === id);
         if (!selectedDevice) return;
 
@@ -181,13 +181,18 @@ export const CustomerDispatch = () => {
         });
       }));
 
-      setDispatchSuccess(true);
-      setStagedDeviceIds([]);
-      reset();
-      setTimeout(() => setDispatchSuccess(false), 3000);
-      await fetchData();
+      const anyFailed = results.some(res => !res || !res.ok);
+      if (anyFailed) {
+        toast.error('Failed to dispatch some devices in the batch.');
+      } else {
+        toast.success(`Successfully dispatched ${stagedDeviceIds.length} units to ${customer?.name || 'fleet'}`);
+        setStagedDeviceIds([]);
+        reset();
+        await fetchData();
+      }
     } catch (e) {
       console.error(e);
+      toast.error('Internal server error occurred while dispatching devices.');
     } finally {
       setIsSubmitting(false);
     }
@@ -203,7 +208,7 @@ export const CustomerDispatch = () => {
     
     setIsSubmitting(true);
     try {
-      await Promise.all(roots.map(async (node) => {
+      const results = await Promise.all(roots.map(async (node) => {
         const dev = node.device;
         const cleanMetadata = { ...(dev.metadata || {}) };
         delete cleanMetadata.customerName;
@@ -222,13 +227,19 @@ export const CustomerDispatch = () => {
         });
       }));
 
-      if (viewBatch && viewBatch.dispatchedAt === batch.dispatchedAt && viewBatch.customerId === batch.customerId) {
-        setViewBatch(null);
+      const anyFailed = results.some(res => !res || !res.ok);
+      if (anyFailed) {
+        toast.error('Failed to return some devices in the batch.');
+      } else {
+        toast.success(`Successfully returned dispatch batch of ${batch.devices.length} units to stock`);
+        if (viewBatch && viewBatch.dispatchedAt === batch.dispatchedAt && viewBatch.customerId === batch.customerId) {
+          setViewBatch(null);
+        }
+        await fetchData();
       }
-      
-      await fetchData();
     } catch (e) {
       console.error(e);
+      toast.error('Internal server error occurred while returning dispatch batch.');
     } finally {
       setIsSubmitting(false);
     }
@@ -433,11 +444,7 @@ export const CustomerDispatch = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {dispatchSuccess && (
-                    <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs p-2.5 rounded-lg font-semibold animate-pulse">
-                      Batch units dispatched successfully to fleet!
-                    </div>
-                  )}
+
 
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <div>

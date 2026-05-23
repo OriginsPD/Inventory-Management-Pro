@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useFeedback } from '../ui/feedback-provider';
 
 import { Skeleton } from '../ui/skeleton';
 import { Button } from '../ui/button';
@@ -62,6 +63,7 @@ interface Device {
 }
 
 export const QCBench = () => {
+  const { toast } = useFeedback();
   const [devices, setDevices] = useState<Device[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -157,12 +159,16 @@ export const QCBench = () => {
           sim: { status: cellStatus, notes: `Auto-verified via Telemetry (${tel.network}, ${tel.signalDbm} dBm)` },
           gps: { status: cellStatus, notes: `Auto-verified via Telemetry (${tel.gpsSatellites} satellites)` }
         }));
+        
+        toast.success('Live diagnostics telemetry checked successfully.');
       } else {
         playErrorBuzz();
+        toast.error('Diagnostics telemetry check returned failure status.');
       }
     } catch (e) {
       console.error(e);
       playErrorBuzz();
+      toast.error('Internal server error occurred during live diagnostics.');
     } finally {
       setIsRunningDiagnostics(false);
     }
@@ -200,7 +206,7 @@ export const QCBench = () => {
       // If it fails, it moves to DAMAGED (Locked)
       const newStatus = overallStatus === 'PASSED' ? 'IN_STOCK' : 'DAMAGED';
 
-      await fetch(`http://localhost:3002/api/devices/${selectedDevice.id}`, {
+      const res = await fetch(`http://localhost:3002/api/devices/${selectedDevice.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -211,11 +217,21 @@ export const QCBench = () => {
         })
       });
 
-      await fetchDevices();
-      setSelectedDevice(null);
+      if (res.ok) {
+        if (overallStatus === 'PASSED') {
+          toast.success(`QC Bench Report complete: ${selectedDevice.identifier} passed testing.`);
+        } else {
+          toast.info(`QC Bench Report complete: ${selectedDevice.identifier} failed critical checks.`);
+        }
+        await fetchDevices();
+        setSelectedDevice(null);
+      } else {
+        toast.error('Failed to submit QC report.');
+      }
     } catch (e) {
       console.error('Failed to submit QC report', e);
       playErrorBuzz();
+      toast.error('Internal server error occurred while submitting QC report.');
     } finally {
       setIsSubmitting(false);
     }

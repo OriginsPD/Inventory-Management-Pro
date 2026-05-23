@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useFeedback } from '../ui/feedback-provider';
 import { Skeleton } from '../ui/skeleton';
 import { EmptyState } from '../ui/empty-state';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
@@ -23,45 +24,7 @@ interface Device {
   metadata?: Record<string, any>;
 }
 
-// Browser HTML5 synthesised beep/buzz generators
-const playAudioTone = (frequency: number, duration: number, type: 'sine' | 'square' | 'sawtooth' | 'triangle' = 'sine') => {
-  try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    
-    osc.type = type;
-    osc.frequency.value = frequency;
-    
-    gain.gain.setValueAtTime(0.12, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
-    
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    
-    osc.start();
-    osc.stop(ctx.currentTime + duration);
-  } catch (e) {
-    console.warn("AudioContext failed to play beep", e);
-  }
-};
 
-const playSuccessBeep = () => {
-  playAudioTone(850, 0.08, 'sine');
-  setTimeout(() => playAudioTone(1250, 0.1, 'sine'), 70);
-  if (window.navigator && window.navigator.vibrate) {
-    window.navigator.vibrate([50, 30, 50]);
-  }
-};
-
-const playErrorBuzz = () => {
-  playAudioTone(170, 0.25, 'triangle');
-  if (window.navigator && window.navigator.vibrate) {
-    window.navigator.vibrate(200);
-  }
-};
 
 const swapSchema = z.object({
   oldDeviceId: z.string().min(1, 'Select the faulty active unit'),
@@ -74,11 +37,11 @@ const swapSchema = z.object({
 type SwapFormValues = z.infer<typeof swapSchema>;
 
 export const HardwareSwaps = () => {
+  const { toast } = useFeedback();
   const [devices, setDevices] = useState<Device[]>([]);
   const [relationships, setRelationships] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [swapSuccess, setSwapSuccess] = useState(false);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -135,18 +98,16 @@ export const HardwareSwaps = () => {
       const responseData = await res.json();
 
       if (res.ok && !responseData.error) {
-        setSwapSuccess(true);
-        playSuccessBeep();
+        toast.success('Hardware replacement swap processed and logged successfully!');
         reset();
-        setTimeout(() => setSwapSuccess(false), 3000);
         fetchDevices();
       } else {
         console.error("Swap endpoint returned error:", responseData?.error);
-        playErrorBuzz();
+        toast.error(responseData?.error || 'Failed to process hardware swap.');
       }
     } catch (e) {
       console.error(e);
-      playErrorBuzz();
+      toast.error('Internal server error occurred while processing hardware swap.');
     }
   };
 
@@ -195,11 +156,7 @@ export const HardwareSwaps = () => {
               </div>
             ) : (
               <>
-                {swapSuccess && (
-                  <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs p-2.5 rounded-lg font-semibold animate-pulse">
-                    Hardware swap processed and logged successfully!
-                  </div>
-                )}
+
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                   <div>

@@ -143,13 +143,18 @@ export const DeviceModels = () => {
         }),
       });
       if (res.ok) {
+        toast.success(editingModelId ? 'Model template updated successfully' : 'Model template created successfully');
         reset();
         setEditingModelId(null);
         setIsAdding(false);
         fetchModels();
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        toast.error(errorData.error || 'Failed to save model template.');
       }
     } catch (e) {
       console.error(e);
+      toast.error('Internal server error occurred while saving the model template.');
     }
   };
 

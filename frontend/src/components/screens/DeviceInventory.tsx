@@ -657,9 +657,11 @@ export const DeviceInventory = () => {
       const data = await res.json();
       if (data.error) {
         setError('identifier', { type: 'manual', message: data.error });
+        toast.error(data.error || 'Failed to save device.');
         playErrorBuzz();
         return;
       }
+      toast.success(editingDeviceId ? 'Device updated successfully' : 'Device created successfully');
       reset({
         identifier: '',
         modelId: models[0]?.id || '',
@@ -672,6 +674,7 @@ export const DeviceInventory = () => {
       fetchDevices();
     } catch (e) {
       setError('root', { type: 'manual', message: 'Failed to connect to API server.' });
+      toast.error('Internal server error occurred while saving the device.');
       playErrorBuzz();
     }
   };
@@ -904,6 +907,7 @@ export const DeviceInventory = () => {
 
     if (!isOnline) {
       bufferPendingSync(payload);
+      toast.info('Offline mode: Bulk ingestion cached to local sync buffer.');
       setBulkIngestList([]);
       setDuplicateCountAlert(0);
       setPatternCountAlert(0);
@@ -924,6 +928,7 @@ export const DeviceInventory = () => {
 
       const data = await res.json();
       if (data.success) {
+        toast.success(`Successfully ingested ${payload.length} devices.`);
         setBulkIngestList([]);
         setDuplicateCountAlert(0);
         setPatternCountAlert(0);
@@ -932,6 +937,7 @@ export const DeviceInventory = () => {
         fetchDevices();
       } else {
         bufferPendingSync(payload);
+        toast.info('Bulk ingestion cached to local sync buffer due to server validation failure.');
         setBulkIngestList([]);
         setDuplicateCountAlert(0);
         setPatternCountAlert(0);
@@ -939,6 +945,7 @@ export const DeviceInventory = () => {
       }
     } catch (e) {
       bufferPendingSync(payload);
+      toast.info('Bulk ingestion cached to local sync buffer due to connection error.');
       setBulkIngestList([]);
       setDuplicateCountAlert(0);
       setPatternCountAlert(0);
@@ -1022,14 +1029,17 @@ export const DeviceInventory = () => {
         
         if (data[0].status === 'invalid') {
           playErrorBuzz();
+          toast.error(`Invalid link: ${data[0].reason || 'validation failed'}`);
         } else {
           playSuccessBeep();
+          toast.success(`Validated connection preview: ${pScan} ── ${cScan}`);
         }
         
         scanLinkPrimaryRef.current?.focus();
       }
     } catch (e) {
       setLinkError('Failed to validate connection.');
+      toast.error('Internal server error occurred while validating device link.');
       playErrorBuzz();
     }
   };
@@ -1059,15 +1069,18 @@ export const DeviceInventory = () => {
       });
       const data = await res.json();
       if (data.success) {
+        toast.success(`Successfully committed ${valid.length} linked relationships.`);
         setLinkPairs([]);
         setActiveModal('none');
         playSuccessBeep();
         fetchDevices();
       } else {
+        toast.error(data.error || 'Failed to commit linked relationships.');
         playErrorBuzz();
       }
     } catch (e) {
       setLinkError('Failed to commit relationships.');
+      toast.error('Internal server error occurred while committing relationships.');
       playErrorBuzz();
     }
   };
@@ -2600,15 +2613,18 @@ export const DeviceInventory = () => {
                               });
                               const data = await res.json();
                               if (data.success) {
+                                toast.success('Parent device unlinked successfully.');
                                 playSuccessBeep();
                                 fetchRelationships();
                                 fetchDevices();
                               } else {
                                 setLinkModalError(data.errors?.[0] || 'Unlinking parent failed.');
+                                toast.error(data.errors?.[0] || 'Unlinking parent failed.');
                                 playErrorBuzz();
                               }
                             } catch (e) {
                               setLinkModalError('Network error during unlinking.');
+                              toast.error('Internal server error occurred during unlinking.');
                               playErrorBuzz();
                             }
                           }}
@@ -2821,15 +2837,18 @@ export const DeviceInventory = () => {
                                         });
                                         const data = await res.json();
                                         if (data.success) {
+                                          toast.success('Child component unlinked successfully.');
                                           playSuccessBeep();
                                           fetchRelationships();
                                           fetchDevices();
                                         } else {
                                           setLinkModalError(data.errors?.[0] || 'Unlinking child failed.');
+                                          toast.error(data.errors?.[0] || 'Unlinking child failed.');
                                           playErrorBuzz();
                                         }
                                       } catch (e) {
                                         setLinkModalError('Network error during unlinking.');
+                                        toast.error('Internal server error occurred during unlinking.');
                                         playErrorBuzz();
                                       }
                                     }}

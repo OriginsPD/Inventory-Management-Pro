@@ -1,11 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './dialog';
-
-interface Toast {
-  id: string;
-  type: 'success' | 'error' | 'info';
-  message: string;
-}
+import { ToastContainer, toast as rToast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 interface ConfirmOptions {
   title: string;
@@ -65,34 +61,25 @@ const playChirp = () => {
 };
 
 export const FeedbackProvider = ({ children }: { children: React.ReactNode }) => {
-  const [toasts, setToasts] = useState<Toast[]>([]);
   const [confirmData, setConfirmData] = useState<{
     title: string;
     message: string;
     resolve: (val: boolean) => void;
   } | null>(null);
 
-  const addToast = (type: 'success' | 'error' | 'info', message: string) => {
-    const id = Math.random().toString(36).substring(2, 9);
-    setToasts((prev) => [...prev, { id, type, message }]);
-    
-    if (type === 'success') playSuccessBeep();
-    else if (type === 'error') playErrorBuzz();
-    else playChirp();
-
-    setTimeout(() => {
-      removeToast(id);
-    }, 4000);
-  };
-
-  const removeToast = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
-
   const toast = {
-    success: (msg: string) => addToast('success', msg),
-    error: (msg: string) => addToast('error', msg),
-    info: (msg: string) => addToast('info', msg),
+    success: (msg: string) => {
+      rToast.success(msg);
+      playSuccessBeep();
+    },
+    error: (msg: string) => {
+      rToast.error(msg);
+      playErrorBuzz();
+    },
+    info: (msg: string) => {
+      rToast.info(msg);
+      playChirp();
+    },
   };
 
   const confirm = (options: ConfirmOptions) => {
@@ -126,45 +113,17 @@ export const FeedbackProvider = ({ children }: { children: React.ReactNode }) =>
       {children}
       
       {/* Toast Overlay Container */}
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className="pointer-events-auto glass-panel p-3.5 rounded-xl border-l-4 shadow-lg flex items-start gap-2.5 animate-in slide-in-from-right duration-200"
-            style={{
-              borderLeftColor:
-                t.type === 'success'
-                  ? 'var(--color-emerald-500, #10b981)'
-                  : t.type === 'error'
-                  ? 'var(--color-red-500, #ef4444)'
-                  : 'var(--color-sky-500, #0ea5e9)',
-            }}
-          >
-            <span
-              className="material-symbols-outlined text-lg select-none"
-              style={{
-                color:
-                  t.type === 'success'
-                    ? 'var(--color-emerald-400, #34d399)'
-                    : t.type === 'error'
-                    ? 'var(--color-red-400, #f87171)'
-                    : 'var(--color-sky-400, #38bdf8)',
-              }}
-            >
-              {t.type === 'success' ? 'check_circle' : t.type === 'error' ? 'error' : 'info'}
-            </span>
-            <div className="flex-grow min-w-0">
-              <p className="text-xs font-semibold text-[#d8e2fd] break-words">{t.message}</p>
-            </div>
-            <button
-              onClick={() => removeToast(t.id)}
-              className="text-muted-foreground hover:text-foreground cursor-pointer flex-shrink-0 flex items-center justify-center p-0.5 rounded hover:bg-primary/5 transition-colors"
-            >
-              <span className="material-symbols-outlined text-sm select-none">close</span>
-            </button>
-          </div>
-        ))}
-      </div>
+      <ToastContainer
+        position="top-right"
+        autoClose={4000}
+        hideProgressBar={true}
+        newestOnTop={true}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
 
       {/* Confirm Dialog Overlay Modal */}
       <Dialog open={!!confirmData} onOpenChange={(open) => { if (!open && confirmData) confirmData.resolve(false); }}>

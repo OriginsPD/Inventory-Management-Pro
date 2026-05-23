@@ -303,4 +303,87 @@ body {
   }
 }
 
+/* ==========================================================
+   React-Toastify Custom NeoBase Theme Overrides
+   ========================================================== */
+.Toastify__toast-container {
+  padding: 16px !important;
+  width: 360px !important;
+}
+
+.Toastify__toast {
+  font-family: var(--font-sans) !important;
+  border-radius: 12px !important; /* rounded-xl */
+  padding: 12px 16px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  margin-bottom: 8px !important;
+  min-height: 48px !important;
+  align-items: flex-start !important;
+}
+
+/* Dark mode toast appearance */
+.dark .Toastify__toast {
+  background: rgba(15, 21, 36, 0.9) !important;
+  backdrop-filter: blur(16px);
+  color: #d8e2fd !important;
+  border: 1px solid rgba(125, 211, 252, 0.15) !important;
+}
+
+.dark .Toastify__toast--success {
+  border-left: 4px solid var(--color-emerald-500, #10b981) !important;
+}
+
+.dark .Toastify__toast--error {
+  border-left: 4px solid var(--color-red-500, #ef4444) !important;
+}
+
+.dark .Toastify__toast--info {
+  border-left: 4px solid var(--color-sky-500, #0ea5e9) !important;
+}
+
+/* Light mode toast appearance */
+:root:not(.dark) .Toastify__toast {
+  background: var(--card) !important;
+  color: var(--foreground) !important;
+  border: 1px solid var(--border) !important;
+}
+
+:root:not(.dark) .Toastify__toast--success {
+  border-left: 4px solid oklch(0.60 0.17 140) !important;
+}
+
+:root:not(.dark) .Toastify__toast--error {
+  border-left: 4px solid oklch(0.60 0.16 29) !important;
+}
+
+:root:not(.dark) .Toastify__toast--info {
+  border-left: 4px solid oklch(0.54 0.19 265) !important;
+}
+
+.Toastify__toast-body {
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+.Toastify__close-button {
+  color: var(--muted-foreground) !important;
+  opacity: 0.7;
+  padding: 2px !important;
+}
+
+.Toastify__close-button:hover {
+  opacity: 1;
+  color: var(--foreground) !important;
+}
+
+.Toastify__toast-icon {
+  margin-right: 10px !important;
+  width: 18px !important;
+  height: 18px !important;
+  flex-shrink: 0 !important;
+}
+
+
 
