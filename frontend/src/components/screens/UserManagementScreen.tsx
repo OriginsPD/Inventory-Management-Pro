@@ -190,19 +190,19 @@ export const UserManagementScreen = () => {
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full animate-in fade-in duration-300">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-[#d8e2fd]">User Management</h2>
-          <p className="text-sm text-[#bec8ce] mt-1">Configure operator profiles, authentication credentials, and system roles.</p>
+          <h2 className="text-2xl font-extrabold tracking-tight text-foreground">User Management</h2>
+          <p className="text-sm text-muted-foreground mt-1">Configure operator profiles, authentication credentials, and system roles.</p>
         </div>
         <button
           onClick={handleOpenCreateModal}
-          className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-9 px-4 gap-1.5 cursor-pointer animate-in fade-in"
+          className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 h-9 px-4 gap-1.5 cursor-pointer animate-in fade-in"
         >
           <span className="material-symbols-outlined text-sm">add</span> New User Profile
         </button>
       </div>
 
       {/* Toolbar / Filters */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 border border-primary/10 p-2 rounded-xl bg-[#0f1524]/60">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 border border-primary/10 p-2 rounded-xl bg-card/60">
         <div className="flex items-center gap-2 flex-1 px-2">
           <span className="material-symbols-outlined text-sm text-muted-foreground shrink-0">search</span>
           <input
@@ -212,7 +212,7 @@ export const UserManagementScreen = () => {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
-            className="flex h-9 w-full bg-transparent px-2 py-1 text-sm focus-visible:outline-none placeholder:text-muted-foreground/30 text-[#d8e2fd] border-0"
+            className="flex h-9 w-full bg-transparent px-2 py-1 text-sm focus-visible:outline-none placeholder:text-muted-foreground/30 text-foreground border-0"
           />
         </div>
       </div>
@@ -244,10 +244,10 @@ export const UserManagementScreen = () => {
               ) : paginatedUsers.length > 0 ? (
                 paginatedUsers.map((user) => (
                   <TableRow key={user.id} className="group hover:bg-primary/5 transition-colors">
-                    <TableCell className="p-4 align-middle font-semibold text-[#d8e2fd]">
+                    <TableCell className="p-4 align-middle font-semibold text-foreground">
                       {user.name}
                     </TableCell>
-                    <TableCell className="p-4 align-middle font-mono text-[#bec8ce] text-xs">
+                    <TableCell className="p-4 align-middle font-mono text-muted-foreground text-xs">
                       {user.email}
                     </TableCell>
                     <TableCell className="p-4 align-middle">
@@ -255,7 +255,7 @@ export const UserManagementScreen = () => {
                         {user.role.replace('_', ' ')}
                       </span>
                     </TableCell>
-                    <TableCell className="p-4 align-middle text-xs text-[#bec8ce]">
+                    <TableCell className="p-4 align-middle text-xs text-muted-foreground">
                       {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
                     </TableCell>
                     <TableCell className="p-4 align-middle text-right">
@@ -267,12 +267,12 @@ export const UserManagementScreen = () => {
                             <span className="material-symbols-outlined text-[18px]">more_horiz</span>
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-32 bg-[#0f1524]/95 backdrop-blur-2xl border border-primary/15 text-[#d8e2fd] rounded-xl p-1 shadow-xl">
+                        <DropdownMenuContent align="end" className="w-32 bg-card/95 backdrop-blur-2xl border border-primary/15 text-foreground rounded-xl p-1 shadow-xl">
                           <DropdownMenuItem
                             onClick={() => handleOpenEditModal(user)}
                             className="text-xs font-semibold cursor-pointer flex items-center px-2.5 py-2 hover:bg-primary/5 focus:bg-primary/5 rounded-lg transition-colors"
                           >
-                            <span className="material-symbols-outlined text-sm mr-2 text-[#bec8ce]">edit</span> Edit
+                            <span className="material-symbols-outlined text-sm mr-2 text-muted-foreground">edit</span> Edit
                           </DropdownMenuItem>
                           <DropdownMenuSeparator className="bg-primary/10 my-1" />
                           <DropdownMenuItem
@@ -288,7 +288,7 @@ export const UserManagementScreen = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center p-8 text-sm text-[#bec8ce]">
+                  <TableCell colSpan={5} className="text-center p-8 text-sm text-muted-foreground">
                     No operators registered matching the search filters.
                   </TableCell>
                 </TableRow>
@@ -300,7 +300,7 @@ export const UserManagementScreen = () => {
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex justify-between items-center text-xs text-[#bec8ce] mt-2">
+        <div className="flex justify-between items-center text-xs text-muted-foreground mt-2">
           <div>
             Showing {startIndex + 1} to {Math.min(startIndex + pageSize, filteredUsers.length)} of {filteredUsers.length} users
           </div>
@@ -308,15 +308,15 @@ export const UserManagementScreen = () => {
             <button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-2.5 py-1.5 bg-[#0f1524]/60 border border-primary/10 rounded-lg hover:bg-primary/5 disabled:opacity-50 disabled:pointer-events-none transition-all cursor-pointer font-bold"
+              className="px-2.5 py-1.5 bg-card/60 border border-primary/10 rounded-lg hover:bg-primary/5 disabled:opacity-50 disabled:pointer-events-none transition-all cursor-pointer font-bold"
             >
               Previous
             </button>
-            <span className="font-semibold text-[#d8e2fd]">Page {currentPage} of {totalPages}</span>
+            <span className="font-semibold text-foreground">Page {currentPage} of {totalPages}</span>
             <button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-2.5 py-1.5 bg-[#0f1524]/60 border border-primary/10 rounded-lg hover:bg-primary/5 disabled:opacity-50 disabled:pointer-events-none transition-all cursor-pointer font-bold"
+              className="px-2.5 py-1.5 bg-card/60 border border-primary/10 rounded-lg hover:bg-primary/5 disabled:opacity-50 disabled:pointer-events-none transition-all cursor-pointer font-bold"
             >
               Next
             </button>
@@ -328,21 +328,21 @@ export const UserManagementScreen = () => {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-md w-full space-y-4 border-0 animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
           <DialogHeader className="text-left space-y-0.5">
-            <DialogTitle className="text-lg font-extrabold tracking-tight text-[#d8e2fd] p-0">
+            <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">
               {editingUser ? 'Edit User Profile' : 'New User Profile'}
             </DialogTitle>
-            <DialogDescription className="text-xs text-[#bec8ce]">
+            <DialogDescription className="text-xs text-muted-foreground">
               {editingUser ? 'Update the details and system role of this user account.' : 'Create a new user account and assign their role-based permissions.'}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-[#bec8ce] uppercase tracking-wider block">Full Name</label>
+              <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">Full Name</label>
               <Input
                 type="text"
                 placeholder="Jane Doe"
-                className={`bg-[#081326]/50 border-primary/10 text-xs h-10 rounded-xl text-[#d8e2fd] placeholder:text-muted-foreground/30 ${
+                className={`bg-background/50 border-primary/10 text-xs h-10 rounded-xl text-foreground placeholder:text-muted-foreground/30 ${
                   errors.name ? 'border-red-500/50' : ''
                 }`}
                 {...register('name')}
@@ -351,11 +351,11 @@ export const UserManagementScreen = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-[#bec8ce] uppercase tracking-wider block">Email Address</label>
+              <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">Email Address</label>
               <Input
                 type="email"
                 placeholder="jane@imspro.com"
-                className={`bg-[#081326]/50 border-primary/10 text-xs h-10 rounded-xl text-[#d8e2fd] placeholder:text-muted-foreground/30 ${
+                className={`bg-background/50 border-primary/10 text-xs h-10 rounded-xl text-foreground placeholder:text-muted-foreground/30 ${
                   errors.email ? 'border-red-500/50' : ''
                 }`}
                 {...register('email')}
@@ -365,11 +365,11 @@ export const UserManagementScreen = () => {
 
             {!editingUser && (
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-[#bec8ce] uppercase tracking-wider block">Access Password</label>
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">Access Password</label>
                 <Input
                   type="password"
                   placeholder="••••••••"
-                  className={`bg-[#081326]/50 border-primary/10 text-xs h-10 rounded-xl text-[#d8e2fd] placeholder:text-muted-foreground/30 ${
+                  className={`bg-background/50 border-primary/10 text-xs h-10 rounded-xl text-foreground placeholder:text-muted-foreground/30 ${
                     errors.password ? 'border-red-500/50' : ''
                   }`}
                   {...register('password')}
@@ -379,13 +379,13 @@ export const UserManagementScreen = () => {
             )}
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-[#bec8ce] uppercase tracking-wider block">System Access Role</label>
+              <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">System Access Role</label>
               <Controller
                 control={control}
                 name="role"
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className="w-full text-xs h-10 bg-[#081326]/50 border border-primary/10 rounded-xl text-[#d8e2fd] focus:ring-primary/20">
+                    <SelectTrigger className="w-full text-xs h-10 bg-background/50 border border-primary/10 rounded-xl text-foreground focus:ring-primary/20">
                       <SelectValue placeholder="Select system role..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -401,7 +401,7 @@ export const UserManagementScreen = () => {
 
             <button
               type="submit"
-              className="w-full bg-primary hover:bg-primary/90 text-[#081326] font-bold rounded-xl h-10 text-xs cursor-pointer shadow-lg mt-2"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl h-10 text-xs cursor-pointer shadow-lg mt-2"
             >
               {editingUser ? 'Save Updates' : 'Create User Account'}
             </button>
@@ -411,3 +411,4 @@ export const UserManagementScreen = () => {
     </div>
   );
 };
+

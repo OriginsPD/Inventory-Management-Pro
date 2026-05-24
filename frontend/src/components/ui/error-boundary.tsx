@@ -33,7 +33,7 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen w-full flex items-center justify-center bg-[#081326] text-[#d8e2fd] p-6 font-sans">
+        <div className="min-h-screen w-full flex items-center justify-center bg-background text-foreground p-6 font-sans">
           <div className="glass-panel p-8 rounded-2xl max-w-md w-full space-y-6 glow-accent border border-primary/10">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-destructive/10 border border-destructive/25 flex items-center justify-center text-destructive">
@@ -61,7 +61,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex items-center gap-3 pt-2">
               <Button
                 onClick={this.handleReset}
-                className="w-full bg-primary text-[#081326] font-bold hover:brightness-110 active:scale-95 transition-all rounded-lg h-9.5"
+                className="w-full bg-primary text-primary-foreground font-bold hover:brightness-110 active:scale-95 transition-all rounded-lg h-9.5"
               >
                 Reload Station
               </Button>
@@ -74,3 +74,4 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
+

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useFeedback } from '../ui/feedback-provider';
 import { apiClient } from '../../lib/api-client';
 import { useAuth } from '../ui/auth-context';
@@ -9,66 +9,14 @@ import { Button } from '../ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { DEFAULT_QC_CHECKS, QCCheckStatus } from '@ims-pro/shared';
 import type { QCCheckItem } from '@ims-pro/shared';
-
-// Browser HTML5 synthesised beep/buzz generators
-const playAudioTone = (frequency: number, duration: number, type: 'sine' | 'square' | 'sawtooth' | 'triangle' = 'sine') => {
-  try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    
-    osc.type = type;
-    osc.frequency.value = frequency;
-    
-    gain.gain.setValueAtTime(0.12, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
-    
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    
-    osc.start();
-    osc.stop(ctx.currentTime + duration);
-  } catch (e) {
-    console.warn("AudioContext failed to play beep", e);
-  }
-};
-
-const playSuccessBeep = () => {
-  playAudioTone(850, 0.08, 'sine');
-  setTimeout(() => playAudioTone(1250, 0.1, 'sine'), 70);
-  if (window.navigator && window.navigator.vibrate) {
-    window.navigator.vibrate([50, 30, 50]);
-  }
-};
-
-const playErrorBuzz = () => {
-  playAudioTone(170, 0.25, 'triangle');
-  if (window.navigator && window.navigator.vibrate) {
-    window.navigator.vibrate(200);
-  }
-};
-
-const playChirp = () => {
-  playAudioTone(950, 0.05, 'sine');
-};
-
-interface Device {
-  id: string;
-  identifier: string;
-  modelId: string;
-  modelName: string;
-  type: string;
-  status: string;
-  metadata?: Record<string, any>;
-}
+import { playSuccessBeep, playErrorBuzz, playChirp } from '../../lib/audio';
+import { useDevices } from '../../lib/hooks/useDomain';
+import { Device } from '../../lib/types/domain';
 
 export const QCBench = () => {
   const { toast } = useFeedback();
   const { user } = useAuth();
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: devices = [], isLoading, refetch: fetchDevices } = useDevices();
   const [search, setSearch] = useState('');
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,24 +28,8 @@ export const QCBench = () => {
   const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false);
   const [diagnosticsResult, setDiagnosticsResult] = useState<any>(null);
 
-  useEffect(() => {
-    fetchDevices();
-  }, []);
-
-  const fetchDevices = async () => {
-    setIsLoading(true);
-    try {
-      const data = await apiClient.get<Device[]>('/api/devices');
-      setDevices(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const filteredDevices = useMemo(() => {
-    return devices.filter(d => {
+    return devices.filter((d: Device) => {
       const matchesSearch = d.identifier.toLowerCase().includes(search.toLowerCase()) ||
         d.modelName.toLowerCase().includes(search.toLowerCase());
       // Only show devices that are in stock or already in testing
@@ -239,12 +171,12 @@ export const QCBench = () => {
                 variant="outline" 
                 size="icon" 
                 onClick={() => setSelectedDevice(null)}
-                className="h-9 w-9 bg-primary/5 border border-primary/20 hover:border-primary/50 text-[#d8e2fd]"
+                className="h-9 w-9 bg-primary/5 border border-primary/20 hover:border-primary/50 text-foreground"
               >
                 <span className="material-symbols-outlined text-sm">arrow_back</span>
               </Button>
               <div>
-                <h1 className="text-2xl font-extrabold tracking-tight text-[#d8e2fd]">Manual QC Testing</h1>
+                <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Manual QC Testing</h1>
                 <p className="text-sm text-muted-foreground mt-0.5">
                   Testing <span className="font-mono font-bold text-primary">{selectedDevice.identifier}</span> ({selectedDevice.modelName})
                 </p>
@@ -369,7 +301,7 @@ export const QCBench = () => {
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center pr-2">
                       <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">Battery Voltage</span>
-                      <span className="font-mono text-[#d8e2fd] text-[10px] font-bold">{diagnosticsResult.voltage}V</span>
+                      <span className="font-mono text-foreground text-[10px] font-bold">{diagnosticsResult.voltage}V</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex-grow bg-primary/10 h-1.5 rounded-full overflow-hidden">
@@ -456,7 +388,7 @@ export const QCBench = () => {
                     <div className="md:col-span-4">
                       <input 
                         placeholder="Add comments (optional)..." 
-                        className="w-full bg-[#081326] border border-primary/10 rounded-lg py-1.5 px-3 text-xs font-medium placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary focus:outline-none focus:border-primary text-[#d8e2fd] disabled:opacity-50"
+                        className="w-full bg-background border border-primary/10 rounded-lg py-1.5 px-3 text-xs font-medium placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary focus:outline-none focus:border-primary text-foreground disabled:opacity-50"
                         value={result.notes}
                         onChange={(e) => handleUpdateNotes(check.id, e.target.value)}
                         disabled={user?.role === 'REVIEWER'}
@@ -469,14 +401,14 @@ export const QCBench = () => {
 
             <div className="p-4 px-6 bg-primary/5 border-t border-primary/10 flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="material-symbols-outlined text-sm text-[#bec8ce]">info</span>
+                <span className="material-symbols-outlined text-sm text-muted-foreground">info</span>
                 <span>Submit only after all items have been verified.</span>
               </div>
               {user?.role !== 'REVIEWER' ? (
                 <Button 
                   disabled={!isComplete || isSubmitting}
                   onClick={handleSubmit}
-                  className="gap-2 px-6 bg-primary text-[#081326] font-bold hover:brightness-110 active:scale-95 transition-all rounded-lg"
+                  className="gap-2 px-6 bg-primary text-primary-foreground font-bold hover:brightness-110 active:scale-95 transition-all rounded-lg"
                 >
                   {isSubmitting ? (
                     <span className="material-symbols-outlined text-sm animate-spin">sync</span>
@@ -500,7 +432,7 @@ export const QCBench = () => {
     <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-[#d8e2fd]">QC Bench Testing</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">QC Bench Testing</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Select a hardware unit from inventory to begin the manual diagnostic checklist.
             </p>
@@ -509,7 +441,7 @@ export const QCBench = () => {
             <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-sm">search</span>
             <input
               placeholder="Search serial or model..."
-              className="w-full bg-primary/5 border border-primary/10 rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-1 focus:ring-primary focus:outline-none text-[#d8e2fd] placeholder:text-muted-foreground/35"
+              className="w-full bg-primary/5 border border-primary/10 rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-1 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground/35"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -518,13 +450,13 @@ export const QCBench = () => {
 
         <div className="glass-panel rounded-2xl overflow-hidden">
           <Table>
-            <TableHeader className="bg-[#0f1524]/40 border-b border-primary/10">
+            <TableHeader className="bg-card/40 border-b border-primary/10">
               <TableRow>
-                <TableHead className="font-bold text-[10px] uppercase tracking-widest text-[#bec8ce]">Device Identifier</TableHead>
-                <TableHead className="font-bold text-[10px] uppercase tracking-widest text-[#bec8ce]">Model Template</TableHead>
-                <TableHead className="font-bold text-[10px] uppercase tracking-widest text-[#bec8ce]">Status</TableHead>
-                <TableHead className="font-bold text-[10px] uppercase tracking-widest text-[#bec8ce]">Last Tested</TableHead>
-                <TableHead className="text-right font-bold text-[10px] uppercase tracking-widest text-[#bec8ce]">Action</TableHead>
+                <TableHead className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Device Identifier</TableHead>
+                <TableHead className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Model Template</TableHead>
+                <TableHead className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Status</TableHead>
+                <TableHead className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Last Tested</TableHead>
+                <TableHead className="text-right font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-primary/5">
@@ -539,14 +471,14 @@ export const QCBench = () => {
                   </TableRow>
                 ))
               ) : filteredDevices.length > 0 ? (
-                filteredDevices.map((device) => {
+                filteredDevices.map((device: Device) => {
                   const qcStatus = device.metadata?.qcStatus;
                   const qcTestedAt = device.metadata?.qcTestedAt;
 
                   return (
                     <TableRow key={device.id} className="group hover:bg-primary/5 transition-colors">
                       <TableCell className="font-mono font-bold text-primary">{device.identifier}</TableCell>
-                      <TableCell className="text-xs text-[#d8e2fd] uppercase font-semibold">{device.modelName}</TableCell>
+                      <TableCell className="text-xs text-foreground uppercase font-semibold">{device.modelName}</TableCell>
                       <TableCell>
                         {qcStatus === 'PASSED' ? (
                           <span className="inline-flex items-center gap-1 text-emerald-400 font-bold text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
@@ -575,7 +507,7 @@ export const QCBench = () => {
                       <TableCell className="text-right">
                         <button 
                           onClick={() => handleSelectDevice(device)}
-                          className="h-8 text-xs font-bold px-4 bg-primary text-[#081326] rounded-md hover:brightness-110 active:scale-95 transition-all shadow-md shadow-primary/10"
+                          className="h-8 text-xs font-bold px-4 bg-primary text-primary-foreground rounded-md hover:brightness-110 active:scale-95 transition-all shadow-md shadow-primary/10"
                         >
                           Start QC Test
                         </button>
@@ -599,3 +531,4 @@ export const QCBench = () => {
       </div>
   );
 };
+

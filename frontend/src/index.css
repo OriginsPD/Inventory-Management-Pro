@@ -98,55 +98,55 @@
 }
 
 .dark {
-  /* Glacier Theme (OKLCH mapping) - Midnight Ice cinematic navy & ice blue */
-  --background: oklch(0.15 0.03 245); /* Deep navy background #081326 */
-  --foreground: oklch(0.92 0.02 245); /* Ice white #d8e2fd */
+  /* NeoBase Zinc Theme (OKLCH mapping) - Pure Industrial aesthetic */
+  --background: oklch(0.12 0.005 286); /* Near-black Zinc background #09090b */
+  --foreground: oklch(0.92 0.005 286); /* Zinc white #f4f4f5 */
   
-  --card: oklch(0.18 0.03 245 / 0.65); /* Translucent navy card */
-  --card-foreground: oklch(0.92 0.02 245);
+  --card: oklch(0.15 0.005 286 / 0.65); /* Translucent zinc-900 card */
+  --card-foreground: oklch(0.92 0.005 286);
 
-  --popover: oklch(0.18 0.03 245 / 0.95); /* Solid translucent popover */
-  --popover-foreground: oklch(0.92 0.02 245);
+  --popover: oklch(0.15 0.005 286 / 0.95);
+  --popover-foreground: oklch(0.92 0.005 286);
 
-  --primary: oklch(0.82 0.09 210); /* Ice blue accent #7dd3fc */
-  --primary-foreground: oklch(0.15 0.03 245);
+  --primary: oklch(0.65 0.20 40); /* IMS Orange #f97316 equivalent */
+  --primary-foreground: oklch(0.12 0.005 286);
 
-  --secondary: oklch(0.20 0.03 245 / 0.6); /* surface-container */
-  --secondary-foreground: oklch(0.85 0.05 210); /* Soft sky blue #a0cde5 */
+  --secondary: oklch(0.20 0.005 286 / 0.6); /* surface-container */
+  --secondary-foreground: oklch(0.85 0.005 286);
 
-  --muted: oklch(0.20 0.03 245 / 0.6);
-  --muted-foreground: oklch(0.88 0.01 245); /* #cbd5e1 */
+  --muted: oklch(0.20 0.005 286 / 0.6);
+  --muted-foreground: oklch(0.70 0.005 286); /* #a1a1aa */
 
-  --accent: oklch(0.25 0.03 245 / 0.8); /* surface-container-high */
-  --accent-foreground: oklch(0.92 0.02 245);
+  --accent: oklch(0.25 0.005 286 / 0.8);
+  --accent-foreground: oklch(0.92 0.005 286);
 
-  --destructive: oklch(0.78 0.12 18); /* #ffb4ab */
-  --destructive-foreground: oklch(0.15 0.02 18);
+  --destructive: oklch(0.60 0.16 29); /* Industrial warning red */
+  --destructive-foreground: oklch(0.98 0.002 286);
 
-  --border: oklch(0.82 0.09 210 / 0.12); /* Luminous edge-lit border */
-  --input: oklch(0.82 0.09 210 / 0.08);
-  --ring: oklch(0.82 0.09 210 / 0.5);
+  --border: oklch(0.92 0.005 286 / 0.1); /* Subtle edge-lit border */
+  --input: oklch(0.92 0.005 286 / 0.05);
+  --ring: oklch(0.65 0.20 40 / 0.5);
 }
 
 /* Glassmorphism Primitives */
 .glass-panel {
-  background: rgba(15, 21, 36, 0.6);
+  background: rgba(18, 18, 20, 0.6);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(125, 211, 252, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-panel-elevated {
-  background: rgba(15, 21, 36, 0.8);
+  background: rgba(18, 18, 20, 0.8);
   backdrop-filter: blur(24px);
-  border: 1px solid rgba(125, 211, 252, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .glow-accent {
-  box-shadow: 0 0 30px rgba(125, 211, 252, 0.08);
+  box-shadow: 0 0 30px rgba(249, 115, 22, 0.08);
 }
 
 .glow-accent-hover:hover {
-  box-shadow: 0 0 25px rgba(125, 211, 252, 0.15);
+  box-shadow: 0 0 25px rgba(249, 115, 22, 0.15);
   transition: all 0.3s ease;
 }
 

@@ -195,13 +195,13 @@ export const DeviceModels = () => {
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-[#d8e2fd]">Device Models</h2>
-            <p className="text-sm text-[#bec8ce] mt-1">Configure hardware templates and relationship rules.</p>
+            <h2 className="text-2xl font-extrabold tracking-tight text-foreground">Device Models</h2>
+            <p className="text-sm text-muted-foreground mt-1">Configure hardware templates and relationship rules.</p>
           </div>
           {user?.role === 'SUPER_USER' && (
             <button
               onClick={() => { reset(); setEditingModelId(null); setIsAdding(true); }}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-9 px-4 gap-1.5 cursor-pointer"
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 h-9 px-4 gap-1.5 cursor-pointer"
             >
               <span className="material-symbols-outlined text-sm">add</span> New Model Template
             </button>
@@ -235,7 +235,7 @@ export const DeviceModels = () => {
                 ) : paginatedModels.length > 0 ? (
                   paginatedModels.map((model) => (
                     <TableRow key={model.id} className="group hover:bg-primary/5 transition-colors">
-                      <TableCell className="p-4 align-middle font-semibold text-[#d8e2fd]">
+                      <TableCell className="p-4 align-middle font-semibold text-foreground">
                         <div>{model.name}</div>
                         {model.identifierPattern && (
                           <div className="text-[10px] text-amber-500 font-mono mt-0.5 font-normal">
@@ -243,7 +243,7 @@ export const DeviceModels = () => {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="p-4 align-middle text-[#bec8ce]">{model.brand}</TableCell>
+                      <TableCell className="p-4 align-middle text-muted-foreground">{model.brand}</TableCell>
                       <TableCell className="p-4 align-middle">
                         <span className="inline-flex items-center rounded-md border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary font-mono tracking-wider">
                           {model.assetType}
@@ -274,7 +274,7 @@ export const DeviceModels = () => {
                               <span className="material-symbols-outlined text-[18px]">more_horiz</span>
                             </button>
                           </DropdownMenuTrigger>
-                           <DropdownMenuContent align="end" className="w-32 bg-[#0f1524]/95 backdrop-blur-2xl border border-primary/15 text-[#d8e2fd] rounded-xl p-1 shadow-xl">
+                           <DropdownMenuContent align="end" className="w-32 bg-card/95 backdrop-blur-2xl border border-primary/15 text-foreground rounded-xl p-1 shadow-xl">
                             <DropdownMenuItem
                               onClick={() => setViewModalModel(model)}
                               className="text-xs font-semibold cursor-pointer flex items-center px-2.5 py-2 hover:bg-primary/5 focus:bg-primary/5 rounded-lg transition-colors"
@@ -287,7 +287,7 @@ export const DeviceModels = () => {
                                   onClick={() => handleOpenEditModal(model)}
                                   className="text-xs font-semibold cursor-pointer flex items-center px-2.5 py-2 hover:bg-primary/5 focus:bg-primary/5 rounded-lg transition-colors"
                                 >
-                                  <span className="material-symbols-outlined text-sm mr-2 text-[#bec8ce]">edit</span> Edit
+                                  <span className="material-symbols-outlined text-sm mr-2 text-muted-foreground">edit</span> Edit
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-primary/10 my-1" />
                                 <DropdownMenuItem
@@ -305,7 +305,7 @@ export const DeviceModels = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center p-8 text-sm text-[#bec8ce]">
+                    <TableCell colSpan={5} className="text-center p-8 text-sm text-muted-foreground">
                       No hardware templates registered.
                     </TableCell>
                   </TableRow>
@@ -329,7 +329,7 @@ export const DeviceModels = () => {
                     setCurrentPage(prev => Math.max(prev - 1, 1));
                   }}
                   disabled={currentPage === 1}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-[#d8e2fd] disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                 >
                   Previous
                 </button>
@@ -350,8 +350,8 @@ export const DeviceModels = () => {
                         }}
                         className={`inline-flex items-center justify-center rounded-lg text-xs font-bold h-8 w-8 transition-colors cursor-pointer ${
                           currentPage === pageNum
-                            ? 'bg-primary text-[#081326]'
-                            : 'border border-primary/10 bg-primary/5 text-[#d8e2fd] hover:bg-primary/15'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'border border-primary/10 bg-primary/5 text-foreground hover:bg-primary/15'
                         }`}
                       >
                         {pageNum}
@@ -362,7 +362,7 @@ export const DeviceModels = () => {
                     pageNum === 2 ||
                     pageNum === totalPages - 1
                   ) {
-                    return <span key={pageNum} className="text-[#bec8ce] px-1 text-xs">...</span>;
+                    return <span key={pageNum} className="text-muted-foreground px-1 text-xs">...</span>;
                   }
                   return null;
                 }).filter((el, idx, arr) => {
@@ -376,7 +376,7 @@ export const DeviceModels = () => {
                     setCurrentPage(prev => Math.min(prev + 1, totalPages));
                   }}
                   disabled={currentPage === totalPages || totalPages === 0}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-[#d8e2fd] disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                 >
                   Next
                 </button>
@@ -390,7 +390,7 @@ export const DeviceModels = () => {
           <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-xl w-full space-y-4 border-0 animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <DialogHeader className="text-left space-y-0.5">
-                <DialogTitle className="text-lg font-extrabold tracking-tight text-[#d8e2fd] p-0">
+                <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">
                   {editingModelId ? 'Update Hardware Template' : 'Create Hardware Template'}
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
@@ -400,12 +400,12 @@ export const DeviceModels = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-[#bec8ce] block mb-1">Model Name</label>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">Model Name</label>
                     <input
                       type="text"
                       placeholder="e.g. Amber Shield V4"
                       {...register('name')}
-                      className={`flex h-9 w-full rounded-lg border bg-primary/5 px-3 py-1 text-sm shadow-sm transition-all placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-[#d8e2fd] ${
+                      className={`flex h-9 w-full rounded-lg border bg-primary/5 px-3 py-1 text-sm shadow-sm transition-all placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground ${
                         errors.name ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-primary/10'
                       }`}
                     />
@@ -414,12 +414,12 @@ export const DeviceModels = () => {
                     )}
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-[#bec8ce] block mb-1">Brand</label>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">Brand</label>
                     <input
                       type="text"
                       placeholder="e.g. Amber Connect"
                       {...register('brand')}
-                      className={`flex h-9 w-full rounded-lg border bg-primary/5 px-3 py-1 text-sm shadow-sm transition-all placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-[#d8e2fd] ${
+                      className={`flex h-9 w-full rounded-lg border bg-primary/5 px-3 py-1 text-sm shadow-sm transition-all placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground ${
                         errors.brand ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-primary/10'
                       }`}
                     />
@@ -431,13 +431,13 @@ export const DeviceModels = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-[#bec8ce] block mb-1">Asset Classification</label>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">Asset Classification</label>
                     <Controller
                       control={control}
                       name="assetType"
                       render={({ field }) => (
                         <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
+                          <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
                             <SelectValue placeholder="Select type..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -453,7 +453,7 @@ export const DeviceModels = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-[#bec8ce] block mb-1">
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
                       Max Stock Target
                     </label>
                     <input
@@ -461,27 +461,27 @@ export const DeviceModels = () => {
                       min={0}
                       placeholder="e.g. 200"
                       {...register('maxStock')}
-                      className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-[#d8e2fd]"
+                      className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground"
                     />
                     <p className="text-[10px] text-muted-foreground mt-0.5">Used for stock health alerts. Set to 0 to disable.</p>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-[#bec8ce] block mb-1">
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
                     Identifier Barcode Pattern (Regex)
                   </label>
                   <input
                     type="text"
                     placeholder="e.g. ^TRK-\d{6}$"
                     {...register('identifierPattern')}
-                    className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-[#d8e2fd] font-mono"
+                    className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground font-mono"
                   />
                   <p className="text-[10px] text-muted-foreground mt-0.5">Used to validate scanned identifiers (e.g. SIM cards, trackers). Empty disables validation.</p>
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-[#bec8ce] block mb-2">
+                  <label className="text-xs font-semibold text-muted-foreground block mb-2">
                     Allowed Components (Polymorphic Links)
                   </label>
                   <div className="flex flex-wrap gap-4 p-3 border border-primary/10 rounded-xl bg-primary/5">
@@ -494,7 +494,7 @@ export const DeviceModels = () => {
                         />
                         <label 
                           htmlFor={`type-${type}`}
-                          className="text-[10px] font-bold leading-none uppercase tracking-wider cursor-pointer select-none text-[#d8e2fd]"
+                          className="text-[10px] font-bold leading-none uppercase tracking-wider cursor-pointer select-none text-foreground"
                         >
                           {type}
                         </label>
@@ -510,13 +510,13 @@ export const DeviceModels = () => {
                   <button
                     type="button"
                     onClick={() => { setIsAdding(false); setEditingModelId(null); }}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-[#0f1524]/60 text-[#bec8ce] hover:text-[#d8e2fd] hover:bg-primary/5 h-9 px-4 cursor-pointer"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-9 px-4 cursor-pointer"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 h-9 px-4 cursor-pointer"
                   >
                     {editingModelId ? 'Update Template' : 'Save Template'}
                   </button>
@@ -530,7 +530,7 @@ export const DeviceModels = () => {
           {viewModalModel && (
             <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-md w-full space-y-4 border-0 animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
               <DialogHeader className="text-left space-y-0.5">
-                <DialogTitle className="text-lg font-extrabold tracking-tight text-[#d8e2fd] p-0">Hardware Template Details</DialogTitle>
+                <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">Hardware Template Details</DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">Read-only configuration profile for this device template.</DialogDescription>
               </DialogHeader>
 
@@ -539,11 +539,11 @@ export const DeviceModels = () => {
                 <div className="grid grid-cols-2 gap-x-6 gap-y-2 border border-primary/10 rounded-xl bg-primary/5 p-3">
                   <div className="flex flex-col justify-center py-1 border-b border-primary/10">
                     <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Model Name</span>
-                    <span className="font-bold text-[#d8e2fd] text-xs truncate">{viewModalModel.name}</span>
+                    <span className="font-bold text-foreground text-xs truncate">{viewModalModel.name}</span>
                   </div>
                   <div className="flex flex-col justify-center py-1 border-b border-primary/10">
                     <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Brand</span>
-                    <span className="font-semibold text-[#d8e2fd] text-xs truncate">{viewModalModel.brand}</span>
+                    <span className="font-semibold text-foreground text-xs truncate">{viewModalModel.brand}</span>
                   </div>
                   <div className="flex flex-col justify-center py-1 border-b border-primary/10">
                     <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Classification</span>
@@ -555,7 +555,7 @@ export const DeviceModels = () => {
                   </div>
                   <div className="flex flex-col justify-center py-1 border-b border-primary/10">
                     <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Max Stock Target</span>
-                    <span className="font-semibold text-[#d8e2fd] text-xs">{viewModalModel.maxStock || 'None'}</span>
+                    <span className="font-semibold text-foreground text-xs">{viewModalModel.maxStock || 'None'}</span>
                   </div>
                   <div className="flex flex-col justify-center py-1 border-b border-primary/10 col-span-2 last:border-0 font-mono">
                     <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5 font-sans">Barcode Regex</span>
@@ -586,7 +586,7 @@ export const DeviceModels = () => {
                 <button
                   type="button"
                   onClick={() => setViewModalModel(null)}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-[#0f1524]/60 text-[#bec8ce] hover:text-[#d8e2fd] hover:bg-primary/5 h-9 px-4 cursor-pointer"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
                 >
                   Close Detail View
                 </button>
@@ -597,3 +597,4 @@ export const DeviceModels = () => {
       </div>
   );
 };
+

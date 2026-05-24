@@ -15,18 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select"
-
-interface Device {
-  id: string;
-  identifier: string;
-  modelId: string;
-  modelName: string;
-  type: string;
-  status: string;
-  metadata?: Record<string, any>;
-}
-
-
+import { useDevices, useRelationships } from '../../lib/hooks/useDomain';
+import { Device } from '../../lib/types/domain';
 
 const swapSchema = z.object({
   oldDeviceId: z.string().min(1, 'Select the faulty active unit'),
@@ -41,9 +31,11 @@ type SwapFormValues = z.infer<typeof swapSchema>;
 export const HardwareSwaps = () => {
   const { toast } = useFeedback();
   const { user } = useAuth();
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [relationships, setRelationships] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  const { data: devices = [], isLoading: isLoadingDevices, refetch: fetchDevices } = useDevices();
+  const { data: relationships = [], isLoading: isLoadingRels } = useRelationships();
+  
+  const isLoading = isLoadingDevices || isLoadingRels;
   const [search, setSearch] = useState('');
 
   // Pagination State
@@ -57,29 +49,6 @@ export const HardwareSwaps = () => {
       newDeviceId: ''
     }
   });
-
-  useEffect(() => {
-    fetchDevices();
-  }, []);
-
-  const fetchDevices = async () => {
-    setIsLoading(true);
-    try {
-      const data = await apiClient.get<Device[]>('/api/devices');
-      setDevices(data);
-
-      try {
-        const relData = await apiClient.get<any[]>('/api/device-links');
-        setRelationships(relData);
-      } catch (err) {
-        console.error("Failed to load device links", err);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const oldDeviceId = watch("oldDeviceId");
   const linkedRelationships = relationships.filter(r => r.primaryDeviceId === oldDeviceId);
@@ -97,7 +66,7 @@ export const HardwareSwaps = () => {
       if (responseData && !responseData.error) {
         toast.success('Hardware replacement swap processed and logged successfully!');
         reset();
-        fetchDevices();
+        await fetchDevices();
       } else {
         console.error("Swap endpoint returned error:", responseData?.error);
         toast.error(responseData?.error || 'Failed to process hardware swap.');
@@ -109,10 +78,10 @@ export const HardwareSwaps = () => {
   };
 
   // Lists
-  const dispatchedUnits = devices.filter(d => d.status === 'DISPATCHED');
-  const stockedUnits = devices.filter(d => d.status === 'IN_STOCK');
+  const dispatchedUnits = devices.filter((d: Device) => d.status === 'DISPATCHED');
+  const stockedUnits = devices.filter((d: Device) => d.status === 'IN_STOCK');
   
-  const damagedUnits = devices.filter(d => {
+  const damagedUnits = devices.filter((d: Device) => {
     const isDamaged = d.status === 'DAMAGED';
     const matchesSearch = d.identifier.toLowerCase().includes(search.toLowerCase()) ||
       d.modelName.toLowerCase().includes(search.toLowerCase());
@@ -132,8 +101,8 @@ export const HardwareSwaps = () => {
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-[#d8e2fd]">RMA Swaps & Replacements</h2>
-          <p className="text-sm text-[#bec8ce] mt-1">
+          <h2 className="text-2xl font-extrabold tracking-tight text-foreground">RMA Swaps & Replacements</h2>
+          <p className="text-sm text-muted-foreground mt-1">
             Swap out faulty field hardware tracking units with certified warehouse stock to maintain uptime.
           </p>
         </div>
@@ -143,7 +112,7 @@ export const HardwareSwaps = () => {
           <div className="md:col-span-1 glass-panel p-5 rounded-2xl space-y-4 h-fit">
             <div className="flex items-center gap-2 border-b border-primary/10 pb-3">
               <span className="material-symbols-outlined text-[18px] text-primary">sync</span>
-              <h3 className="font-extrabold text-sm text-[#d8e2fd]">Log Unit Replacement Swap</h3>
+              <h3 className="font-extrabold text-sm text-foreground">Log Unit Replacement Swap</h3>
             </div>
 
             {isLoading ? (
@@ -157,7 +126,7 @@ export const HardwareSwaps = () => {
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold text-[#bec8ce] block mb-1">
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
                       Faulty Field Unit (Dispatched)
                     </label>
                     <Controller
@@ -165,12 +134,12 @@ export const HardwareSwaps = () => {
                       name="oldDeviceId"
                       render={({ field }) => (
                         <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger className={`w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20 ${errors.oldDeviceId ? 'border-red-500/50 focus:ring-red-500/20' : ''}`}>
+                          <SelectTrigger className={`w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20 ${errors.oldDeviceId ? 'border-red-500/50 focus:ring-red-500/20' : ''}`}>
                             <SelectValue placeholder="Select active device..." />
                           </SelectTrigger>
                           <SelectContent>
-                            {dispatchedUnits.map(d => (
-                              <SelectItem key={d.id} value={d.id}>
+                            {dispatchedUnits.map((d: Device) => (
+                              <SelectItem key={d.id || ''} value={d.id || ''}>
                                 {d.identifier} - {d.modelName} ({d.metadata?.customerName || 'Unknown Fleet'})
                               </SelectItem>
                             ))}
@@ -186,17 +155,17 @@ export const HardwareSwaps = () => {
                   {inheritedComponents.length > 0 && (
                     <div className="bg-primary/5 border border-primary/10 rounded-xl p-3 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-[#bec8ce] uppercase tracking-wider block">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
                           Inherited Components ({inheritedComponents.length})
                         </span>
                         <span className="material-symbols-outlined text-sm text-primary animate-pulse">arrow_forward</span>
                       </div>
                       <div className="space-y-1.5">
                         {inheritedComponents.map((comp) => (
-                          <div key={comp.id} className="flex items-center justify-between text-xs bg-[#081326]/50 border border-primary/10 px-2 py-1 rounded-lg">
+                          <div key={comp.id} className="flex items-center justify-between text-xs bg-background/50 border border-primary/10 px-2 py-1 rounded-lg">
                             <div className="flex flex-col">
-                              <span className="font-bold text-[#d8e2fd] font-mono tracking-wider">{comp.identifier}</span>
-                              <span className="text-[9px] text-[#bec8ce]">{comp.modelName}</span>
+                              <span className="font-bold text-foreground font-mono tracking-wider">{comp.identifier}</span>
+                              <span className="text-[9px] text-muted-foreground">{comp.modelName}</span>
                             </div>
                             <span className="text-[9px] font-mono uppercase bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded text-primary font-bold">
                               {comp.type}
@@ -211,7 +180,7 @@ export const HardwareSwaps = () => {
                   )}
 
                   <div>
-                    <label className="text-xs font-semibold text-[#bec8ce] block mb-1">
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
                       Replacement Warehouse Unit (In Stock)
                     </label>
                     <Controller
@@ -219,12 +188,12 @@ export const HardwareSwaps = () => {
                       name="newDeviceId"
                       render={({ field }) => (
                         <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger className={`w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20 ${errors.newDeviceId ? 'border-red-500/50 focus:ring-red-500/20' : ''}`}>
+                          <SelectTrigger className={`w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20 ${errors.newDeviceId ? 'border-red-500/50 focus:ring-red-500/20' : ''}`}>
                             <SelectValue placeholder="Select replacement unit..." />
                           </SelectTrigger>
                           <SelectContent>
-                            {stockedUnits.map(d => (
-                              <SelectItem key={d.id} value={d.id}>{d.identifier} - {d.modelName}</SelectItem>
+                            {stockedUnits.map((d: Device) => (
+                              <SelectItem key={d.id || ''} value={d.id || ''}>{d.identifier} - {d.modelName}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -238,7 +207,7 @@ export const HardwareSwaps = () => {
                   {user?.role !== 'REVIEWER' ? (
                     <button 
                       type="submit" 
-                      className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-9 px-4 cursor-pointer"
+                      className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 h-9 px-4 cursor-pointer"
                     >
                       Perform Unit Replacement Swap
                     </button>
@@ -254,14 +223,14 @@ export const HardwareSwaps = () => {
 
           {/* Column 2 & 3: Damaged Registry */}
           <div className="md:col-span-2 space-y-4">
-            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 border border-primary/10 p-2 rounded-xl bg-[#0f1524]/60">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 border border-primary/10 p-2 rounded-xl bg-card/60">
               <div className="flex items-center gap-2 flex-1 px-2">
                 <span className="material-symbols-outlined text-sm text-muted-foreground shrink-0">search</span>
                 <input 
                   placeholder="Filter damaged/RMA units registry..." 
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="flex h-9 w-full bg-transparent px-2 py-1 text-sm focus-visible:outline-none placeholder:text-muted-foreground/30 text-[#d8e2fd] border-0"
+                  className="flex h-9 w-full bg-transparent px-2 py-1 text-sm focus-visible:outline-none placeholder:text-muted-foreground/30 text-foreground border-0"
                 />
               </div>
             </div>
@@ -289,13 +258,13 @@ export const HardwareSwaps = () => {
                       </TableRow>
                     ))
                   ) : paginatedDamaged.length > 0 ? (
-                    paginatedDamaged.map((device) => (
+                    paginatedDamaged.map((device: Device) => (
                       <TableRow key={device.id} className="group hover:bg-primary/5 transition-colors">
-                        <TableCell className="font-bold tracking-mono text-[#d8e2fd] font-mono text-xs">{device.identifier}</TableCell>
-                        <TableCell className="text-[#bec8ce]">{device.modelName}</TableCell>
+                        <TableCell className="font-bold tracking-mono text-foreground font-mono text-xs">{device.identifier}</TableCell>
+                        <TableCell className="text-muted-foreground">{device.modelName}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1.5 font-bold text-[#d8e2fd] text-xs">
-                            <span className="material-symbols-outlined text-xs text-[#bec8ce]">person</span>
+                          <div className="flex items-center gap-1.5 font-bold text-foreground text-xs">
+                            <span className="material-symbols-outlined text-xs text-muted-foreground">person</span>
                             <span>{device.metadata?.customerName || 'Internal Inventory'}</span>
                           </div>
                         </TableCell>
@@ -310,10 +279,10 @@ export const HardwareSwaps = () => {
                             </span>
                           )}
                         </TableCell>
-                        <TableCell className="text-[#bec8ce] text-xs">
+                        <TableCell className="text-muted-foreground text-xs">
                           {device.metadata?.swappedAt ? (
                             <div className="flex items-center gap-1.5">
-                              <span className="material-symbols-outlined text-xs text-[#bec8ce]">calendar_today</span>
+                              <span className="material-symbols-outlined text-xs text-muted-foreground">calendar_today</span>
                               <span>
                                 {new Date(device.metadata.swappedAt).toLocaleDateString(undefined, {
                                   month: 'short',
@@ -358,7 +327,7 @@ export const HardwareSwaps = () => {
                     type="button"
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-[#d8e2fd] disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                   >
                     Previous
                   </button>
@@ -377,8 +346,8 @@ export const HardwareSwaps = () => {
                           onClick={() => setCurrentPage(pageNum)}
                           className={`inline-flex items-center justify-center rounded-lg text-xs font-bold h-8 w-8 transition-colors cursor-pointer ${
                             currentPage === pageNum
-                              ? 'bg-primary text-[#081326]'
-                              : 'border border-primary/10 bg-primary/5 text-[#d8e2fd] hover:bg-primary/15'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'border border-primary/10 bg-primary/5 text-foreground hover:bg-primary/15'
                           }`}
                         >
                           {pageNum}
@@ -386,7 +355,7 @@ export const HardwareSwaps = () => {
                       );
                     }
                     if (pageNum === 2 || pageNum === totalPages - 1) {
-                      return <span key={pageNum} className="text-[#bec8ce] px-1 text-xs">...</span>;
+                      return <span key={pageNum} className="text-muted-foreground px-1 text-xs">...</span>;
                     }
                     return null;
                   }).filter((el, idx, arr) => {
@@ -398,7 +367,7 @@ export const HardwareSwaps = () => {
                     type="button"
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages || totalPages === 0}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-[#d8e2fd] disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                   >
                     Next
                   </button>
@@ -410,3 +379,4 @@ export const HardwareSwaps = () => {
       </div>
   );
 };
+

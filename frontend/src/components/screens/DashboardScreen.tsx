@@ -262,8 +262,8 @@ export const DashboardScreen = () => {
         {/* Header Section */}
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-[#d8e2fd]">Warehouse Operations</h1>
-            <p className="text-[#bec8ce] mt-1 text-sm">Real-time logistics and inventory health telemetry.</p>
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Warehouse Operations</h1>
+            <p className="text-muted-foreground mt-1 text-sm">Real-time logistics and inventory health telemetry.</p>
           </div>
         </div>
 
@@ -280,7 +280,7 @@ export const DashboardScreen = () => {
             <>
               <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(125,211,252,0.08)] transition-all">
                 <div className="flex justify-between items-start">
-                  <span className="text-xs font-semibold text-[#bec8ce] uppercase tracking-widest">Total Hardware</span>
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Total Hardware</span>
                   <span className="material-symbols-outlined text-primary text-xl">inventory</span>
                 </div>
                 <div className="mt-4">
@@ -293,7 +293,7 @@ export const DashboardScreen = () => {
 
               <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(125,211,252,0.08)] transition-all">
                 <div className="flex justify-between items-start">
-                  <span className="text-xs font-semibold text-[#bec8ce] uppercase tracking-widest">Active Dispatched</span>
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Active Dispatched</span>
                   <span className="material-symbols-outlined text-secondary-foreground text-xl">local_shipping</span>
                 </div>
                 <div className="mt-4">
@@ -306,7 +306,7 @@ export const DashboardScreen = () => {
 
               <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(125,211,252,0.08)] transition-all">
                 <div className="flex justify-between items-start">
-                  <span className="text-xs font-semibold text-[#bec8ce] uppercase tracking-widest">Testing Bench</span>
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Testing Bench</span>
                   <span className="material-symbols-outlined text-purple-300 text-xl">biotech</span>
                 </div>
                 <div className="mt-4">
@@ -319,12 +319,12 @@ export const DashboardScreen = () => {
 
               <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(125,211,252,0.08)] transition-all">
                 <div className="flex justify-between items-start">
-                  <span className="text-xs font-semibold text-[#bec8ce] uppercase tracking-widest">Ready Stock</span>
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Ready Stock</span>
                   <span className="material-symbols-outlined text-primary text-xl">package_2</span>
                 </div>
                 <div className="mt-4">
                   <div className="text-2xl font-bold">{stats.inStock}</div>
-                  <div className="text-[10px] text-[#bec8ce] mt-1 flex items-center gap-1">
+                  <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
                     <span className="material-symbols-outlined text-[12px]">check_circle</span> 92% SLA target
                   </div>
                 </div>
@@ -332,7 +332,7 @@ export const DashboardScreen = () => {
 
               <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(125,211,252,0.08)] transition-all">
                 <div className="flex justify-between items-start">
-                  <span className="text-xs font-semibold text-[#bec8ce] uppercase tracking-widest">QC Pass Rate</span>
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">QC Pass Rate</span>
                   <span className="material-symbols-outlined text-primary text-xl">task_alt</span>
                 </div>
                 <div className="mt-4">
@@ -449,7 +449,7 @@ export const DashboardScreen = () => {
                         cx={p.x} 
                         cy={p.y} 
                         r={hoveredPoint === idx ? "5" : "3"} 
-                        className={`fill-[#081326] stroke-primary transition-all duration-100 ${hoveredPoint === idx ? 'stroke-2' : ''}`} 
+                        className={`fill-[var(--background)] stroke-primary transition-all duration-100 ${hoveredPoint === idx ? 'stroke-2' : ''}`} 
                       />
                       <text 
                         x={p.x} 
@@ -586,7 +586,7 @@ export const DashboardScreen = () => {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-[#0f1524]/40 text-[10px] uppercase tracking-widest text-muted-foreground/80 font-bold border-b border-primary/10">
+                <thead className="bg-card/40 text-[10px] uppercase tracking-widest text-muted-foreground/80 font-bold border-b border-primary/10">
                   <tr>
                     <th className="px-6 py-4 font-bold">SKU / Model</th>
                     <th className="px-6 py-4 font-bold">Current Level</th>
@@ -625,7 +625,7 @@ export const DashboardScreen = () => {
                         <tr key={profile.id} className="hover:bg-primary/5 transition-colors group">
                           <td className="px-6 py-4">
                             <div className="flex flex-col">
-                              <span className="text-sm font-bold text-[#d8e2fd]">{profile.name}</span>
+                              <span className="text-sm font-bold text-foreground">{profile.name}</span>
                               <span className="text-[10px] text-muted-foreground uppercase mt-0.5 tracking-wider">{profile.brand} / {profile.assetType}</span>
                             </div>
                           </td>
@@ -688,21 +688,21 @@ export const DashboardScreen = () => {
                       return (
                         <div key={log.id} className="relative group">
                           {/* Timeline dot */}
-                          <span className={`absolute -left-[20px] top-1.5 h-2 w-2 rounded-full border-2 border-[#081326] ${dotColor} ring-4 ring-[#081326]/40`} />
+                          <span className={`absolute -left-[20px] top-1.5 h-2 w-2 rounded-full border-2 border-[var(--background)] ${dotColor} ring-4 ring-background/40`} />
                           
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <span className="text-[9px] font-bold text-primary font-mono">{log.actionType}</span>
                               <span className="text-[9px] text-muted-foreground">{formatTime(log.createdAt)}</span>
                             </div>
-                            <p className="text-xs font-semibold text-[#d8e2fd] leading-tight">{log.details}</p>
+                            <p className="text-xs font-semibold text-foreground leading-tight">{log.details}</p>
                           </div>
                         </div>
                       );
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-xs text-[#bec8ce] italic">
+                  <div className="text-center py-12 text-xs text-muted-foreground italic">
                     No recent operations.
                   </div>
                 )}
@@ -715,10 +715,10 @@ export const DashboardScreen = () => {
                 <span className="material-symbols-outlined text-primary text-xl">lightbulb</span>
                 <h4 className="font-bold text-sm text-primary uppercase tracking-wider text-[11px]">Warehouse Insight</h4>
               </div>
-              <p className="text-xs text-[#d8e2fd] leading-relaxed">
+              <p className="text-xs text-foreground leading-relaxed">
                 SIM card stock is low. Current remaining inventory is 200 units (minimum limit 500). Recommend scan-in box arrival.
               </p>
-              <a href="/inventory" className="mt-4 w-full block text-center py-2 bg-primary text-[#081326] text-[10px] font-bold uppercase tracking-widest rounded-lg hover:brightness-110 active:scale-95 transition-all">
+              <a href="/inventory" className="mt-4 w-full block text-center py-2 bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest rounded-lg hover:brightness-110 active:scale-95 transition-all">
                 Ingest Inventory
               </a>
             </div>
@@ -727,4 +727,5 @@ export const DashboardScreen = () => {
       </div>
   );
 };
+
 

@@ -55,7 +55,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const handleExpired = () => {
       setUser(null);
       setSession(null);
-      window.location.href = '/';
     };
 
     window.addEventListener('auth-session-expired', handleExpired);
@@ -89,8 +88,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setUser(null);
       setSession(null);
-      // Force reload to clear routing states
-      window.location.href = '/';
     }
   };
 

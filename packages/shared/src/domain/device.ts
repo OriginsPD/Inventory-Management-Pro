@@ -6,6 +6,7 @@ export const DeviceSchema = z.object({
   identifier: z.string().min(1, 'Identifier is required'), // IMEI, ISN, ICCID
   modelId: z.string().uuid('Invalid model reference'),
   status: DeviceStatus.default('IN_STOCK'),
+  customerId: z.string().uuid().nullish(),
   metadata: z.record(z.any()).default({}).optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),

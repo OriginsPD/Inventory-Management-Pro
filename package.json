@@ -16,5 +16,9 @@
     "eslint": "^10.4.0",
     "prettier": "^3.8.3",
     "typescript-eslint": "^8.59.4"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.100.14",
+    "react-router-dom": "^7.15.1"
   }
 }

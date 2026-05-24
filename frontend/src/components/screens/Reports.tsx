@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Skeleton } from '../ui/skeleton';
 import { EmptyState } from '../ui/empty-state';
@@ -10,40 +10,11 @@ import {
   SelectValue 
 } from '../ui/select';
 import * as XLSX from 'xlsx';
-
-// Types representing fetched backend resources
-interface Device {
-  id: string;
-  identifier: string;
-  modelId: string;
-  status: string;
-  customerId: string | null;
-  customerName: string | null;
-  metadata: Record<string, any>;
-  createdAt: string;
-  updatedAt: string;
-  modelName: string;
-  type: string;
-  linked: number;
-}
-
-interface Customer {
-  id: string;
-  name: string;
-  type: string;
-  phone: string | null;
-  email: string | null;
-  taxId: string | null;
-}
-
-interface AuditLog {
-  id: string;
-  deviceId: string | null;
-  deviceIdentifier: string | null;
-  actionType: string;
-  details: string;
-  createdAt: string;
-}
+import { playSuccessBeep, playErrorBuzz } from '../../lib/audio';
+import { useDevices, useCustomers } from '../../lib/hooks/useDomain';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '../../lib/api-client';
+import { Device, Customer, AuditLog } from '../../lib/types/domain';
 
 interface StockAlert {
   id: string;
@@ -55,81 +26,25 @@ interface StockAlert {
   level: 'HEALTHY' | 'WARNING' | 'LOW';
 }
 
-// Browser Audio Synthesizer Beeps
-const playAudioTone = (frequency: number, duration: number, type: 'sine' | 'square' | 'sawtooth' | 'triangle' = 'sine') => {
-  try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    
-    osc.type = type;
-    osc.frequency.value = frequency;
-    
-    gain.gain.setValueAtTime(0.12, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
-    
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    
-    osc.start();
-    osc.stop(ctx.currentTime + duration);
-  } catch (e) {
-    console.warn("AudioContext failed to play beep", e);
-  }
-};
-
-const playSuccessBeep = () => {
-  playAudioTone(850, 0.08, 'sine');
-  setTimeout(() => playAudioTone(1250, 0.1, 'sine'), 70);
-  if (window.navigator && window.navigator.vibrate) {
-    window.navigator.vibrate([50, 30, 50]);
-  }
-};
-
-const playErrorBuzz = () => {
-  playAudioTone(170, 0.25, 'triangle');
-  if (window.navigator && window.navigator.vibrate) {
-    window.navigator.vibrate(200);
-  }
-};
-
 type ReportType = 'inventory' | 'stock' | 'customer' | 'audit';
 
 export const ReportsScreen = () => {
-  const [activeReport, setActiveReport] = useState<ReportType>(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const tab = params.get('tab');
-      if (tab === 'inventory' || tab === 'stock' || tab === 'customer' || tab === 'audit') {
-        return tab;
-      }
-    }
-    return 'inventory';
+  const [activeReport, setActiveReport] = useState<ReportType>('inventory');
+
+  const { data: devices = [], isLoading: isLoadingDevices } = useDevices();
+  const { data: customers = [], isLoading: isLoadingCustomers } = useCustomers();
+  
+  const { data: auditLogs = [], isLoading: isLoadingLogs } = useQuery({
+    queryKey: ['audit-logs-full'],
+    queryFn: () => apiClient.get<AuditLog[]>('/api/audit-logs'),
   });
 
-  // Keep state in sync with history navigation
-  useEffect(() => {
-    const syncTabFromUrl = () => {
-      const params = new URLSearchParams(window.location.search);
-      const tab = params.get('tab');
-      if (tab === 'inventory' || tab === 'stock' || tab === 'customer' || tab === 'audit') {
-        setActiveReport(tab);
-      }
-    };
-    window.addEventListener('popstate', syncTabFromUrl);
-    return () => window.removeEventListener('popstate', syncTabFromUrl);
-  }, []);
-  
-  // Data States
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  const [stockAlerts, setStockAlerts] = useState<StockAlert[]>([]);
-  
-  // UX States
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: stockAlerts = [], isLoading: isLoadingAlerts } = useQuery({
+    queryKey: ['stock-alerts'],
+    queryFn: () => apiClient.get<StockAlert[]>('/api/stock-alerts'),
+  });
+
+  const isLoading = isLoadingDevices || isLoadingCustomers || isLoadingLogs || isLoadingAlerts;
   const [isExporting, setIsExporting] = useState(false);
   const [search, setSearch] = useState('');
   
@@ -141,44 +56,19 @@ export const ReportsScreen = () => {
   const [custTypeFilter, setCustTypeFilter] = useState<string>('ALL');
   const [actionFilter, setActionFilter] = useState<string>('ALL');
 
-  // Fetch all required data matrices on mount
-  useEffect(() => {
-    const fetchReportData = async () => {
-      try {
-        setIsLoading(true);
-        const [devicesRes, modelsRes, customersRes, logsRes, alertsRes] = await Promise.all([
-          fetch('http://localhost:3002/api/devices'),
-          fetch('http://localhost:3002/api/device-models'),
-          fetch('http://localhost:3002/api/customers'),
-          fetch('http://localhost:3002/api/audit-logs'),
-          fetch('http://localhost:3002/api/stock-alerts')
-        ]);
-        
-        if (devicesRes.ok) setDevices(await devicesRes.json());
-        if (modelsRes.ok) await modelsRes.json();
-        if (customersRes.ok) setCustomers(await customersRes.json());
-        if (logsRes.ok) setAuditLogs(await logsRes.json());
-        if (alertsRes.ok) setStockAlerts(await alertsRes.json());
-      } catch (err) {
-        console.error("Failed to load reports metrics data", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchReportData();
-  }, []);
+
 
   // O(N + M) calculation mapping devices counts to customers
   const customerReportData = useMemo(() => {
     const countsMap = new Map<string, number>();
-    devices.forEach(d => {
+    devices.forEach((d: Device) => {
       if (d.customerId) {
         countsMap.set(d.customerId, (countsMap.get(d.customerId) || 0) + 1);
       }
     });
-    return customers.map(c => ({
+    return customers.map((c: Customer) => ({
       ...c,
-      dispatchCount: countsMap.get(c.id) || 0
+      dispatchCount: countsMap.get(c.id || '') || 0
     }));
   }, [customers, devices]);
 
@@ -529,7 +419,7 @@ export const ReportsScreen = () => {
         {/* Header Block */}
         <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-[#d8e2fd] flex items-center gap-2">
+            <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-2xl select-none">analytics</span> 
               Reports Console
             </h1>
@@ -566,7 +456,7 @@ export const ReportsScreen = () => {
                   <span className="text-[10px] text-muted-foreground font-mono font-medium tracking-wide uppercase">{tab.label}</span>
                 </div>
                 <div className="mt-3">
-                  <h3 className={`text-xs font-bold transition-colors ${isActive ? 'text-primary' : 'text-[#d8e2fd]'}`}>{tab.title}</h3>
+                  <h3 className={`text-xs font-bold transition-colors ${isActive ? 'text-primary' : 'text-foreground'}`}>{tab.title}</h3>
                   <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{tab.desc}</p>
                 </div>
               </button>
@@ -578,7 +468,7 @@ export const ReportsScreen = () => {
         <div className="glass-panel rounded-2xl p-5 space-y-4 glow-accent">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-4 border-b border-primary/10">
             <div>
-              <h2 className="text-sm font-bold tracking-tight text-[#d8e2fd]">{activeReportDetails.title}</h2>
+              <h2 className="text-sm font-bold tracking-tight text-foreground">{activeReportDetails.title}</h2>
               <p className="text-[11px] text-muted-foreground mt-0.5">{activeReportDetails.description}</p>
             </div>
             
@@ -588,7 +478,7 @@ export const ReportsScreen = () => {
                 type="button"
                 onClick={handleExportCSV}
                 disabled={isLoading || isExporting || activeReportDetails.data.length === 0}
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-semibold transition-all border border-primary/10 bg-primary/5 text-[#d8e2fd] hover:bg-primary/10 h-8.5 px-3.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer gap-1.5"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-semibold transition-all border border-primary/10 bg-primary/5 text-foreground hover:bg-primary/10 h-8.5 px-3.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer gap-1.5"
               >
                 <span className="material-symbols-outlined text-sm select-none">download</span> CSV
               </button>
@@ -613,20 +503,20 @@ export const ReportsScreen = () => {
             
             {/* Search query */}
             <div className="relative col-span-1 sm:col-span-2 md:col-span-1">
-              <span className="absolute left-2.5 top-2.5 material-symbols-outlined text-[#bec8ce] text-base select-none">search</span>
+              <span className="absolute left-2.5 top-2.5 material-symbols-outlined text-muted-foreground text-base select-none">search</span>
               <input
                 type="text"
                 placeholder="Fuzzy search matching terms..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-9 w-full rounded-lg border border-primary/10 bg-primary/5 pl-9 pr-3 py-1 text-xs text-[#d8e2fd] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary/20 font-sans transition-all"
+                className="h-9 w-full rounded-lg border border-primary/10 bg-primary/5 pl-9 pr-3 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary/20 font-sans transition-all"
               />
             </div>
 
             {/* Inventory Type Filter (Inventory & Stock Health) */}
             {(activeReport === 'inventory' || activeReport === 'stock') && (
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
                   <SelectValue placeholder="Filter Asset Type" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border border-primary/10">
@@ -643,7 +533,7 @@ export const ReportsScreen = () => {
             {/* Inventory Status Filter */}
             {activeReport === 'inventory' && (
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
                   <SelectValue placeholder="Filter Device Status" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border border-primary/10">
@@ -660,13 +550,13 @@ export const ReportsScreen = () => {
             {/* Inventory Customer Filter */}
             {activeReport === 'inventory' && (
               <Select value={customerFilter} onValueChange={setCustomerFilter}>
-                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
                   <SelectValue placeholder="Filter Customer" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border border-primary/10">
                   <SelectItem value="ALL" className="text-xs">All Customers</SelectItem>
-                  {customers.map(c => (
-                    <SelectItem key={c.id} value={c.id} className="text-xs">{c.name}</SelectItem>
+                  {customers.map((c: Customer) => (
+                    <SelectItem key={c.id || ''} value={c.id || ''} className="text-xs">{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -675,7 +565,7 @@ export const ReportsScreen = () => {
             {/* Stock Health Level Filter */}
             {activeReport === 'stock' && (
               <Select value={healthFilter} onValueChange={setHealthFilter}>
-                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
                   <SelectValue placeholder="Filter Stock Status" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border border-primary/10">
@@ -690,7 +580,7 @@ export const ReportsScreen = () => {
             {/* Customer Type Filter */}
             {activeReport === 'customer' && (
               <Select value={custTypeFilter} onValueChange={setCustTypeFilter}>
-                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
                   <SelectValue placeholder="Filter Client Type" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border border-primary/10">
@@ -704,7 +594,7 @@ export const ReportsScreen = () => {
             {/* Audit Log Action Filter */}
             {activeReport === 'audit' && (
               <Select value={actionFilter} onValueChange={setActionFilter}>
-                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
                   <SelectValue placeholder="Filter Audit Action" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border border-primary/10">
@@ -755,7 +645,7 @@ export const ReportsScreen = () => {
                     if (activeReport === 'inventory') {
                       return (
                         <TableRow key={row.id || idx} className="hover:bg-primary/5 border-b border-primary/5 transition-all">
-                          <TableCell className="font-mono text-[11px] font-semibold text-[#d8e2fd] px-4 py-2.5">
+                          <TableCell className="font-mono text-[11px] font-semibold text-foreground px-4 py-2.5">
                             {row.identifier}
                           </TableCell>
                           <TableCell className="text-xs font-semibold text-foreground/90 px-4 py-2.5">
@@ -916,7 +806,7 @@ export const ReportsScreen = () => {
             <div className="flex items-center gap-1">
               <span className="font-semibold text-foreground font-mono">{activeReportDetails.data.length}</span>
               <span>of</span>
-              <span className="font-semibold text-[#d8e2fd] font-mono">{activeReportDetails.total}</span>
+              <span className="font-semibold text-foreground font-mono">{activeReportDetails.total}</span>
               <span>records match the applied parameters.</span>
             </div>
             <div className="flex items-center gap-1 text-[9px] bg-primary/5 px-2.5 py-1 rounded-lg border border-primary/10 font-mono uppercase tracking-wide">
@@ -930,4 +820,5 @@ export const ReportsScreen = () => {
       </div>
   );
 };
+
 

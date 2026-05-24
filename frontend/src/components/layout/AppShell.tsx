@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { CommandMenu } from '../ui/command-menu';
 import { apiClient } from '../../lib/api-client';
 import { useAuth } from '../ui/auth-context';
+import { Link, useLocation } from 'react-router-dom';
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const currentPath = window.location.pathname;
+  const location = useLocation();
+  const currentPath = location.pathname;
   const [stockAlerts, setStockAlerts] = useState<any[]>([]);
 
   useEffect(() => {
@@ -56,7 +58,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
   ];
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex bg-[#081326] text-[#d8e2fd] font-sans antialiased selection:bg-primary/30 relative">
+    <div className="h-screen w-screen overflow-hidden flex bg-background text-foreground font-sans antialiased selection:bg-primary/30 relative">
       {/* Background Glow Decorations */}
       <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/5 blur-[120px] rounded-full pointer-events-none -z-10" />
       <div className="absolute bottom-[-5%] left-[-5%] w-[40%] h-[40%] bg-primary/5 blur-[100px] rounded-full pointer-events-none -z-10" />
@@ -70,7 +72,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
       )}
 
       {/* Sidebar Component */}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex h-full w-60 flex-col border-r border-primary/10 bg-[#0f1524]/60 backdrop-blur-2xl transition-transform duration-200 lg:static lg:translate-x-0 shrink-0 ${
+      <aside className={`fixed inset-y-0 left-0 z-50 flex h-full w-60 flex-col border-r border-primary/10 bg-card/60 backdrop-blur-2xl transition-transform duration-200 lg:static lg:translate-x-0 shrink-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="flex h-14 items-center justify-between px-6 border-b border-primary/10 shrink-0">
@@ -96,18 +98,18 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
                 {group.items.map((item) => {
                   const isActive = currentPath === item.path;
                   return (
-                    <a
+                    <Link
                       key={item.name}
-                      href={item.path}
+                      to={item.path}
                       className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-300 ${
                         isActive 
                           ? 'bg-primary/5 text-primary border-r-2 border-primary font-semibold' 
-                          : 'text-[#bec8ce] hover:bg-primary/5 hover:text-[#d8e2fd]'
+                          : 'text-muted-foreground hover:bg-primary/5 hover:text-foreground'
                       }`}
                     >
                       <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
                       {item.name}
-                    </a>
+                    </Link>
                   );
                 })}
               </div>
@@ -123,10 +125,10 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
                 <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary/20 text-xs font-bold text-primary">
                   {user?.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'U'}
                 </div>
-                <span className="absolute bottom-0 right-0 block h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-[#0f1524]" />
+                <span className="absolute bottom-0 right-0 block h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-background" />
               </div>
               <div className="overflow-hidden">
-                <p className="text-xs font-semibold truncate leading-tight text-[#d8e2fd]">{user?.name}</p>
+                <p className="text-xs font-semibold truncate leading-tight text-foreground">{user?.name}</p>
                 <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-wider mt-0.5">
                   {user?.role === 'SUPER_USER' ? 'Super User' : user?.role === 'TECHNICIAN' ? 'Technician' : 'Reviewer'}
                 </p>
@@ -134,7 +136,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
             </div>
             <button 
               onClick={logout} 
-              className="p-1 hover:bg-destructive/10 rounded-lg text-[#bec8ce] hover:text-destructive transition-colors shrink-0 cursor-pointer" 
+              className="p-1 hover:bg-destructive/10 rounded-lg text-muted-foreground hover:text-destructive transition-colors shrink-0 cursor-pointer" 
               title="Logout"
             >
               <span className="material-symbols-outlined text-[18px]">logout</span>
@@ -158,7 +160,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
 
       {/* Main Content Layout */}
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
-        <header className="flex h-14 items-center justify-between border-b border-primary/10 bg-[#081326]/60 backdrop-blur-xl px-6 shrink-0 z-10">
+        <header className="flex h-14 items-center justify-between border-b border-primary/10 bg-background/60 backdrop-blur-xl px-6 shrink-0 z-10">
           <button 
             onClick={() => setSidebarOpen(true)}
             className="p-1.5 -ml-1.5 lg:hidden text-muted-foreground hover:text-foreground"

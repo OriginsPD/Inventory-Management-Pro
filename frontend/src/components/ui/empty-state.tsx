@@ -36,9 +36,9 @@ export function EmptyState({
           )}
         </div>
       )}
-      <h3 className="text-xs font-semibold text-[#d8e2fd] tracking-tight">{title}</h3>
+      <h3 className="text-xs font-semibold text-foreground tracking-tight">{title}</h3>
       {description && (
-        <p className="text-[11px] text-[#bec8ce] mt-1 max-w-[280px] leading-relaxed">
+        <p className="text-[11px] text-muted-foreground mt-1 max-w-[280px] leading-relaxed">
           {description}
         </p>
       )}
@@ -46,4 +46,5 @@ export function EmptyState({
     </div>
   )
 }
+
 

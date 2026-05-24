@@ -25,30 +25,8 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table"
-
-interface Device {
-  id: string;
-  identifier: string;
-  modelId: string;
-  modelName: string;
-  type: string;
-  status: string;
-  customerId?: string | null;
-  metadata?: Record<string, any>;
-}
-
-interface Relationship {
-  id: string;
-  primaryDeviceId: string;
-  linkedDeviceId: string;
-  createdAt: string;
-}
-
-interface Customer {
-  id: string;
-  name: string;
-  type: string;
-}
+import { useDevices, useCustomers, useRelationships } from '../../lib/hooks/useDomain';
+import { Device } from '../../lib/types/domain';
 
 interface DeviceNode {
   device: Device;
@@ -64,10 +42,12 @@ type DispatchFormValues = z.infer<typeof dispatchSchema>;
 export const CustomerDispatch = () => {
   const { toast, confirm } = useFeedback();
   const { user } = useAuth();
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [relationships, setRelationships] = useState<Relationship[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  const { data: devices = [], isLoading: isLoadingDevices, refetch: refetchDevices } = useDevices();
+  const { data: customers = [], isLoading: isLoadingCustomers } = useCustomers();
+  const { data: relationships = [], isLoading: isLoadingRels } = useRelationships();
+  
+  const isLoading = isLoadingDevices || isLoadingCustomers || isLoadingRels;
   
   // Tabs State
   const [activeTab, setActiveTab] = useState<'console' | 'registry'>('console');
@@ -107,28 +87,6 @@ export const CustomerDispatch = () => {
       customerId: ''
     }
   });
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const devData = await apiClient.get<Device[]>('/api/devices');
-      setDevices(devData);
-
-      const custData = await apiClient.get<Customer[]>('/api/customers');
-      setCustomers(custData);
-
-      const relData = await apiClient.get<Relationship[]>('/api/device-links');
-      setRelationships(relData);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleOpenSelectModal = () => {
     setModalSelectedIds(new Set(stagedDeviceIds));
@@ -185,7 +143,7 @@ export const CustomerDispatch = () => {
         toast.success(`Successfully dispatched ${stagedDeviceIds.length} units to ${customer?.name || 'fleet'}`);
         setStagedDeviceIds([]);
         reset();
-        await fetchData();
+        await refetchDevices();
       }
     } catch (e) {
       console.error(e);
@@ -229,7 +187,7 @@ export const CustomerDispatch = () => {
         if (viewBatch && viewBatch.dispatchedAt === batch.dispatchedAt && viewBatch.customerId === batch.customerId) {
           setViewBatch(null);
         }
-        await fetchData();
+        await refetchDevices();
       }
     } catch (e) {
       console.error(e);
@@ -332,7 +290,7 @@ export const CustomerDispatch = () => {
     const childIds = new Set<string>();
 
     batchDevices.forEach(d => {
-      deviceMap.set(d.id, { device: d, children: [] });
+      deviceMap.set(d.id || '', { device: d, children: [] });
     });
 
     relationships.forEach(r => {
@@ -346,8 +304,8 @@ export const CustomerDispatch = () => {
 
     const roots: DeviceNode[] = [];
     batchDevices.forEach(d => {
-      if (!childIds.has(d.id)) {
-        const node = deviceMap.get(d.id);
+      if (!childIds.has(d.id || '')) {
+        const node = deviceMap.get(d.id || '');
         if (node) roots.push(node);
       }
     });
@@ -366,13 +324,13 @@ export const CustomerDispatch = () => {
     return (
       <div key={node.device.id} className="space-y-1">
         <div 
-          className="flex items-center justify-between p-2.5 rounded-xl border border-primary/10 bg-[#081326]/50 shadow-sm text-xs transition-all hover:bg-primary/5"
+          className="flex items-center justify-between p-2.5 rounded-xl border border-primary/10 bg-background/50 shadow-sm text-xs transition-all hover:bg-primary/5"
           style={{ marginLeft: `${depth * 20}px` }}
         >
           <div className="flex items-center gap-2 truncate">
             {depth > 0 && <span className="text-primary/30 font-mono select-none">└─</span>}
             <div className="truncate">
-              <div className="font-bold text-[#d8e2fd] font-mono tracking-wider truncate">{node.device.identifier}</div>
+              <div className="font-bold text-foreground font-mono tracking-wider truncate">{node.device.identifier}</div>
               <div className="text-[10px] text-primary uppercase font-extrabold tracking-wider">{node.device.type} — {node.device.modelName}</div>
             </div>
           </div>
@@ -389,19 +347,19 @@ export const CustomerDispatch = () => {
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
         <div className="flex flex-col gap-2 md:flex-row md:justify-between md:items-start border-b border-primary/10 pb-4">
           <div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-[#d8e2fd]">Customer Dispatch</h2>
-            <p className="text-sm text-[#bec8ce] mt-1">
+            <h2 className="text-2xl font-extrabold tracking-tight text-foreground">Customer Dispatch</h2>
+            <p className="text-sm text-muted-foreground mt-1">
               Select, stage, and dispatch hardware batches to client fleets, and trace registry distribution history.
             </p>
           </div>
           
           {/* Tab Navigation Menu Bar */}
-          <div className="flex bg-[#0f1524]/60 p-1 rounded-lg border border-primary/10 shrink-0 h-fit mt-2 md:mt-0">
+          <div className="flex bg-card/60 p-1 rounded-lg border border-primary/10 shrink-0 h-fit mt-2 md:mt-0">
             <button
               onClick={() => setActiveTab('console')}
               className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all cursor-pointer ${
                 activeTab === 'console'
-                  ? 'bg-primary text-[#081326] shadow-sm'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -411,7 +369,7 @@ export const CustomerDispatch = () => {
               onClick={() => setActiveTab('registry')}
               className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all cursor-pointer ${
                 activeTab === 'registry'
-                  ? 'bg-primary text-[#081326] shadow-sm'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -427,7 +385,7 @@ export const CustomerDispatch = () => {
             <div className="glass-panel p-5 rounded-2xl space-y-4 md:col-span-2">
               <div className="flex items-center gap-2 border-b border-primary/10 pb-3">
                 <span className="material-symbols-outlined text-[18px] text-primary">local_shipping</span>
-                <h3 className="font-extrabold text-sm text-[#d8e2fd]">Assign New Dispatch</h3>
+                <h3 className="font-extrabold text-sm text-foreground">Assign New Dispatch</h3>
               </div>
               
               {isLoading ? (
@@ -442,18 +400,18 @@ export const CustomerDispatch = () => {
 
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <div>
-                      <label className="text-xs font-semibold text-[#bec8ce] block mb-1.5">Target Customer / Fleet</label>
+                      <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Target Customer / Fleet</label>
                       <Controller
                         control={control}
                         name="customerId"
                         render={({ field }) => (
                           <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
+                            <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
                               <SelectValue placeholder="Select customer..." />
                             </SelectTrigger>
                             <SelectContent>
                               {customers.map(c => (
-                                <SelectItem key={c.id} value={c.id}>{c.name} ({c.type})</SelectItem>
+                                <SelectItem key={c.id} value={c.id || ''}>{c.name} ({c.type})</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -468,7 +426,7 @@ export const CustomerDispatch = () => {
                       <button 
                         type="submit" 
                         disabled={stagedDeviceIds.length === 0 || isSubmitting}
-                        className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 active:scale-95 h-9 px-4 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+                        className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 active:scale-95 h-9 px-4 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
                       >
                         {isSubmitting ? 'Processing Dispatch...' : `Confirm Dispatch Batch (${stagedDeviceIds.length})`}
                       </button>
@@ -486,8 +444,8 @@ export const CustomerDispatch = () => {
             <div className="glass-panel p-5 rounded-2xl space-y-4 md:col-span-3">
               <div className="flex items-center justify-between border-b border-primary/10 pb-3">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[18px] text-[#bec8ce]">layers</span>
-                  <h3 className="font-extrabold text-sm text-[#d8e2fd]">Staging Queue ({stagedDeviceIds.length})</h3>
+                  <span className="material-symbols-outlined text-[18px] text-muted-foreground">layers</span>
+                  <h3 className="font-extrabold text-sm text-foreground">Staging Queue ({stagedDeviceIds.length})</h3>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -504,7 +462,7 @@ export const CustomerDispatch = () => {
                     <button
                       type="button"
                       onClick={handleOpenSelectModal}
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-7 px-3 gap-1 cursor-pointer"
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 h-7 px-3 gap-1 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-sm">add</span> Stage Devices
                     </button>
@@ -521,7 +479,7 @@ export const CustomerDispatch = () => {
                     <button
                       type="button"
                       onClick={handleOpenSelectModal}
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-8 px-3 gap-1 cursor-pointer"
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 h-8 px-3 gap-1 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-sm">add</span> Stage Devices
                     </button>
@@ -541,16 +499,16 @@ export const CustomerDispatch = () => {
                       const parentDev = parentRel ? devices.find(dev => dev.id === parentRel.primaryDeviceId) : null;
 
                       return (
-                        <div key={d.id} className="text-xs border border-primary/10 bg-[#081326]/50 rounded-xl p-3 space-y-1.5 shadow-sm relative pr-10">
+                        <div key={d.id} className="text-xs border border-primary/10 bg-background/50 rounded-xl p-3 space-y-1.5 shadow-sm relative pr-10">
                           <button
                             type="button"
-                            onClick={() => onRemoveFromQueue(d.id)}
+                            onClick={() => onRemoveFromQueue(d.id || '')}
                             className="absolute top-3 right-3 text-muted-foreground hover:text-red-400 hover:bg-primary/5 p-1 rounded-lg transition-colors cursor-pointer"
                           >
                             <span className="material-symbols-outlined text-sm">close</span>
                           </button>
                           
-                          <div className="font-bold text-[#d8e2fd] font-mono text-sm tracking-wider">{d.identifier}</div>
+                          <div className="font-bold text-foreground font-mono text-sm tracking-wider">{d.identifier}</div>
                           <div className="text-[10px] text-primary uppercase font-extrabold tracking-wider">{d.type} — {d.modelName}</div>
                           
                           {childLinks.length > 0 && (
@@ -577,7 +535,7 @@ export const CustomerDispatch = () => {
 
               {/* Summary cue badge */}
               {stagedDeviceIds.length > 0 && (
-                <div className="bg-primary/10 text-[#d8e2fd] text-xs p-3 rounded-xl border border-primary/10 font-bold flex items-center gap-1.5 animate-in fade-in duration-200">
+                <div className="bg-primary/10 text-foreground text-xs p-3 rounded-xl border border-primary/10 font-bold flex items-center gap-1.5 animate-in fade-in duration-200">
                   <span className="material-symbols-outlined text-[18px] text-primary shrink-0">inventory_2</span>
                   <span>
                     Staging Summary: <strong>{totalStagedCount}</strong> units total ({stagedDeviceIds.length} direct, {stagedChildren.length} cascading components).
@@ -592,14 +550,14 @@ export const CustomerDispatch = () => {
         {activeTab === 'registry' && (
           <div className="space-y-4">
             {/* Registry Toolbar filters */}
-            <div className="flex flex-col md:flex-row gap-3 border border-primary/10 p-3.5 rounded-xl bg-[#0f1524]/60 justify-between items-center">
+            <div className="flex flex-col md:flex-row gap-3 border border-primary/10 p-3.5 rounded-xl bg-card/60 justify-between items-center">
               <div className="relative w-full md:flex-1">
                 <span className="material-symbols-outlined text-[18px] text-muted-foreground absolute left-3 top-2.5 pointer-events-none">search</span>
                 <input 
                   placeholder="Search serial, client fleet, model name..." 
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-[#d8e2fd]"
+                  className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground"
                 />
               </div>
 
@@ -607,7 +565,7 @@ export const CustomerDispatch = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-primary font-bold uppercase tracking-wider text-[10px]">Type:</span>
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="h-8 border-primary/10 bg-[#081326]/50 text-xs w-36 text-[#d8e2fd] rounded-lg">
+                    <SelectTrigger className="h-8 border-primary/10 bg-background/50 text-xs w-36 text-foreground rounded-lg">
                       <SelectValue placeholder="All Types" />
                     </SelectTrigger>
                     <SelectContent>
@@ -625,7 +583,7 @@ export const CustomerDispatch = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-primary font-bold uppercase tracking-wider text-[10px]">Topology:</span>
                   <Select value={linkFilter} onValueChange={setLinkFilter}>
-                    <SelectTrigger className="h-8 border-primary/10 bg-[#081326]/50 text-xs w-40 text-[#d8e2fd] rounded-lg">
+                    <SelectTrigger className="h-8 border-primary/10 bg-background/50 text-xs w-40 text-foreground rounded-lg">
                       <SelectValue placeholder="All Topologies" />
                     </SelectTrigger>
                     <SelectContent>
@@ -669,10 +627,10 @@ export const CustomerDispatch = () => {
 
                         return (
                           <TableRow key={batchKey} className="group hover:bg-primary/5 transition-colors">
-                            <TableCell className="align-middle text-xs font-mono text-[#bec8ce]">
+                            <TableCell className="align-middle text-xs font-mono text-muted-foreground">
                               <div className="flex items-center gap-1.5">
                                 <span className="material-symbols-outlined text-sm text-primary">calendar_today</span>
-                                <span className="font-bold text-[#d8e2fd]">
+                                <span className="font-bold text-foreground">
                                   {new Date(batch.dispatchedAt).toLocaleDateString(undefined, {
                                     month: 'short',
                                     day: 'numeric',
@@ -688,17 +646,17 @@ export const CustomerDispatch = () => {
                                 </span>
                               </div>
                             </TableCell>
-                            <TableCell className="align-middle font-semibold text-[#d8e2fd]">
+                            <TableCell className="align-middle font-semibold text-foreground">
                               <div className="flex items-center gap-1.5">
                                 <span className="material-symbols-outlined text-sm text-primary">person</span>
                                 <span>{batch.customerName}</span>
                               </div>
                             </TableCell>
-                            <TableCell className="align-middle text-center font-bold text-[#d8e2fd]">
+                            <TableCell className="align-middle text-center font-bold text-foreground">
                               {primaryCount}
                             </TableCell>
-                            <TableCell className="align-middle text-center text-[#bec8ce] text-xs">
-                              <span className="font-bold text-[#d8e2fd]">{batch.devices.length}</span>
+                            <TableCell className="align-middle text-center text-muted-foreground text-xs">
+                              <span className="font-bold text-foreground">{batch.devices.length}</span>
                               <span className="text-[10px] text-muted-foreground ml-1">({cascadeCount} child components)</span>
                             </TableCell>
                             <TableCell className="align-middle text-right">
@@ -706,7 +664,7 @@ export const CustomerDispatch = () => {
                                 <button
                                   type="button"
                                   onClick={() => setViewBatch(batch)}
-                                  className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-[#d8e2fd] h-8 px-2.5 gap-1 cursor-pointer"
+                                  className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground h-8 px-2.5 gap-1 cursor-pointer"
                                 >
                                   <span className="material-symbols-outlined text-sm">visibility</span> View Details
                                 </button>
@@ -715,7 +673,7 @@ export const CustomerDispatch = () => {
                                     type="button"
                                     onClick={() => handleReturnBatch(batch)}
                                     disabled={isSubmitting}
-                                    className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-red-500/10 hover:text-red-400 text-[#d8e2fd] h-8 px-2.5 gap-1 cursor-pointer disabled:opacity-50"
+                                    className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-red-500/10 hover:text-red-400 text-foreground h-8 px-2.5 gap-1 cursor-pointer disabled:opacity-50"
                                   >
                                     <span className="material-symbols-outlined text-sm">sync</span> Return Stock
                                   </button>
@@ -754,7 +712,7 @@ export const CustomerDispatch = () => {
                       type="button"
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-[#d8e2fd] disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                     >
                       Previous
                     </button>
@@ -773,8 +731,8 @@ export const CustomerDispatch = () => {
                             onClick={() => setCurrentPage(pageNum)}
                             className={`inline-flex items-center justify-center rounded-lg text-xs font-bold h-8 w-8 transition-colors cursor-pointer ${
                               currentPage === pageNum
-                                ? 'bg-primary text-[#081326]'
-                                : 'border border-primary/10 bg-primary/5 text-[#d8e2fd] hover:bg-primary/15'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'border border-primary/10 bg-primary/5 text-foreground hover:bg-primary/15'
                             }`}
                           >
                             {pageNum}
@@ -782,7 +740,7 @@ export const CustomerDispatch = () => {
                         );
                       }
                       if (pageNum === 2 || pageNum === totalPages - 1) {
-                        return <span key={pageNum} className="text-[#bec8ce] px-1 text-xs">...</span>;
+                        return <span key={pageNum} className="text-muted-foreground px-1 text-xs">...</span>;
                       }
                       return null;
                     }).filter((el, idx, arr) => {
@@ -794,7 +752,7 @@ export const CustomerDispatch = () => {
                       type="button"
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages || totalPages === 0}
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-[#d8e2fd] disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                     >
                       Next
                     </button>
@@ -809,7 +767,7 @@ export const CustomerDispatch = () => {
         <Dialog open={isSelectModalOpen} onOpenChange={setIsSelectModalOpen}>
           <DialogContent className="glass-panel-elevated rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
             <DialogHeader className="p-6 border-b border-primary/10 text-left space-y-0.5">
-              <DialogTitle className="text-lg font-extrabold tracking-tight text-[#d8e2fd] p-0">Stage Available Devices</DialogTitle>
+              <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">Stage Available Devices</DialogTitle>
               <DialogDescription className="text-xs text-[#cbd5e1] mt-0.5">Select and queue available units from warehouse stock to prepare dispatch.</DialogDescription>
             </DialogHeader>
 
@@ -821,12 +779,12 @@ export const CustomerDispatch = () => {
                     placeholder="Search serial or model name..."
                     value={modalSearch}
                     onChange={(e) => setModalSearch(e.target.value)}
-                    className="flex h-9 w-full rounded-lg border border-primary/10 bg-[#081326]/50 pl-9 pr-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-[#d8e2fd] font-sans"
+                    className="flex h-9 w-full rounded-lg border border-primary/10 bg-background/50 pl-9 pr-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground font-sans"
                   />
                 </div>
                 <div className="w-full sm:w-48">
                   <Select value={modalTypeFilter} onValueChange={setModalTypeFilter}>
-                    <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-[#d8e2fd] focus:ring-primary/20">
+                    <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
                       <SelectValue placeholder="All Types" />
                     </SelectTrigger>
                     <SelectContent>
@@ -844,21 +802,21 @@ export const CustomerDispatch = () => {
 
               {/* Table List (Scrollable) */}
               <ScrollArea className="flex-1 p-4">
-                <div className="border border-primary/10 rounded-xl bg-[#081326]/50 overflow-hidden">
+                <div className="border border-primary/10 rounded-xl bg-background/50 overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-12 h-9 p-0 text-center">
                           <Checkbox 
-                            checked={filteredAvailable.length > 0 && filteredAvailable.every(d => modalSelectedIds.has(d.id))}
+                            checked={filteredAvailable.length > 0 && filteredAvailable.every(d => modalSelectedIds.has(d.id || ''))}
                             onCheckedChange={() => {
-                              const isAllSelected = filteredAvailable.length > 0 && filteredAvailable.every(d => modalSelectedIds.has(d.id));
+                              const isAllSelected = filteredAvailable.length > 0 && filteredAvailable.every(d => modalSelectedIds.has(d.id || ''));
                               setModalSelectedIds(prev => {
                                 const next = new Set(prev);
                                 if (isAllSelected) {
-                                  filteredAvailable.forEach(d => next.delete(d.id));
+                                  filteredAvailable.forEach(d => next.delete(d.id || ''));
                                 } else {
-                                  filteredAvailable.forEach(d => next.add(d.id));
+                                  filteredAvailable.forEach(d => next.add(d.id || ''));
                                 }
                                 return next;
                               });
@@ -873,20 +831,20 @@ export const CustomerDispatch = () => {
                     <TableBody>
                       {filteredAvailable.length > 0 ? (
                         filteredAvailable.map(d => {
-                          const isChecked = modalSelectedIds.has(d.id);
+                          const isChecked = modalSelectedIds.has(d.id || '');
                           return (
                             <TableRow 
-                              key={d.id} 
+                              key={d.id || ''} 
                               className={`transition-colors cursor-pointer ${
                                 isChecked ? 'bg-primary/10 hover:bg-primary/15' : 'hover:bg-primary/5'
                               }`}
                               onClick={() => {
                                 setModalSelectedIds(prev => {
                                   const next = new Set(prev);
-                                  if (next.has(d.id)) {
-                                    next.delete(d.id);
+                                  if (next.has(d.id || '')) {
+                                    next.delete(d.id || '');
                                   } else {
-                                    next.add(d.id);
+                                    next.add(d.id || '');
                                   }
                                   return next;
                                 });
@@ -898,18 +856,18 @@ export const CustomerDispatch = () => {
                                   onCheckedChange={() => {
                                     setModalSelectedIds(prev => {
                                       const next = new Set(prev);
-                                      if (next.has(d.id)) {
-                                        next.delete(d.id);
+                                      if (next.has(d.id || '')) {
+                                        next.delete(d.id || '');
                                       } else {
-                                        next.add(d.id);
+                                        next.add(d.id || '');
                                       }
                                       return next;
                                     });
                                   }}
                                 />
                               </TableCell>
-                              <TableCell className="font-bold font-mono text-[#d8e2fd] text-xs tracking-wider">{d.identifier}</TableCell>
-                              <TableCell className="text-xs text-[#bec8ce]">{d.modelName}</TableCell>
+                              <TableCell className="font-bold font-mono text-foreground text-xs tracking-wider">{d.identifier}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{d.modelName}</TableCell>
                               <TableCell className="text-xs text-primary uppercase font-bold tracking-wider text-[10px] font-mono">{d.type}</TableCell>
                             </TableRow>
                           );
@@ -933,21 +891,21 @@ export const CustomerDispatch = () => {
 
               {/* Footer */}
               <div className="p-4 border-t border-primary/10 flex justify-between items-center bg-primary/5">
-                <span className="text-xs text-[#bec8ce] font-semibold">
+                <span className="text-xs text-muted-foreground font-semibold">
                   Selected: {modalSelectedIds.size} unit(s)
                 </span>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setIsSelectModalOpen(false)}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-[#0f1524]/60 text-[#bec8ce] hover:text-[#d8e2fd] hover:bg-primary/5 h-9 px-4 cursor-pointer"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={handleCommitStaging}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:brightness-110 h-9 px-4 cursor-pointer"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 h-9 px-4 cursor-pointer"
                   >
                     Stage Selected ({modalSelectedIds.size})
                   </button>
@@ -961,10 +919,10 @@ export const CustomerDispatch = () => {
           {viewBatch && (
             <DialogContent className="glass-panel-elevated rounded-2xl max-w-xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
               <DialogHeader className="p-6 border-b border-primary/10 text-left space-y-0.5">
-                <DialogTitle className="text-lg font-extrabold tracking-tight text-[#d8e2fd] p-0">Dispatch Batch Details</DialogTitle>
+                <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">Dispatch Batch Details</DialogTitle>
                 <DialogDescription className="flex items-center gap-1.5 text-xs text-[#cbd5e1] mt-1">
                   <span className="material-symbols-outlined text-sm text-primary">person</span>
-                  <span className="font-bold text-[#d8e2fd]">{viewBatch.customerName}</span>
+                  <span className="font-bold text-foreground">{viewBatch.customerName}</span>
                   <span className="text-[10px] text-muted-foreground">•</span>
                   <span>
                     {new Date(viewBatch.dispatchedAt).toLocaleString(undefined, {
@@ -984,7 +942,7 @@ export const CustomerDispatch = () => {
                     <span className="material-symbols-outlined text-sm">layers</span>
                     Hierarchical Component Breakdown
                   </div>
-                  <div className="space-y-3 bg-[#081326]/40 p-4 border border-primary/10 rounded-xl">
+                  <div className="space-y-3 bg-background/40 p-4 border border-primary/10 rounded-xl">
                     {buildHierarchy(viewBatch.devices).length > 0 ? (
                       buildHierarchy(viewBatch.devices).map(rootNode => renderDeviceNode(rootNode))
                     ) : (
@@ -1001,7 +959,7 @@ export const CustomerDispatch = () => {
 
               {/* Footer */}
               <div className="p-4 border-t border-primary/10 flex justify-between items-center bg-primary/5">
-                <span className="text-xs text-[#bec8ce] font-semibold">
+                <span className="text-xs text-muted-foreground font-semibold">
                   Batch Total: {viewBatch.devices.length} unit(s)
                 </span>
                 <div className="flex gap-2">
@@ -1010,7 +968,7 @@ export const CustomerDispatch = () => {
                       type="button"
                       onClick={() => handleReturnBatch(viewBatch)}
                       disabled={isSubmitting}
-                      className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-red-500/10 hover:text-red-400 text-[#d8e2fd] h-9 px-4 gap-1 cursor-pointer"
+                      className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-red-500/10 hover:text-red-400 text-foreground h-9 px-4 gap-1 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-sm">sync</span> Return Entire Batch
                     </button>
@@ -1018,7 +976,7 @@ export const CustomerDispatch = () => {
                   <button
                     type="button"
                     onClick={() => setViewBatch(null)}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-[#0f1524]/60 text-[#bec8ce] hover:text-[#d8e2fd] hover:bg-primary/5 h-9 px-4 cursor-pointer"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
                   >
                     Close
                   </button>
@@ -1030,3 +988,4 @@ export const CustomerDispatch = () => {
       </div>
   );
 };
+

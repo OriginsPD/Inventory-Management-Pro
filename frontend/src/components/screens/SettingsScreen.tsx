@@ -125,7 +125,7 @@ export const SettingsScreen = () => {
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-[#d8e2fd]">System Settings</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">System Settings</h1>
           <p className="text-sm text-muted-foreground mt-1">Configure your warehouse terminal, system preferences, and allowed asset relationship link templates.</p>
         </div>
 
@@ -246,7 +246,7 @@ export const SettingsScreen = () => {
                       onClick={() => setTheme('light')}
                       className={`flex flex-col items-center justify-between p-4 rounded-lg border text-center transition-all ${
                         theme === 'light'
-                          ? 'border-primary bg-primary/10 ring-1 ring-primary text-[#d8e2fd]'
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary text-foreground'
                           : 'border-primary/10 bg-transparent text-muted-foreground hover:text-foreground hover:bg-primary/5'
                       }`}
                     >
@@ -259,7 +259,7 @@ export const SettingsScreen = () => {
                       onClick={() => setTheme('dark')}
                       className={`flex flex-col items-center justify-between p-4 rounded-lg border text-center transition-all ${
                         theme === 'dark'
-                          ? 'border-primary bg-primary/10 ring-1 ring-primary text-[#d8e2fd]'
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary text-foreground'
                           : 'border-primary/10 bg-transparent text-muted-foreground hover:text-foreground hover:bg-primary/5'
                       }`}
                     >
@@ -272,7 +272,7 @@ export const SettingsScreen = () => {
                       onClick={() => setTheme('system')}
                       className={`flex flex-col items-center justify-between p-4 rounded-lg border text-center transition-all ${
                         theme === 'system'
-                          ? 'border-primary bg-primary/10 ring-1 ring-primary text-[#d8e2fd]'
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary text-foreground'
                           : 'border-primary/10 bg-transparent text-muted-foreground hover:text-foreground hover:bg-primary/5'
                       }`}
                     >
@@ -294,7 +294,7 @@ export const SettingsScreen = () => {
 
                   <div className="flex items-center justify-between border-t border-primary/10 pt-4">
                     <div className="space-y-0.5">
-                      <label className="text-xs font-semibold text-[#d8e2fd]">Acoustic Gun Indicators</label>
+                      <label className="text-xs font-semibold text-foreground">Acoustic Gun Indicators</label>
                       <p className="text-[10px] text-muted-foreground">Play tone beeps for successful scans and low buzzes for errors.</p>
                     </div>
                     <button
@@ -304,7 +304,7 @@ export const SettingsScreen = () => {
                       }`}
                     >
                       <span
-                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-[#081326] shadow ring-0 transition duration-200 ease-in-out ${
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow ring-0 transition duration-200 ease-in-out ${
                           soundEnabled ? 'translate-x-4' : 'translate-x-0'
                         }`}
                       />
@@ -338,12 +338,12 @@ export const SettingsScreen = () => {
                           onClick={() => handleSelectAccent(accent.value)}
                           className={`flex flex-col items-center justify-between p-3.5 rounded-lg border text-center transition-all ${
                             isSelected
-                              ? 'border-primary bg-primary/10 ring-1 ring-primary text-[#d8e2fd]'
-                              : 'border-primary/10 bg-transparent text-muted-foreground hover:text-[#d8e2fd] hover:bg-primary/5'
+                              ? 'border-primary bg-primary/10 ring-1 ring-primary text-foreground'
+                              : 'border-primary/10 bg-transparent text-muted-foreground hover:text-foreground hover:bg-primary/5'
                           }`}
                         >
                           <span className={`h-4 w-4 rounded-full ${accent.bg} mb-2 shrink-0 flex items-center justify-center`}>
-                            {isSelected && <span className="material-symbols-outlined text-[10px] text-[#081326] font-bold">check</span>}
+                            {isSelected && <span className="material-symbols-outlined text-[10px] text-primary-foreground font-bold">check</span>}
                           </span>
                           <span className="text-[10px] font-semibold">{accent.name}</span>
                         </button>
@@ -367,7 +367,7 @@ export const SettingsScreen = () => {
                       className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                         density === 'default'
                           ? 'bg-primary/20 text-primary shadow-sm'
-                          : 'text-[#bec8ce] hover:text-[#d8e2fd]'
+                          : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
                       Standard Layout
@@ -377,7 +377,7 @@ export const SettingsScreen = () => {
                       className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                         density === 'compact'
                           ? 'bg-primary/20 text-primary shadow-sm'
-                          : 'text-[#bec8ce] hover:text-[#d8e2fd]'
+                          : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
                       High Density (Compact)
@@ -405,7 +405,7 @@ export const SettingsScreen = () => {
                   />
                   <button
                     onClick={handleAddOption}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-[#081326] shadow hover:bg-primary/95 h-10 px-4 gap-1.5"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:bg-primary/95 h-10 px-4 gap-1.5"
                   >
                     <span className="material-symbols-outlined text-sm">add</span> Add Type
                   </button>
@@ -422,18 +422,18 @@ export const SettingsScreen = () => {
                               value={editingOptionVal}
                               onChange={(e) => setEditingOptionVal(e.target.value)}
                               onKeyDown={(e) => { if (e.key === 'Enter') handleSaveEdit(idx); }}
-                              className="flex h-8 flex-1 rounded-lg border border-primary/20 bg-[#081326] px-2 py-0.5 text-xs font-mono uppercase text-primary"
+                              className="flex h-8 flex-1 rounded-lg border border-primary/20 bg-background px-2 py-0.5 text-xs font-mono uppercase text-primary"
                               autoFocus
                             />
                             <button
                               onClick={() => handleSaveEdit(idx)}
-                              className="px-3 py-1 text-[10px] bg-emerald-500 hover:bg-emerald-600 text-[#081326] rounded-md font-bold transition-colors"
+                              className="px-3 py-1 text-[10px] bg-emerald-500 hover:bg-emerald-600 text-primary-foreground rounded-md font-bold transition-colors"
                             >
                               Save
                             </button>
                             <button
                               onClick={() => setEditingOptionIdx(null)}
-                              className="px-3 py-1 text-[10px] bg-[#081326] hover:bg-primary/5 text-[#bec8ce] border border-primary/10 rounded-md font-semibold transition-colors"
+                              className="px-3 py-1 text-[10px] bg-background hover:bg-primary/5 text-muted-foreground border border-primary/10 rounded-md font-semibold transition-colors"
                             >
                               Cancel
                             </button>
@@ -444,13 +444,13 @@ export const SettingsScreen = () => {
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => handleStartEdit(idx, opt)}
-                                className="px-2.5 py-1 text-[10px] bg-[#081326] border border-primary/10 hover:bg-primary/5 text-primary rounded-md font-bold transition-all"
+                                className="px-2.5 py-1 text-[10px] bg-background border border-primary/10 hover:bg-primary/5 text-primary rounded-md font-bold transition-all"
                               >
                                 Edit
                               </button>
                               <button
                                 onClick={() => handleDeleteOption(idx)}
-                                className="px-2.5 py-1 text-[10px] bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-[#081326] rounded-md font-bold transition-all border border-red-500/20"
+                                className="px-2.5 py-1 text-[10px] bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-primary-foreground rounded-md font-bold transition-all border border-red-500/20"
                               >
                                 Delete
                               </button>
@@ -474,7 +474,7 @@ export const SettingsScreen = () => {
                   <span className="material-symbols-outlined text-sm">security</span>
                   <h3 className="font-bold text-xs uppercase tracking-wider">Workspace Verification</h3>
                 </div>
-                <div className="text-xs text-[#bec8ce] space-y-2.5 font-mono">
+                <div className="text-xs text-muted-foreground space-y-2.5 font-mono">
                   <div className="flex justify-between border-b border-primary/5 pb-2">
                     <span>Client Engine:</span>
                     <span className="text-primary font-bold">Vite React v19</span>
@@ -495,4 +495,5 @@ export const SettingsScreen = () => {
       </div>
   );
 };
+
 

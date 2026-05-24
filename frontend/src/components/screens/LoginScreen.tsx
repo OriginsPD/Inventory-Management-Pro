@@ -43,8 +43,8 @@ export const LoginScreen = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#081326] relative overflow-hidden select-none px-4">
-      {/* Background Decorative Rings */}
+    <div className="min-h-screen w-full flex items-center justify-center bg-background relative overflow-hidden select-none px-4 font-sans">
+      {/* Background Decorative Glows */}
       <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/5 blur-[100px] rounded-full pointer-events-none" />
 
@@ -56,76 +56,76 @@ export const LoginScreen = () => {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
             </span>
-            <span className="text-[10px] font-mono tracking-widest text-[#d8e2fd]">SECURE STATION GATEWAY</span>
+            <span className="text-[10px] font-mono tracking-widest text-primary/80">SECURE STATION GATEWAY</span>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#d8e2fd] via-[#7dd3fc] to-primary">
-            IMS Pro
+          <h1 className="text-4xl font-extrabold tracking-tighter text-foreground">
+            IMS<span className="text-primary ml-1">Pro</span>
           </h1>
-          <p className="text-xs text-[#bec8ce] font-mono uppercase tracking-wider">
-            Asset Intelligence Lifecycle Management
+          <p className="text-[11px] text-muted-foreground font-mono uppercase tracking-[0.2em]">
+            Asset Intelligence Lifecycle
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-[#0f1524]/60 border border-primary/15 backdrop-blur-2xl p-6 rounded-2xl shadow-2xl space-y-5">
+        <div className="glass-panel-elevated p-8 rounded-2xl shadow-2xl space-y-6 border-white/5">
           <div className="space-y-1">
-            <h2 className="text-base font-extrabold text-[#d8e2fd]">Sign In</h2>
-            <p className="text-xs text-[#bec8ce]">Provide credentials to initialize your user terminal session.</p>
+            <h2 className="text-lg font-bold text-foreground">Sign In</h2>
+            <p className="text-xs text-muted-foreground leading-relaxed">Initialize your technician terminal session to access warehouse telemetry.</p>
           </div>
 
           {errorMsg && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-xl font-semibold flex items-start gap-2 animate-in fade-in duration-200">
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive text-xs p-3 rounded-xl font-semibold flex items-start gap-2 animate-in fade-in duration-200">
               <span className="material-symbols-outlined text-[16px] mt-0.5">error</span>
               <span className="leading-tight">{errorMsg}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-[#bec8ce] uppercase tracking-wider block">
-                Email Address
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block ml-1">
+                User Email
               </label>
               <Input
                 type="email"
                 placeholder="operator@imspro.com"
-                className={`bg-[#081326]/50 border-primary/10 text-xs h-10 rounded-xl focus:border-primary/40 focus:ring-primary/10 text-[#d8e2fd] placeholder:text-muted-foreground/30 ${
-                  errors.email ? 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/10' : ''
+                className={`bg-background/50 border-border/50 text-sm h-11 rounded-xl focus:border-primary/40 focus:ring-primary/10 text-foreground placeholder:text-muted-foreground/30 transition-all ${
+                  errors.email ? 'border-destructive/50 focus:border-destructive/50 focus:ring-destructive/10' : ''
                 }`}
                 {...register('email')}
               />
               {errors.email && (
-                <p className="text-[10px] text-red-400 font-semibold mt-0.5">{errors.email.message}</p>
+                <p className="text-[10px] text-destructive font-semibold mt-1 ml-1">{errors.email.message}</p>
               )}
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-[#bec8ce] uppercase tracking-wider block">
-                Access Password
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block ml-1">
+                Access Token
               </label>
               <Input
                 type="password"
                 placeholder="••••••••"
-                className={`bg-[#081326]/50 border-primary/10 text-xs h-10 rounded-xl focus:border-primary/40 focus:ring-primary/10 text-[#d8e2fd] placeholder:text-muted-foreground/30 ${
-                  errors.password ? 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/10' : ''
+                className={`bg-background/50 border-border/50 text-sm h-11 rounded-xl focus:border-primary/40 focus:ring-primary/10 text-foreground placeholder:text-muted-foreground/30 transition-all ${
+                  errors.password ? 'border-destructive/50 focus:border-destructive/50 focus:ring-destructive/10' : ''
                 }`}
                 {...register('password')}
               />
               {errors.password && (
-                <p className="text-[10px] text-red-400 font-semibold mt-0.5">{errors.password.message}</p>
+                <p className="text-[10px] text-destructive font-semibold mt-1 ml-1">{errors.password.message}</p>
               )}
             </div>
 
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-primary hover:bg-primary/90 text-[#081326] font-bold rounded-xl h-10 text-xs cursor-pointer shadow-lg transition-all hover:shadow-primary/10 disabled:opacity-50 disabled:pointer-events-none mt-2"
+              className="w-full bg-primary hover:brightness-110 text-primary-foreground font-bold rounded-xl h-11 text-xs cursor-pointer shadow-lg transition-all disabled:opacity-50 disabled:pointer-events-none mt-2 active:scale-[0.98]"
             >
-              {isSubmitting ? 'Establishing Session...' : 'Authenticate Terminal'}
+              {isSubmitting ? 'ESTABLISHING LINK...' : 'AUTHENTICATE SESSION'}
             </Button>
           </form>
 
           {/* Quick-autofill Helper Box */}
-          <div className="border-t border-primary/10 pt-4 mt-2">
+          <div className="border-t border-border/50 pt-5 mt-2">
             <button
               onClick={handleAutofillAdmin}
               className="w-full group bg-primary/5 hover:bg-primary/10 border border-primary/10 hover:border-primary/25 rounded-xl p-3 text-left transition-all cursor-pointer flex items-center justify-between"
@@ -134,7 +134,7 @@ export const LoginScreen = () => {
                 <span className="text-[10px] font-bold text-primary uppercase tracking-wider block">
                   Quick Seed Access
                 </span>
-                <span className="text-[9px] font-mono text-[#bec8ce] block">
+                <span className="text-[9px] font-mono text-muted-foreground block">
                   admin@imspro.com / AdminPass123!
                 </span>
               </div>
@@ -147,8 +147,8 @@ export const LoginScreen = () => {
 
         {/* Footer info */}
         <div className="text-center">
-          <p className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-widest">
-            NODE SECURE LINK // AUTH BY BETTER-AUTH
+          <p className="text-[10px] font-mono text-muted-foreground/40 uppercase tracking-[0.3em]">
+            IMS NODE // SECURE LINK // AUTH-V2
           </p>
         </div>
       </div>
