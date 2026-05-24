@@ -33,11 +33,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const checkSession = async () => {
     try {
-      const data = await apiClient.get<{ session: Session | null; user: User | null }>('/api/auth/get-session');
-      if (data && data.session && data.user) {
-        setSession(data.session);
-        setUser(data.user);
+      // Use raw fetch here to avoid the apiClient dispatching auth-session-expired
+      // on an initial 401 (no active session on first load is normal).
+      const res = await fetch(
+        `${(import.meta.env.VITE_API_URL as string) || 'http://localhost:3002'}/api/auth/get-session`,
+        { credentials: 'include' }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.session && data.user) {
+          setSession(data.session);
+          setUser(data.user);
+        } else {
+          setSession(null);
+          setUser(null);
+        }
       } else {
+        // No active session is normal — do NOT fire auth-session-expired here
         setSession(null);
         setUser(null);
       }

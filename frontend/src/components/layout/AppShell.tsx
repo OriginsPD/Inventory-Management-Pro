@@ -78,7 +78,6 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
         <div className="flex h-14 items-center justify-between px-6 border-b border-primary/10 shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-xl font-bold tracking-wider text-primary">IMS Pro</span>
-            <span className="bg-primary/10 text-primary text-[9px] font-mono px-1 py-0.5 rounded border border-primary/20">v4.2</span>
           </div>
           <button 
             className="lg:hidden p-1 hover:bg-primary/15 rounded text-muted-foreground hover:text-foreground"
@@ -144,18 +143,6 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
           </div>
         </div>
 
-        {/* Database Connection Status Block */}
-        <div className="p-4 border-t border-primary/5">
-          <div className="glass-panel rounded-xl p-3 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary/20">
-              <span className="material-symbols-outlined text-primary text-sm">terminal</span>
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-xs font-semibold truncate">Node-042</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Active Station 04</p>
-            </div>
-          </div>
-        </div>
       </aside>
 
       {/* Main Content Layout */}
@@ -195,16 +182,6 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
               );
             })()}
 
-            <div className="h-4 w-[1px] bg-primary/10 hidden sm:block" />
-
-            {/* Neon Connection status block */}
-            <div className="flex items-center gap-2 px-2.5 py-1 bg-primary/5 rounded border border-primary/10 text-[10px] font-semibold">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-              </span>
-              <span className="font-mono text-muted-foreground">pg.neon.tech</span>
-            </div>
           </div>
         </header>
 

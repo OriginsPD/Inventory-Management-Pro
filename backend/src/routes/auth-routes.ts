@@ -96,7 +96,22 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
     if (useDb) {
       const auth = getBetterAuth(useDb);
       if (auth) {
-        return await auth.handler(toBetterAuthRequest(request));
+        try {
+          const rawResponse = await auth.handler(toBetterAuthRequest(request));
+          const setCookie = rawResponse.headers.get("set-cookie");
+          if (setCookie) {
+            set.headers["set-cookie"] = setCookie;
+          }
+          if (rawResponse.status >= 400) {
+            set.status = 401;
+            return { session: null, user: null };
+          }
+          const data = await rawResponse.json();
+          return data;
+        } catch (e) {
+          set.status = 401;
+          return { session: null, user: null };
+        }
       }
     }
 
@@ -138,7 +153,18 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
     if (useDb) {
       const auth = getBetterAuth(useDb);
       if (auth) {
-        return await auth.handler(toBetterAuthRequest(request));
+        try {
+          const rawResponse = await auth.handler(toBetterAuthRequest(request));
+          const setCookie = rawResponse.headers.get("set-cookie");
+          if (setCookie) {
+            set.headers["set-cookie"] = setCookie;
+          }
+        } catch (e) {
+          // swallow errors on sign-out
+        }
+        // Always clear the cookie even if Better Auth call fails
+        set.headers["set-cookie"] = `better-auth.session-token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+        return { success: true };
       }
     }
 

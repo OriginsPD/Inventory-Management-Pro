@@ -38,6 +38,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const response = await fetch(url, {
     ...options,
     headers,
+    credentials: 'include',
   });
 
   if (!response.ok) {
