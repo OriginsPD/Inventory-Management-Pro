@@ -5,7 +5,7 @@ import { useDb } from "../lib/db-init.js";
 import { toBetterAuthRequest } from "../lib/utils.js";
 
 export const authRoutes = new Elysia({ prefix: '/api/auth' })
-  .post("/sign-in/email", async ({ body, set }) => {
+  .post("/sign-in/email", async ({ body, set, request }) => {
     const { email, password } = body;
     
     if (useDb) {
@@ -14,12 +14,27 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
         if (auth) {
           const baseURL = process.env.BETTER_AUTH_URL || "http://localhost:3002";
           const targetUrl = new URL("/api/auth/sign-in/email", baseURL);
+          
+          // Forward relevant headers to Better Auth
+          const headers = new Headers();
+          headers.set("Content-Type", "application/json");
+          headers.set("host", targetUrl.host);
+          
+          const origin = request.headers.get("origin");
+          if (origin) headers.set("origin", origin);
+          
+          const referer = request.headers.get("referer");
+          if (referer) headers.set("referer", referer);
+          
+          const cookie = request.headers.get("cookie");
+          if (cookie) headers.set("cookie", cookie);
+          
+          const ua = request.headers.get("user-agent");
+          if (ua) headers.set("user-agent", ua);
+
           const rawResponse = await auth.handler(new Request(targetUrl.toString(), {
             method: "POST",
-            headers: { 
-              "Content-Type": "application/json",
-              "host": targetUrl.host
-            },
+            headers,
             body: JSON.stringify({ email, password })
           }));
           const setCookie = rawResponse.headers.get("set-cookie");

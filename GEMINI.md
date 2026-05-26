@@ -37,3 +37,6 @@
 - **Technical Workbench**: Physical environment for hardware QC.
 - **Atomic Swap**: Simultaneous return and deployment of replacement hardware.
 - **Identifier**: Universal term for Serial, IMEI, or ISN (displayed in `Geist Mono`).
+
+## 6. Global Workflow Mandates
+- **Plan-First Workflow**: ALL investigations and implementations MUST begin with a structured **Implementation Plan** and a **Task Checklist**. These must be presented to the user and approved before any code modifications are performed. This rule applies globally across all modules and tiers of the application.

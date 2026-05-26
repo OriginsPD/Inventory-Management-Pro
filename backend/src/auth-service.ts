@@ -24,6 +24,7 @@ export function getBetterAuth(useDb: boolean) {
         }),
         secret: process.env.BETTER_AUTH_SECRET || "ims-pro-super-secret-key-123456789",
         baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3002",
+        trustedOrigins: [process.env.CORS_ORIGIN || "http://localhost:5173"],
         emailAndPassword: {
           enabled: true
         },

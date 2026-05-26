@@ -43,103 +43,96 @@ export const LoginScreen = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background relative overflow-hidden select-none px-4 font-sans">
-      {/* Background Decorative Glows */}
-      <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/5 blur-[100px] rounded-full pointer-events-none" />
-
-      <div className="w-full max-w-[400px] z-10 space-y-6">
+    <div className="min-h-screen w-full flex items-center justify-center bg-[#09090b] relative overflow-hidden select-none px-4 font-sans">
+      <div className="w-full max-w-[400px] z-10 space-y-8">
         {/* Brand Header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/5 border border-primary/20 rounded-full">
-            <span className="relative flex h-2 w-2">
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded-sm">
+            <span className="relative flex h-1.5 w-1.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary"></span>
             </span>
-            <span className="text-[10px] font-mono tracking-widest text-primary/80">SECURE STATION GATEWAY</span>
+            <span className="text-[9px] font-mono tracking-[0.2em] text-zinc-400 uppercase">Gateway Node 01</span>
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tighter text-foreground">
-            IMS<span className="text-primary ml-1">Pro</span>
+          <h1 className="text-4xl font-black tracking-tighter text-white">
+            IMS<span className="text-primary">PRO</span>
           </h1>
-          <p className="text-[11px] text-muted-foreground font-mono uppercase tracking-[0.2em]">
-            Asset Intelligence Lifecycle
-          </p>
         </div>
 
         {/* Login Card */}
-        <div className="glass-panel-elevated p-8 rounded-2xl shadow-2xl space-y-6 border-white/5">
+        <div className="bg-zinc-950 p-8 border border-zinc-800 shadow-2xl space-y-6">
           <div className="space-y-1">
-            <h2 className="text-lg font-bold text-foreground">Sign In</h2>
-            <p className="text-xs text-muted-foreground leading-relaxed">Initialize your technician terminal session to access warehouse telemetry.</p>
+            <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider">Authentication Required</h2>
+            <p className="text-[11px] text-zinc-500 leading-normal font-medium">Provide operator credentials to initialize secure terminal session.</p>
           </div>
 
           {errorMsg && (
-            <div className="bg-destructive/10 border border-destructive/20 text-destructive text-xs p-3 rounded-xl font-semibold flex items-start gap-2 animate-in fade-in duration-200">
-              <span className="material-symbols-outlined text-[16px] mt-0.5">error</span>
-              <span className="leading-tight">{errorMsg}</span>
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] p-3 font-bold flex items-start gap-2 animate-in fade-in duration-200">
+              <span className="material-symbols-outlined text-[14px] mt-0.5">error</span>
+              <span className="leading-tight uppercase tracking-tight">{errorMsg}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block ml-1">
-                User Email
+            <div className="space-y-2">
+              <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-[0.15em] block ml-0.5">
+                Operator ID (Email)
               </label>
               <Input
                 type="email"
                 placeholder="operator@imspro.com"
-                className={`bg-background/50 border-border/50 text-sm h-11 rounded-xl focus:border-primary/40 focus:ring-primary/10 text-foreground placeholder:text-muted-foreground/30 transition-all ${
-                  errors.email ? 'border-destructive/50 focus:border-destructive/50 focus:ring-destructive/10' : ''
+                className={`bg-zinc-900 border-zinc-800 text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-zinc-100 placeholder:text-zinc-700 transition-colors ${
+                  errors.email ? 'border-red-500/50' : ''
                 }`}
                 {...register('email')}
               />
               {errors.email && (
-                <p className="text-[10px] text-destructive font-semibold mt-1 ml-1">{errors.email.message}</p>
+                <p className="text-[9px] text-red-500 font-bold mt-1 ml-0.5 uppercase">{errors.email.message}</p>
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block ml-1">
-                Access Token
+            <div className="space-y-2">
+              <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-[0.15em] block ml-0.5">
+                Security Token (Password)
               </label>
               <Input
                 type="password"
                 placeholder="••••••••"
-                className={`bg-background/50 border-border/50 text-sm h-11 rounded-xl focus:border-primary/40 focus:ring-primary/10 text-foreground placeholder:text-muted-foreground/30 transition-all ${
-                  errors.password ? 'border-destructive/50 focus:border-destructive/50 focus:ring-destructive/10' : ''
+                className={`bg-zinc-900 border-zinc-800 text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-zinc-100 placeholder:text-zinc-700 transition-colors ${
+                  errors.password ? 'border-red-500/50' : ''
                 }`}
                 {...register('password')}
               />
               {errors.password && (
-                <p className="text-[10px] text-destructive font-semibold mt-1 ml-1">{errors.password.message}</p>
+                <p className="text-[9px] text-red-500 font-bold mt-1 ml-0.5 uppercase">{errors.password.message}</p>
               )}
             </div>
 
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-primary hover:brightness-110 text-primary-foreground font-bold rounded-xl h-11 text-xs cursor-pointer shadow-lg transition-all disabled:opacity-50 disabled:pointer-events-none mt-2 active:scale-[0.98]"
+              className="w-full bg-primary hover:bg-primary/90 text-white font-black rounded-none h-10 text-[10px] uppercase tracking-[0.2em] cursor-pointer transition-all disabled:opacity-50 mt-2 active:scale-[0.99]"
             >
-              {isSubmitting ? 'ESTABLISHING LINK...' : 'AUTHENTICATE SESSION'}
+              {isSubmitting ? 'Establishing Link...' : 'Authorize Session'}
             </Button>
           </form>
 
           {/* Quick-autofill Helper Box */}
-          <div className="border-t border-border/50 pt-5 mt-2">
+          <div className="border-t border-zinc-900 pt-5">
             <button
               onClick={handleAutofillAdmin}
-              className="w-full group bg-primary/5 hover:bg-primary/10 border border-primary/10 hover:border-primary/25 rounded-xl p-3 text-left transition-all cursor-pointer flex items-center justify-between"
+              className="w-full group bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800/50 hover:border-zinc-700 p-3 text-left transition-all cursor-pointer flex items-center justify-between"
             >
-              <div className="space-y-0.5">
-                <span className="text-[10px] font-bold text-primary uppercase tracking-wider block">
-                  Quick Seed Access
+              <div className="space-y-1">
+                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest block">
+                  Emergency Bypass
                 </span>
-                <span className="text-[9px] font-mono text-muted-foreground block">
-                  admin@imspro.com / AdminPass123!
+                <span className="text-[9px] font-mono text-zinc-600 block">
+                  admin@imspro.com // AdminPass123!
                 </span>
               </div>
-              <span className="material-symbols-outlined text-[16px] text-primary group-hover:translate-x-0.5 transition-transform">
-                arrow_forward
+              <span className="material-symbols-outlined text-[16px] text-zinc-700 group-hover:text-primary transition-colors">
+                login
               </span>
             </button>
           </div>
@@ -147,8 +140,8 @@ export const LoginScreen = () => {
 
         {/* Footer info */}
         <div className="text-center">
-          <p className="text-[10px] font-mono text-muted-foreground/40 uppercase tracking-[0.3em]">
-            IMS NODE // SECURE LINK // AUTH-V2
+          <p className="text-[9px] font-mono text-zinc-700 uppercase tracking-[0.4em]">
+            IMS-PRO // CORE-NODE // VER 3.0.0
           </p>
         </div>
       </div>

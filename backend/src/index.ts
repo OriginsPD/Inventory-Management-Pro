@@ -16,6 +16,9 @@ import { systemRoutes } from "./routes/system-routes.js";
 initDbConnection();
 
 const app = new Elysia()
+  .onRequest(({ request }) => {
+    console.log(`[${new Date().toISOString()}] ${request.method} ${new URL(request.url).pathname}`);
+  })
   .use(swagger())
   .use(cors({
     credentials: true,
