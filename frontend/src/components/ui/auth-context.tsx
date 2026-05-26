@@ -108,11 +108,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         email,
         password,
       });
+      console.log('[DEBUG] Frontend Login Received:', data);
       if (data && data.user && data.session) {
         setUser(data.user);
         setSession(data.session);
         return data;
       }
+      console.warn('[DEBUG] Validation failed. Missing user or session in:', data);
       throw new Error('Invalid response envelope from server');
     } catch (e: unknown) {
       const error = e as Error;

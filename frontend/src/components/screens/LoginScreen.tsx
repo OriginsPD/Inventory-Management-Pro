@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../ui/auth-context';
+import { useFeedback } from '../ui/feedback-provider';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { LoginCredentialsSchema, type LoginCredentials } from '@ims-pro/shared';
@@ -8,6 +9,7 @@ import { Button } from '../ui/button';
 
 export const LoginScreen = () => {
   const { login } = useAuth();
+  const { toast } = useFeedback();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -28,7 +30,10 @@ export const LoginScreen = () => {
     setIsSubmitting(true);
     setErrorMsg(null);
     try {
-      await login(values.email, values.password);
+      const data = await login(values.email, values.password);
+      if (data && data.user) {
+        toast.success(`Welcome back, ${data.user.name}`);
+      }
     } catch (e: unknown) {
       setErrorMsg((e as Error).message || 'Invalid email or password.');
     } finally {
