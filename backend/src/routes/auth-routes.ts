@@ -42,11 +42,28 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
             set.headers["set-cookie"] = setCookie;
           }
           const data = await rawResponse.json();
+          console.log("[DEBUG] Better Auth Raw Response:", JSON.stringify(data));
+          
           if (rawResponse.status >= 400) {
             set.status = rawResponse.status;
             return { error: data.message || "Invalid credentials" };
           }
-          return data;
+          
+          // Better Auth sometimes returns { user, session } and sometimes { user, token }
+          // We normalize this so the frontend always sees { user, session }
+          const unwrapped = data.data || data;
+          
+          if (unwrapped.user && !unwrapped.session && unwrapped.token) {
+            unwrapped.session = {
+              id: unwrapped.token,
+              token: unwrapped.token,
+              userId: unwrapped.user.id,
+              expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString()
+            };
+          }
+
+          console.log("[DEBUG] Normalized Response sent to Frontend:", JSON.stringify(unwrapped));
+          return unwrapped;
         }
       } catch (e: any) {
         set.status = 400;
