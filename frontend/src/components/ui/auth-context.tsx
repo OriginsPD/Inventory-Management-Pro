@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../../lib/api-client';
 
 export interface User {
@@ -31,10 +31,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const checkSession = async () => {
+  const checkSession = useCallback(async () => {
     try {
-      // Use raw fetch here to avoid the apiClient dispatching auth-session-expired
-      // on an initial 401 (no active session on first load is normal).
       const res = await fetch(
         `${(import.meta.env.VITE_API_URL as string) || 'http://localhost:3002'}/api/auth/get-session`,
         { credentials: 'include' }
@@ -48,21 +46,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setSession(null);
           setUser(null);
         }
-      } else {
-        // No active session is normal — do NOT fire auth-session-expired here
-        setSession(null);
-        setUser(null);
       }
-    } catch (e) {
-      setSession(null);
-      setUser(null);
-    } finally {
-      setIsLoading(false);
+    } catch {
+      // Ignore
     }
-  };
+  }, []);
 
   useEffect(() => {
-    checkSession();
+    let isMounted = true;
+
+    async function initializeAuth() {
+      try {
+        const res = await fetch(
+          `${(import.meta.env.VITE_API_URL as string) || 'http://localhost:3002'}/api/auth/get-session`,
+          { credentials: 'include' }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            if (data && data.session && data.user) {
+              setSession(data.session);
+              setUser(data.user);
+            } else {
+              setSession(null);
+              setUser(null);
+            }
+          }
+        } else if (isMounted) {
+          setSession(null);
+          setUser(null);
+        }
+      } catch {
+        if (isMounted) {
+          setSession(null);
+          setUser(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    initializeAuth();
 
     const handleExpired = () => {
       setUser(null);
@@ -71,6 +97,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     window.addEventListener('auth-session-expired', handleExpired);
     return () => {
+      isMounted = false;
       window.removeEventListener('auth-session-expired', handleExpired);
     };
   }, []);
@@ -87,8 +114,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return data;
       }
       throw new Error('Invalid response envelope from server');
-    } catch (e: any) {
-      throw new Error(e.message || 'Login failed');
+    } catch (e: unknown) {
+      const error = e as Error;
+      throw new Error(error.message || 'Login failed', { cause: error });
     }
   };
 

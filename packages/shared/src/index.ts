@@ -4,4 +4,5 @@ export * from './domain/device.js';
 export * from './domain/qc.js';
 export * from './domain/customer.js';
 export * from './domain/auth.js';
+export * from './domain/logic.js';
 

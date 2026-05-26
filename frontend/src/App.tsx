@@ -36,6 +36,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <AppShell>{children}</AppShell>;
 };
 
+interface LocationState {
+  from?: {
+    pathname: string;
+  };
+}
+
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
   const location = useLocation();
@@ -50,7 +56,8 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (user) {
-    const from = (location.state as any)?.from?.pathname || "/";
+    const state = location.state as LocationState;
+    const from = state?.from?.pathname || "/";
     return <Navigate to={from} replace />;
   }
 

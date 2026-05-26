@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { apiClient } from '../../lib/api-client';
+import { Device, DeviceModel } from '../../lib/types/domain';
 
 import { ScrollArea } from '../ui/scroll-area';
 
@@ -28,6 +29,11 @@ interface AssetBreakdown {
   count: number;
 }
 
+interface StockAlert {
+  modelName: string;
+  level: string;
+}
+
 export const DashboardScreen = () => {
   const [stats, setStats] = useState<DashboardStats>({
     totalDevices: 0,
@@ -37,9 +43,9 @@ export const DashboardScreen = () => {
     lowStockAlerts: 3,
   });
 
-  const [devices, setDevices] = useState<any[]>([]);
-  const [models, setModels] = useState<any[]>([]);
-  const [stockAlerts, setStockAlerts] = useState<any[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [models, setModels] = useState<DeviceModel[]>([]);
+  const [stockAlerts, setStockAlerts] = useState<StockAlert[]>([]);
   const [recentLogs, setRecentLogs] = useState<AuditLog[]>([]);
   const [trendData, setTrendData] = useState<DispatchTrend[]>([]);
   const [breakdown, setBreakdown] = useState<AssetBreakdown[]>([]);
@@ -47,39 +53,16 @@ export const DashboardScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
 
-  useEffect(() => {
-    const loadAllData = async () => {
-      setIsLoading(true);
-      await Promise.all([
-        fetchStats(),
-        fetchAuditLogs(),
-        fetchTrendData(),
-        fetchBreakdownData(),
-        fetchModels(),
-        fetchStockAlerts(),
-      ]);
-      setIsLoading(false);
-    };
-    loadAllData();
-  }, []);
-
-  useEffect(() => {
-    if (stockAlerts.length > 0) {
-      const activeLevels = stockAlerts.map(a => `${a.modelName}: ${a.level}`);
-      console.debug('IMS Telemetry Stock Alerts status:', activeLevels);
-    }
-  }, [stockAlerts]);
-
   const fetchStats = async () => {
     try {
-      const data = await apiClient.get<any[]>('/api/devices');
+      const data = await apiClient.get<Device[]>('/api/devices');
       setDevices(data);
       
       const statsObj = {
         totalDevices: data.length,
-        activeDispatched: data.filter((d: any) => d.status === 'DISPATCHED').length,
-        inStock: data.filter((d: any) => d.status === 'IN_STOCK').length,
-        inTesting: data.filter((d: any) => d.status === 'TESTING').length,
+        activeDispatched: data.filter((d: Device) => d.status === 'DISPATCHED').length,
+        inStock: data.filter((d: Device) => d.status === 'IN_STOCK').length,
+        inTesting: data.filter((d: Device) => d.status === 'TESTING').length,
         lowStockAlerts: 3,
       };
       setStats(statsObj);
@@ -90,7 +73,7 @@ export const DashboardScreen = () => {
 
   const fetchModels = async () => {
     try {
-      const data = await apiClient.get<any[]>('/api/device-models');
+      const data = await apiClient.get<DeviceModel[]>('/api/device-models');
       setModels(data);
     } catch (e) {
       console.error(e);
@@ -99,7 +82,7 @@ export const DashboardScreen = () => {
 
   const fetchStockAlerts = async () => {
     try {
-      const data = await apiClient.get<any[]>('/api/stock-alerts');
+      const data = await apiClient.get<StockAlert[]>('/api/stock-alerts');
       setStockAlerts(data);
     } catch (e) {
       console.error(e);
@@ -133,16 +116,39 @@ export const DashboardScreen = () => {
     }
   };
 
-  const formatTime = (isoString: string) => {
+  useEffect(() => {
+    const loadAllData = async () => {
+      setIsLoading(true);
+      await Promise.all([
+        fetchStats(),
+        fetchAuditLogs(),
+        fetchTrendData(),
+        fetchBreakdownData(),
+        fetchModels(),
+        fetchStockAlerts(),
+      ]);
+      setIsLoading(false);
+    };
+    loadAllData();
+  }, []);
+
+  useEffect(() => {
+    if (stockAlerts.length > 0) {
+      const activeLevels = stockAlerts.map(a => `${a.modelName}: ${a.level}`);
+      console.debug('IMS Telemetry Stock Alerts status:', activeLevels);
+    }
+  }, [stockAlerts]);
+
+  const formatTime = (isoString: string, currentTime: number) => {
     try {
-      const diffMs = Date.now() - new Date(isoString).getTime();
+      const diffMs = currentTime - new Date(isoString).getTime();
       const diffMins = Math.floor(diffMs / 60000);
       if (diffMins < 1) return 'just now';
       if (diffMins < 60) return `${diffMins}m ago`;
       const diffHours = Math.floor(diffMins / 60);
       if (diffHours < 24) return `${diffHours}h ago`;
       return new Date(isoString).toLocaleDateString();
-    } catch (e) {
+    } catch {
       return 'some time ago';
     }
   };
@@ -156,10 +162,10 @@ export const DashboardScreen = () => {
   const getModelProfiles = () => {
     if (models.length === 0) return [];
     return models.map(m => {
-      const relatedDevices = devices.filter((d: any) => d.modelId === m.id);
-      const inStock = relatedDevices.filter((d: any) => d.status === 'IN_STOCK').length;
-      const inTesting = relatedDevices.filter((d: any) => d.status === 'TESTING').length;
-      const dispatched = relatedDevices.filter((d: any) => d.status === 'DISPATCHED').length;
+      const relatedDevices = devices.filter(d => d.modelId === m.id);
+      const inStock = relatedDevices.filter(d => d.status === 'IN_STOCK').length;
+      const inTesting = relatedDevices.filter(d => d.status === 'TESTING').length;
+      const dispatched = relatedDevices.filter(d => d.status === 'DISPATCHED').length;
       const total = relatedDevices.length;
       const maxStock = m.maxStock || 0;
 
@@ -186,7 +192,7 @@ export const DashboardScreen = () => {
   };
 
   const getIngestTrendData = () => {
-    const result = [];
+    const result: { day: string, count: number }[] = [];
     const baseline = [8, 12, 10, 18, 14, 22, 25];
     for (let i = 6; i >= 0; i--) {
       const date = new Date();
@@ -212,13 +218,13 @@ export const DashboardScreen = () => {
 
   const maxVal = useMemo(() => {
     if (activeTrendData.length === 0) return 10;
-    return Math.max(...activeTrendData.map(d => 'dispatches' in d ? d.dispatches : (d as any).count), 10) * 1.15;
+    return Math.max(...activeTrendData.map(d => 'dispatches' in d ? (d as DispatchTrend).dispatches : (d as { count: number }).count), 10) * 1.15;
   }, [activeTrendData]);
 
   const getChartPoints = () => {
     if (activeTrendData.length === 0) return [];
     return activeTrendData.map((d, index) => {
-      const val = 'dispatches' in d ? d.dispatches : (d as any).count;
+      const val = 'dispatches' in d ? (d as DispatchTrend).dispatches : (d as { count: number }).count;
       const x = paddingX + (index * (chartWidth - paddingX * 2) / (activeTrendData.length - 1));
       const y = chartHeight - paddingY - (val * (chartHeight - paddingY * 2) / maxVal);
       return { x, y, day: d.day, value: val };
@@ -256,6 +262,8 @@ export const DashboardScreen = () => {
   };
 
   const totalBreakdownCount = breakdown.reduce((sum, item) => sum + item.count, 0);
+
+  const [now] = useState(() => Date.now());
 
   return (
     <div className="flex flex-col gap-8">
@@ -693,7 +701,7 @@ export const DashboardScreen = () => {
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <span className="text-[9px] font-bold text-primary font-mono">{log.actionType}</span>
-                              <span className="text-[9px] text-muted-foreground">{formatTime(log.createdAt)}</span>
+                              <span className="text-[9px] text-muted-foreground">{formatTime(log.createdAt, now)}</span>
                             </div>
                             <p className="text-xs font-semibold text-foreground leading-tight">{log.details}</p>
                           </div>

@@ -6,7 +6,7 @@ interface RequestOptions extends RequestInit {
 }
 
 interface CacheEntry {
-  data: any;
+  data: unknown;
   expiry: number;
 }
 
@@ -81,9 +81,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
 export const apiClient = {
   get: <T>(path: string, options?: RequestOptions) => request<T>(path, { ...options, method: 'GET' }),
-  post: <T>(path: string, body?: any, options?: RequestOptions) => 
+  post: <T>(path: string, body?: unknown, options?: RequestOptions) => 
     request<T>(path, { ...options, method: 'POST', body: body ? JSON.stringify(body) : undefined }),
-  put: <T>(path: string, body?: any, options?: RequestOptions) => 
+  put: <T>(path: string, body?: unknown, options?: RequestOptions) => 
     request<T>(path, { ...options, method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
   delete: <T>(path: string, options?: RequestOptions) => request<T>(path, { ...options, method: 'DELETE' }),
   clearCache: () => cache.clear(),

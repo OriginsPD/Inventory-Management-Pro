@@ -1,34 +1,47 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTheme } from 'next-themes';
 import { useFeedback } from '../ui/feedback-provider';
 
 export const SettingsScreen = () => {
   const { toast, confirm } = useFeedback();
   const { theme, setTheme } = useTheme();
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const stored = localStorage.getItem('ims_sound_enabled');
+    return stored !== null ? stored === 'true' : true;
+  });
+
+  const [accentColor, setAccentColor] = useState(() => {
+    return localStorage.getItem('ims_theme_accent') || 'zinc';
+  });
+
+  const [density, setDensity] = useState(() => {
+    return localStorage.getItem('ims_layout_density') || 'default';
+  });
+
   const [activeSection, setActiveSection] = useState<'general' | 'appearance' | 'polymorphic' | 'system'>('general');
-  const [accentColor, setAccentColor] = useState('zinc');
-  const [density, setDensity] = useState('default');
+
+  const initDefaultOptions = () => {
+    const defaultOptions = ['SIM', 'SD_CARD', 'PANIC_BUTTON', 'KEYFOB'];
+    localStorage.setItem('ims_polymorphic_link_options', JSON.stringify(defaultOptions));
+    return defaultOptions;
+  };
 
   // Polymorphic Links Config CRUD States
-  const [polymorphicOptions, setPolymorphicOptions] = useState<string[]>([]);
+  const [polymorphicOptions, setPolymorphicOptions] = useState<string[]>(() => {
+    const stored = localStorage.getItem('ims_polymorphic_link_options');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return initDefaultOptions();
+      }
+    }
+    return initDefaultOptions();
+  });
   const [newOption, setNewOption] = useState('');
   const [editingOptionIdx, setEditingOptionIdx] = useState<number | null>(null);
   const [editingOptionVal, setEditingOptionVal] = useState('');
-
-  // Sync sound settings with localStorage
-  useEffect(() => {
-    const storedSound = localStorage.getItem('ims_sound_enabled');
-    if (storedSound !== null) {
-      setSoundEnabled(storedSound === 'true');
-    }
-
-    const savedAccent = localStorage.getItem('ims_theme_accent') || 'zinc';
-    setAccentColor(savedAccent);
-    
-    const savedDensity = localStorage.getItem('ims_layout_density') || 'default';
-    setDensity(savedDensity);
-  }, []);
 
   const handleSelectAccent = (color: string) => {
     setAccentColor(color);
@@ -54,26 +67,6 @@ export const SettingsScreen = () => {
     const nextVal = !soundEnabled;
     setSoundEnabled(nextVal);
     localStorage.setItem('ims_sound_enabled', String(nextVal));
-  };
-
-  // Sync Polymorphic Link Options
-  useEffect(() => {
-    const stored = localStorage.getItem('ims_polymorphic_link_options');
-    if (stored) {
-      try {
-        setPolymorphicOptions(JSON.parse(stored));
-      } catch (e) {
-        initDefaultOptions();
-      }
-    } else {
-      initDefaultOptions();
-    }
-  }, []);
-
-  const initDefaultOptions = () => {
-    const defaultOptions = ['SIM', 'SD_CARD', 'PANIC_BUTTON', 'KEYFOB'];
-    localStorage.setItem('ims_polymorphic_link_options', JSON.stringify(defaultOptions));
-    setPolymorphicOptions(defaultOptions);
   };
 
   const handleAddOption = () => {

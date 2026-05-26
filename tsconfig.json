@@ -26,5 +26,11 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
-  }
+  },
+  "files": [],
+  "references": [
+    { "path": "./packages/shared" },
+    { "path": "./backend" },
+    { "path": "./frontend" }
+  ]
 }

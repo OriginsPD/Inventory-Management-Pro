@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../ui/auth-context';
 import { useFeedback } from '../ui/feedback-provider';
 import { useInventory } from './inventory/useInventory';
@@ -47,7 +47,10 @@ export const DeviceInventory = () => {
   const [linkModalDevice, setLinkModalDevice] = useState<Device | null>(null);
 
   // Offline buffer state
-  const [pendingSyncItems, setPendingSyncItems] = useState<any[]>([]);
+  const [pendingSyncItems, setPendingSyncItems] = useState<Partial<Device>[]>(() => {
+    const stored = localStorage.getItem('ims_pending_sync');
+    return stored ? JSON.parse(stored) : [];
+  });
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   // Hook for data
@@ -63,6 +66,20 @@ export const DeviceInventory = () => {
     refetchRelationships
   } = useInventory({ search: debouncedSearch, status: statusFilter, modelId: modelFilter });
 
+  const syncPendingItems = useCallback(async (itemsToSync?: Partial<Device>[]) => {
+    const items = itemsToSync || pendingSyncItems;
+    if (items.length === 0) return;
+    try {
+      await syncDevices(items as any);
+      localStorage.removeItem('ims_pending_sync');
+      setPendingSyncItems([]);
+      playSuccessBeep();
+      toast.success('Offline queue synced successfully.');
+    } catch {
+      playErrorBuzz();
+    }
+  }, [pendingSyncItems, syncDevices, toast]);
+
   // Debounce search
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearch(search), 250);
@@ -71,9 +88,6 @@ export const DeviceInventory = () => {
 
   // Handle online/offline
   useEffect(() => {
-    const stored = localStorage.getItem('ims_pending_sync');
-    if (stored) setPendingSyncItems(JSON.parse(stored));
-
     const handleOnline = () => {
       setIsOnline(true);
       const latest = localStorage.getItem('ims_pending_sync');
@@ -90,25 +104,11 @@ export const DeviceInventory = () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [syncPendingItems]);
 
-  const syncPendingItems = async (itemsToSync?: any[]) => {
-    const items = itemsToSync || pendingSyncItems;
-    if (items.length === 0) return;
-    try {
-      await syncDevices(items);
-      localStorage.removeItem('ims_pending_sync');
-      setPendingSyncItems([]);
-      playSuccessBeep();
-      toast.success('Offline queue synced successfully.');
-    } catch (e) {
-      playErrorBuzz();
-    }
-  };
-
-  const bufferPendingSync = (payload: any[]) => {
+  const bufferPendingSync = (payload: Partial<Device>[]) => {
     const stored = localStorage.getItem('ims_pending_sync');
-    let existing = stored ? JSON.parse(stored) : [];
+    const existing = stored ? JSON.parse(stored) : [];
     const merged = [...existing, ...payload].filter((item, idx, self) =>
       self.findIndex(t => t.identifier === item.identifier) === idx
     );
@@ -118,12 +118,8 @@ export const DeviceInventory = () => {
   };
 
   // Hot Scanner listener
-  useHotScanner((_barcode) => {
-    if (activeModal === 'single') {
-      // In single entry, we can't easily push to form from here without a ref or callback
-      // This is a known limitation of the current decomposition but we'll address it
-      // if it's a critical technician workflow.
-    } else if (activeModal === 'none') {
+  useHotScanner(() => {
+    if (activeModal === 'none') {
       playChirp();
       setActiveModal('bulk');
     }
@@ -131,11 +127,11 @@ export const DeviceInventory = () => {
 
   // Sorting & Pagination
   const sortedDevices = useMemo(() => {
-    let result = [...devices];
+    const result = [...devices];
     if (sortField) {
-      result.sort((a: any, b: any) => {
-        let valA = (a[sortField] || '').toString().toLowerCase();
-        let valB = (b[sortField] || '').toString().toLowerCase();
+      result.sort((a, b) => {
+        const valA = ((a as any)[sortField] || '').toString().toLowerCase();
+        const valB = ((b as any)[sortField] || '').toString().toLowerCase();
         if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
         if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
         return 0;

@@ -26,6 +26,15 @@ import { useCustomers } from '../../lib/hooks/useDomain';
 import { Customer, Device } from '../../lib/types/domain';
 import { useQuery } from '@tanstack/react-query';
 
+interface CustomerFormValues {
+  name: string;
+  type: CustomerType;
+  email?: string;
+  phone?: string;
+  address?: string;
+  taxId?: string;
+}
+
 export const Customers = () => {
   const { toast, confirm } = useFeedback();
   const { data: customers = [], isLoading, refetch: fetchCustomers } = useCustomers();
@@ -37,15 +46,15 @@ export const Customers = () => {
   // History state
   const { data: history = { dispatched: [], returned: [] }, isLoading: isHistoryLoading } = useQuery({
     queryKey: ['customer-history', selectedCustomer?.id],
-    queryFn: () => apiClient.get<any>(`/api/customers/${selectedCustomer?.id}/history`),
+    queryFn: () => apiClient.get<{ dispatched: Device[], returned: Device[] }>(`/api/customers/${selectedCustomer?.id}/history`),
     enabled: !!selectedCustomer?.id
   });
 
-  const { register, handleSubmit, control, formState: { errors }, reset, setValue } = useForm({
-    resolver: zodResolver(CreateCustomerSchema),
+  const { register, handleSubmit, control, formState: { errors }, reset, setValue } = useForm<CustomerFormValues>({
+    resolver: zodResolver(CreateCustomerSchema) as any,
     defaultValues: {
       name: '',
-      type: 'COMPANY' as CustomerType,
+      type: 'COMPANY',
       email: '',
       phone: '',
       address: '',
@@ -64,9 +73,10 @@ export const Customers = () => {
       toast.success('Customer deleted successfully');
       await fetchCustomers();
       if (selectedCustomer?.id === id) setSelectedCustomer(null);
-    } catch (e: any) {
-      console.error(e);
-      toast.error(e.message || 'An unexpected error occurred while deleting the customer.');
+    } catch (e: unknown) {
+      const error = e as Error;
+      console.error(error);
+      toast.error(error.message || 'An unexpected error occurred while deleting the customer.');
     }
   };
 
@@ -94,7 +104,7 @@ export const Customers = () => {
     setIsModalOpen(true);
   };
 
-  const onSubmit = async (values: any) => {
+  const onSubmit = async (values: CustomerFormValues) => {
     setIsSubmitting(true);
     try {
       const path = selectedCustomer 
@@ -111,9 +121,10 @@ export const Customers = () => {
       await fetchCustomers();
       setIsModalOpen(false);
       reset();
-    } catch (e: any) {
-      console.error(e);
-      toast.error(e.message || 'An unexpected error occurred while saving the customer.');
+    } catch (e: unknown) {
+      const error = e as Error;
+      console.error(error);
+      toast.error(error.message || 'An unexpected error occurred while saving the customer.');
     } finally {
       setIsSubmitting(false);
     }

@@ -20,7 +20,7 @@ export interface DeviceModel {
 
 export interface IngestItem {
   identifier: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface ParsedLink {
@@ -44,4 +44,22 @@ export interface AuditLog {
   actionType: string;
   details: string;
   createdAt: string;
+}
+
+export interface DeviceRelationship {
+  id: string;
+  primaryDeviceId: string;
+  linkedDeviceId: string;
+  createdAt: string;
+}
+
+export interface StockAlert {
+  modelName: string;
+  level: string;
+  maxStock?: number;
+}
+
+export interface DispatchTrend {
+  day: string;
+  dispatches: number;
 }

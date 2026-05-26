@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../api-client';
-import { Device, DeviceModel, Customer } from '../types/domain';
+import { Device, DeviceModel, Customer, DeviceRelationship } from '../types/domain';
 
 export const useDevices = (params: Record<string, string> = {}) => {
   return useQuery({
@@ -29,6 +29,6 @@ export const useCustomers = () => {
 export const useRelationships = () => {
   return useQuery({
     queryKey: ['device-links'],
-    queryFn: () => apiClient.get<any[]>('/api/device-links'),
+    queryFn: () => apiClient.get<DeviceRelationship[]>('/api/device-links'),
   });
 };

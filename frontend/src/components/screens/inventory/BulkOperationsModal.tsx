@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -72,20 +72,23 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
   const scanLinkPrimaryRef = useRef<HTMLInputElement>(null);
   const scanLinkChildRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      setBulkIngestList([]);
-      setLinkPairs([]);
-      setBulkIngestError('');
-      setLinkError('');
-      setDuplicateCountAlert(0);
-      setPatternCountAlert(0);
-      setIsCsvMapping(false);
-      if (models.length > 0 && !bulkSelectedModelId) {
-        setBulkSelectedModelId(models[0].id);
-      }
+  const [lastOpen, setLastOpen] = useState(false);
+
+  if (isOpen && !lastOpen) {
+    setLastOpen(true);
+    setBulkIngestList([]);
+    setLinkPairs([]);
+    setBulkIngestError('');
+    setLinkError('');
+    setDuplicateCountAlert(0);
+    setPatternCountAlert(0);
+    setIsCsvMapping(false);
+    if (models.length > 0 && !bulkSelectedModelId) {
+      setBulkSelectedModelId(models[0].id || '');
     }
-  }, [isOpen, models]);
+  } else if (!isOpen && lastOpen) {
+    setLastOpen(false);
+  }
 
   const getSelectedModelType = (id: string) => {
     const m = models.find(x => x.id === id);
@@ -509,8 +512,8 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                               {bulkIngestList.map((item, idx) => (
                                 <TableRow key={idx} className="hover:bg-primary/5 border-b border-primary/5 text-xs">
                                   <TableCell className="px-4 font-bold text-primary font-mono">{item.identifier}</TableCell>
-                                  <TableCell className="p-1"><input type="text" value={item.metadata.field1 || ''} onChange={(e) => handleUpdateItemMeta(idx, 'field1', e.target.value)} className="h-7 w-full border border-primary/10 rounded bg-background px-2 text-foreground" /></TableCell>
-                                  <TableCell className="p-1"><input type="text" value={item.metadata.field2 || ''} onChange={(e) => handleUpdateItemMeta(idx, 'field2', e.target.value)} className="h-7 w-full border border-primary/10 rounded bg-background px-2 text-foreground" /></TableCell>
+                                  <TableCell className="p-1"><input type="text" value={(item.metadata.field1 as string) || ''} onChange={(e) => handleUpdateItemMeta(idx, 'field1', e.target.value)} className="h-7 w-full border border-primary/10 rounded bg-background px-2 text-foreground" /></TableCell>
+                                  <TableCell className="p-1"><input type="text" value={(item.metadata.field2 as string) || ''} onChange={(e) => handleUpdateItemMeta(idx, 'field2', e.target.value)} className="h-7 w-full border border-primary/10 rounded bg-background px-2 text-foreground" /></TableCell>
                                   <TableCell className="px-2 text-right"><button onClick={() => setBulkIngestList(bulkIngestList.filter((_, i) => i !== idx))} className="text-[10px] text-red-400 font-semibold cursor-pointer">Remove</button></TableCell>
                                 </TableRow>
                               ))}

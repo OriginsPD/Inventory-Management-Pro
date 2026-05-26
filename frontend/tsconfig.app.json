@@ -6,6 +6,7 @@
     "module": "esnext",
     "types": ["vite/client"],
     "skipLibCheck": true,
+    "composite": true,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -27,5 +28,8 @@
       "@ims-pro/shared": ["../packages/shared/src/index.ts"]
     }
   },
+  "references": [
+    { "path": "../packages/shared" }
+  ],
   "include": ["src"]
 }

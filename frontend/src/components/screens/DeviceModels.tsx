@@ -76,7 +76,7 @@ export const DeviceModels = () => {
     if (stored) {
       try {
         setPolymorphicOptions(JSON.parse(stored));
-      } catch (e) {
+      } catch {
         setPolymorphicOptions(['SIM', 'SD_CARD', 'PANIC_BUTTON', 'KEYFOB']);
       }
     } else {
@@ -118,8 +118,8 @@ export const DeviceModels = () => {
     try {
       const data = await apiClient.get<DeviceModel[]>('/api/device-models');
       setModels(data);
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
     } finally {
       setIsLoading(false);
     }
@@ -150,8 +150,8 @@ export const DeviceModels = () => {
       setEditingModelId(null);
       setIsAdding(false);
       fetchModels();
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
       toast.error('Internal server error occurred while saving the model template.');
     }
   };
@@ -166,8 +166,8 @@ export const DeviceModels = () => {
       await apiClient.delete(`/api/device-models/${id}`);
       toast.success('Model template deleted successfully');
       fetchModels();
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
       toast.error('An unexpected error occurred while deleting the model template.');
     }
   };

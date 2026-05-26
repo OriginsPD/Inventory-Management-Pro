@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { apiClient } from '../../lib/api-client';
 import { useFeedback } from '../ui/feedback-provider';
 import { useAuth } from '../ui/auth-context';
@@ -197,64 +197,72 @@ export const CustomerDispatch = () => {
     }
   };
 
-  const batchesMap = new Map<string, {
-    customerId: string;
-    customerName: string;
-    dispatchedAt: string;
-    devices: Device[];
-  }>();
+  const dispatchBatches = useMemo(() => {
+    const batchesMap = new Map<string, {
+      customerId: string;
+      customerName: string;
+      dispatchedAt: string;
+      devices: Device[];
+    }>();
 
-  devices.forEach(d => {
-    if (d.status === 'DISPATCHED' && d.metadata?.dispatchedAt && d.customerId) {
-      const key = `${d.customerId}_${d.metadata.dispatchedAt}`;
-      if (!batchesMap.has(key)) {
-        batchesMap.set(key, {
-          customerId: d.customerId,
-          customerName: d.metadata.customerName || 'Unknown Fleet',
-          dispatchedAt: d.metadata.dispatchedAt,
-          devices: []
-        });
+    devices.forEach(d => {
+      if (d.status === 'DISPATCHED' && d.metadata?.dispatchedAt && d.customerId) {
+        const key = `${d.customerId}_${d.metadata.dispatchedAt}`;
+        if (!batchesMap.has(key)) {
+          batchesMap.set(key, {
+            customerId: d.customerId,
+            customerName: d.metadata.customerName || 'Unknown Fleet',
+            dispatchedAt: d.metadata.dispatchedAt,
+            devices: []
+          });
+        }
+        batchesMap.get(key)!.devices.push(d);
       }
-      batchesMap.get(key)!.devices.push(d);
-    }
-  });
+    });
 
-  const dispatchBatches = Array.from(batchesMap.values()).sort((a, b) => 
-    new Date(b.dispatchedAt).getTime() - new Date(a.dispatchedAt).getTime()
-  );
+    return Array.from(batchesMap.values()).sort((a, b) => 
+      new Date(b.dispatchedAt).getTime() - new Date(a.dispatchedAt).getTime()
+    );
+  }, [devices]);
 
-  const filteredBatches = dispatchBatches.filter(batch => {
-    if (search.trim()) {
-      const s = search.toLowerCase();
-      const matchesCustomer = batch.customerName.toLowerCase().includes(s);
-      const matchesDevice = batch.devices.some(d => 
-        d.identifier.toLowerCase().includes(s) ||
-        d.modelName.toLowerCase().includes(s)
-      );
-      if (!matchesCustomer && !matchesDevice) return false;
-    }
+  const filteredBatches = useMemo(() => {
+    return dispatchBatches.filter(batch => {
+      if (search.trim()) {
+        const s = search.toLowerCase();
+        const matchesCustomer = batch.customerName.toLowerCase().includes(s);
+        const matchesDevice = batch.devices.some(d => 
+          d.identifier.toLowerCase().includes(s) ||
+          d.modelName.toLowerCase().includes(s)
+        );
+        if (!matchesCustomer && !matchesDevice) return false;
+      }
 
-    if (typeFilter !== 'ALL') {
-      const hasType = batch.devices.some(d => d.type === typeFilter);
-      if (!hasType) return false;
-    }
+      if (typeFilter !== 'ALL') {
+        const hasType = batch.devices.some(d => d.type === typeFilter);
+        if (!hasType) return false;
+      }
 
-    if (linkFilter !== 'ALL') {
-      const hasTopology = batch.devices.some(d => {
-        const isLinkedPrimary = relationships.some(r => r.primaryDeviceId === d.id);
-        const isLinkedChild = relationships.some(r => r.linkedDeviceId === d.id);
-        const isLinked = isLinkedPrimary || isLinkedChild;
-        return (linkFilter === 'LINKED' && isLinked) || (linkFilter === 'STANDALONE' && !isLinked);
-      });
-      if (!hasTopology) return false;
-    }
+      if (linkFilter !== 'ALL') {
+        const hasTopology = batch.devices.some(d => {
+          const isLinkedPrimary = relationships.some(r => r.primaryDeviceId === d.id);
+          const isLinkedChild = relationships.some(r => r.linkedDeviceId === d.id);
+          const isLinked = isLinkedPrimary || isLinkedChild;
+          return (linkFilter === 'LINKED' && isLinked) || (linkFilter === 'STANDALONE' && !isLinked);
+        });
+        if (!hasTopology) return false;
+      }
 
-    return true;
-  });
+      return true;
+    });
+  }, [dispatchBatches, search, typeFilter, linkFilter, relationships]);
 
-  useEffect(() => {
+  const [lastFilterHash, setLastFilterHash] = useState('');
+  const currentFilterHash = `${search}-${typeFilter}-${linkFilter}-${devices.length}`;
+  
+  if (currentFilterHash !== lastFilterHash) {
+    setLastFilterHash(currentFilterHash);
     setCurrentPage(1);
-  }, [search, typeFilter, linkFilter, devices.length]);
+  }
 
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;

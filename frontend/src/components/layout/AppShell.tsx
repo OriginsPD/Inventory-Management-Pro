@@ -3,13 +3,14 @@ import { CommandMenu } from '../ui/command-menu';
 import { apiClient } from '../../lib/api-client';
 import { useAuth } from '../ui/auth-context';
 import { Link, useLocation } from 'react-router-dom';
+import { StockAlert } from '../../lib/types/domain';
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const currentPath = location.pathname;
-  const [stockAlerts, setStockAlerts] = useState<any[]>([]);
+  const [stockAlerts, setStockAlerts] = useState<StockAlert[]>([]);
 
   useEffect(() => {
     // Apply theme settings on load
@@ -29,7 +30,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    apiClient.get<any[]>('/api/stock-alerts')
+    apiClient.get<StockAlert[]>('/api/stock-alerts')
       .then(data => setStockAlerts(data))
       .catch(() => {});
   }, []);
@@ -158,7 +159,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
           <div className="flex items-center gap-4 ml-auto">
             {/* Dynamic Stock Alert Badge */}
             {(() => {
-              const withTarget = stockAlerts.filter(a => a.maxStock > 0);
+              const withTarget = stockAlerts.filter(a => (a.maxStock ?? 0) > 0);
               const lowCount = withTarget.filter(a => a.level === 'LOW').length;
               const warnCount = withTarget.filter(a => a.level === 'WARNING').length;
               if (withTarget.length === 0) return null;
