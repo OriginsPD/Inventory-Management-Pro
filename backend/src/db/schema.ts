@@ -57,6 +57,7 @@ export const deviceRelationships = pgTable('device_relationships', {
 
 export const deviceAuditLogs = pgTable('device_audit_logs', {
   id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
   deviceId: uuid('device_id').references(() => devices.id, { onDelete: 'set null' }),
   deviceIdentifier: varchar('device_identifier', { length: 255 }),
   customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
@@ -64,6 +65,7 @@ export const deviceAuditLogs = pgTable('device_audit_logs', {
   details: text('details').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
+  userIdIdx: index('device_audit_logs_user_id_idx').on(table.userId),
   deviceIdIdx: index('device_audit_logs_device_id_idx').on(table.deviceId),
   deviceIdentifierIdx: index('device_audit_logs_device_identifier_idx').on(table.deviceIdentifier),
   customerIdIdx: index('device_audit_logs_customer_id_idx').on(table.customerId),

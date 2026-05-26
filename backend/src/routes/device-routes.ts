@@ -109,7 +109,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
   })
   
   // Single Entry
-  .post("/", async ({ body }) => {
+  .post("/", async ({ body, user }) => {
     const metadata = body.metadata || {};
     const allModels = useDb ? await db.select().from(schema.deviceModels) : mockDeviceModels;
     const model = allModels.find(m => m.id === body.modelId);
@@ -137,7 +137,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
         
         // Audit
         const insertedId = inserted[0]?.id;
-        await writeAudit("INGEST", `Registered single device '${body.identifier}' in stock`, insertedId, body.identifier);
+        await writeAudit("INGEST", `Registered single device '${body.identifier}' in stock`, insertedId, body.identifier, null, user?.id);
         
         return inserted[0];
       } catch (e: any) {
@@ -162,7 +162,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
     mockDevices.push(newDevice);
     
     // Audit
-    await writeAudit("INGEST", `Registered single device '${body.identifier}' in stock`, newDevice.id, body.identifier);
+    await writeAudit("INGEST", `Registered single device '${body.identifier}' in stock`, newDevice.id, body.identifier, null, user?.id);
     
     return newDevice;
   }, {
@@ -176,7 +176,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
   })
 
   // Bulk Ingestion
-  .post("/bulk", async ({ body }) => {
+  .post("/bulk", async ({ body, user }) => {
     const added: any[] = [];
     const errors: string[] = [];
     const allModels = useDb ? await db.select().from(schema.deviceModels) : mockDeviceModels;
@@ -248,14 +248,16 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
               actionType: "INGEST",
               details: `Registered single device '${device.identifier}' in stock via bulk upload`,
               deviceId: device.id,
-              deviceIdentifier: device.identifier
+              deviceIdentifier: device.identifier,
+              userId: user?.id
             }));
             await tx.insert(schema.deviceAuditLogs).values(auditValues);
             
             // Summary Audit Log
             await tx.insert(schema.deviceAuditLogs).values({
               actionType: "INGEST",
-              details: `Batch ingested ${inserted.length} devices into inventory`
+              details: `Batch ingested ${inserted.length} devices into inventory`,
+              userId: user?.id
             });
           });
         }
@@ -286,11 +288,11 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
       };
       mockDevices.push(newDevice);
       added.push(newDevice);
-      await writeAudit("INGEST", `Registered single device '${item.identifier}' in stock via bulk upload`, newDevice.id, item.identifier);
+      await writeAudit("INGEST", `Registered single device '${item.identifier}' in stock via bulk upload`, newDevice.id, item.identifier, null, user?.id);
     }
 
     if (added.length > 0) {
-      await writeAudit("INGEST", `Batch ingested ${added.length} devices into inventory`);
+      await writeAudit("INGEST", `Batch ingested ${added.length} devices into inventory`, null, null, null, user?.id);
     }
 
     return { success: true, addedCount: added.length, errors };
@@ -306,7 +308,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
     })
   })
   // Bulk Deletion
-  .post("/bulk-delete", async ({ body }) => {
+  .post("/bulk-delete", async ({ body, user }) => {
     const deletedIds: string[] = [];
     const errors: string[] = [];
 
@@ -345,7 +347,8 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
               actionType: "DELETE",
               details: `Removed device '${d.identifier}' via bulk delete`,
               deviceId: null,
-              deviceIdentifier: d.identifier
+              deviceIdentifier: d.identifier,
+              userId: user?.id
             }));
             await tx.insert(schema.deviceAuditLogs).values(auditValues);
             
@@ -369,7 +372,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
           mockDevices.splice(idx, 1);
           setMockDeviceRelationships(mockDeviceRelationships.filter(r => r.primaryDeviceId !== id && r.linkedDeviceId !== id));
           deletedIds.push(id);
-          await writeAudit("DELETE", `Removed device '${identifier}' via bulk delete`);
+          await writeAudit("DELETE", `Removed device '${identifier}' via bulk delete`, null, identifier, null, user?.id);
         }
       }
     }
@@ -380,7 +383,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
       ids: t.Array(t.String())
     })
   })
-  .put("/:id", async ({ params, body }) => {
+  .put("/:id", async ({ params, body, user }) => {
     const metadata = body.metadata || {};
     const payload = {
       identifier: body.identifier,
@@ -420,11 +423,11 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
         // Audit change
         if (oldDevice) {
           if (metadata.replacedBy) {
-            await writeAudit("SWAP", `Hardware Swap: Unit replaced by '${metadata.replacedBy}' (Status updated to DAMAGED)`, params.id, body.identifier, null);
+            await writeAudit("SWAP", `Hardware Swap: Unit replaced by '${metadata.replacedBy}' (Status updated to DAMAGED)`, params.id, body.identifier, null, user?.id);
           } else if (metadata.replacesUnit) {
-            await writeAudit("SWAP", `Hardware Swap: Unit deployed as replacement for '${metadata.replacesUnit}'`, params.id, body.identifier, null);
+            await writeAudit("SWAP", `Hardware Swap: Unit deployed as replacement for '${metadata.replacesUnit}'`, params.id, body.identifier, null, user?.id);
           } else if (oldDevice.status !== payload.status) {
-            await writeAudit("STATUS_CHANGE", `Status changed from ${oldDevice.status} to ${payload.status}`, params.id, body.identifier, null);
+            await writeAudit("STATUS_CHANGE", `Status changed from ${oldDevice.status} to ${payload.status}`, params.id, body.identifier, null, user?.id);
           }
           if (oldDevice.customerId !== payload.customerId) {
             const action = payload.customerId ? "DISPATCH" : "RETURN";
@@ -432,7 +435,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
               ? `Device '${body.identifier}' dispatched to customer`
               : `Device '${body.identifier}' returned to warehouse stock`;
             const targetCustomerId = payload.customerId || oldDevice.customerId;
-            await writeAudit(action, detailText, params.id, body.identifier, targetCustomerId);
+            await writeAudit(action, detailText, params.id, body.identifier, targetCustomerId, user?.id);
           }
         }
 
@@ -477,11 +480,11 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
 
     // Audit change
     if (metadata.replacedBy) {
-      await writeAudit("SWAP", `Hardware Swap: Unit replaced by '${metadata.replacedBy}' (Status updated to DAMAGED)`, params.id, body.identifier, null);
+      await writeAudit("SWAP", `Hardware Swap: Unit replaced by '${metadata.replacedBy}' (Status updated to DAMAGED)`, params.id, body.identifier, null, user?.id);
     } else if (metadata.replacesUnit) {
-      await writeAudit("SWAP", `Hardware Swap: Unit deployed as replacement for '${metadata.replacesUnit}'`, params.id, body.identifier, null);
+      await writeAudit("SWAP", `Hardware Swap: Unit deployed as replacement for '${metadata.replacesUnit}'`, params.id, body.identifier, null, user?.id);
     } else if (oldStatus !== payload.status) {
-      await writeAudit("STATUS_CHANGE", `Status changed from ${oldStatus} to ${payload.status}`, params.id, body.identifier, null);
+      await writeAudit("STATUS_CHANGE", `Status changed from ${oldStatus} to ${payload.status}`, params.id, body.identifier, null, user?.id);
     }
     if (oldCustomerId !== payload.customerId) {
       const action = payload.customerId ? "DISPATCH" : "RETURN";
@@ -489,7 +492,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
         ? `Device '${body.identifier}' dispatched to customer`
         : `Device '${body.identifier}' returned to warehouse stock`;
       const targetCustomerId = payload.customerId || oldCustomerId;
-      await writeAudit(action, detailText, params.id, body.identifier, targetCustomerId);
+      await writeAudit(action, detailText, params.id, body.identifier, targetCustomerId, user?.id);
     }
 
     return updatedDevice;
@@ -503,7 +506,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
     })
   })
 
-  .post("/swap", async ({ body }) => {
+  .post("/swap", async ({ body, user }) => {
     if (useDb) {
       try {
         return await db.transaction(async (tx) => {
@@ -625,14 +628,16 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
             actionType: "SWAP",
             details: `Hardware Swap: Unit replaced by '${newDevice.identifier}' (Status updated to DAMAGED)`,
             deviceId: oldDevice.id,
-            deviceIdentifier: oldDevice.identifier
+            deviceIdentifier: oldDevice.identifier,
+            userId: user?.id
           });
 
           await tx.insert(schema.deviceAuditLogs).values({
             actionType: "SWAP",
             details: `Hardware Swap: Unit deployed as replacement for '${oldDevice.identifier}'`,
             deviceId: newDevice.id,
-            deviceIdentifier: newDevice.identifier
+            deviceIdentifier: newDevice.identifier,
+            userId: user?.id
           });
 
           if (childRels.length > 0) {
@@ -647,13 +652,15 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
                 actionType: "LINK",
                 details: `Inherited child asset '${child.identifier}' from faulty unit '${oldDevice.identifier}' during swap`,
                 deviceId: newDevice.id,
-                deviceIdentifier: newDevice.identifier
+                deviceIdentifier: newDevice.identifier,
+                userId: user?.id
               },
               {
                 actionType: "LINK",
                 details: `Linked to replacement unit '${newDevice.identifier}' due to swap from '${oldDevice.identifier}'`,
                 deviceId: child.id,
-                deviceIdentifier: child.identifier
+                deviceIdentifier: child.identifier,
+                userId: user?.id
               }
             ]);
             if (auditValues.length > 0) {
@@ -752,6 +759,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
       details: `Hardware Swap: Unit replaced by '${newDevice.identifier}' (Status updated to DAMAGED)`,
       deviceId: oldDevice.id,
       deviceIdentifier: oldDevice.identifier,
+      userId: user?.id,
       createdAt: new Date().toISOString()
     });
 
@@ -761,6 +769,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
       details: `Hardware Swap: Unit deployed as replacement for '${oldDevice.identifier}'`,
       deviceId: newDevice.id,
       deviceIdentifier: newDevice.identifier,
+      userId: user?.id,
       createdAt: new Date().toISOString()
     });
 
@@ -773,6 +782,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
           details: `Inherited child asset '${child.identifier}' from faulty unit '${oldDevice.identifier}' during swap`,
           deviceId: newDevice.id,
           deviceIdentifier: newDevice.identifier,
+          userId: user?.id,
           createdAt: new Date().toISOString()
         });
         mockDeviceAuditLogs.unshift({
@@ -781,6 +791,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
           details: `Linked to replacement unit '${newDevice.identifier}' due to swap from '${oldDevice.identifier}'`,
           deviceId: child.id,
           deviceIdentifier: child.identifier,
+          userId: user?.id,
           createdAt: new Date().toISOString()
         });
       }
@@ -799,7 +810,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
   })
 
 
-  .delete("/:id", async ({ params }) => {
+  .delete("/:id", async ({ params, user }) => {
     let identifier = "";
     if (useDb) {
       try {
@@ -807,7 +818,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
         if (dev[0]) identifier = dev[0].identifier;
         await db.delete(schema.devices).where(eq(schema.devices.id, params.id));
         if (identifier) {
-          await writeAudit("DELETE", `Removed device '${identifier}' from inventory database`);
+          await writeAudit("DELETE", `Removed device '${identifier}' from inventory database`, null, identifier, null, user?.id);
         }
         return { success: true };
       } catch (e) {
@@ -821,7 +832,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
     identifier = deviceObj.identifier;
     mockDevices.splice(idx, 1);
     setMockDeviceRelationships(mockDeviceRelationships.filter(r => r.primaryDeviceId !== params.id && r.linkedDeviceId !== params.id));
-    await writeAudit("DELETE", `Removed device '${identifier}' from inventory database`);
+    await writeAudit("DELETE", `Removed device '${identifier}' from inventory database`, null, identifier, null, user?.id);
     return { success: true };
   })
 
@@ -848,7 +859,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
     return logs;
   })
 
-  .get("/:id/telemetry-check", async ({ params }) => {
+  .get("/:id/telemetry-check", async ({ params, user }) => {
     let devObj: any = null;
     if (useDb) {
       try {
@@ -885,7 +896,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
     const status = (!hasFailure && signalDbm > -105 && voltage >= 3.6 && gpsSatellites >= 4) ? "PASSED" : "FAILED";
 
     const details = `Telemetry diagnostic executed. Status: ${status}. Signal: ${signalDbm} dBm, Voltage: ${voltage.toFixed(2)}V, GPS Satellites: ${gpsSatellites}, Network: ${network}`;
-    await writeAudit("TELEMETRY_CHECK", details, devObj.id, devObj.identifier);
+    await writeAudit("TELEMETRY_CHECK", details, devObj.id, devObj.identifier, null, user?.id);
 
     const newMeta = {
       ...(devObj.metadata || {}),

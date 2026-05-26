@@ -45,6 +45,7 @@ export interface DeviceRelationship {
 
 export interface AuditLog {
   id: string;
+  userId?: string;
   actionType: string;
   details: string;
   createdAt: string;

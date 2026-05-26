@@ -42,7 +42,6 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
             set.headers["set-cookie"] = setCookie;
           }
           const data = await rawResponse.json();
-          console.log("[DEBUG] Better Auth Raw Response:", JSON.stringify(data));
           
           if (rawResponse.status >= 400) {
             set.status = rawResponse.status;
@@ -62,7 +61,6 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
             };
           }
 
-          console.log("[DEBUG] Normalized Response sent to Frontend:", JSON.stringify(unwrapped));
           return unwrapped;
         }
       } catch (e: any) {

@@ -17,4 +17,7 @@ export default defineConfig({
       "@ims-pro/shared": path.resolve(__dirname, "../packages/shared/src/index.ts"),
     },
   },
+  optimizeDeps: {
+    include: ['date-fns'],
+  },
 })

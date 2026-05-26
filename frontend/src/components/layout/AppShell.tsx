@@ -3,16 +3,19 @@ import { CommandMenu } from '../ui/command-menu';
 import { apiClient } from '../../lib/api-client';
 import { useAuth } from '../ui/auth-context';
 import { useFeedback } from '../ui/feedback-provider';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { StockAlert } from '../../lib/types/domain';
+import { UserProfileModal } from '../screens/UserProfileModal';
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => {
   const { user, logout } = useAuth();
   const { toast } = useFeedback();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const location = useLocation();
-  const currentPath = location.pathname;
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [stockAlerts, setStockAlerts] = useState<StockAlert[]>([]);
+
+  console.log('[DEBUG] AppShell Render - profileModalOpen:', profileModalOpen);
+  const currentPath = location.pathname;
 
   useEffect(() => {
     apiClient.get<StockAlert[]>('/api/stock-alerts')
@@ -107,31 +110,15 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
           ))}
         </nav>
 
-        {/* User Profile Block */}
+        {/* Logout Section */}
         <div className="p-4 border-t border-zinc-900">
-          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-none p-2.5 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 overflow-hidden">
-              <div className="relative shrink-0">
-                <div className="w-8 h-8 rounded-none bg-zinc-800 flex items-center justify-center border border-zinc-700 text-[10px] font-black text-zinc-300">
-                  {user?.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'U'}
-                </div>
-                <span className="absolute -bottom-0.5 -right-0.5 block h-2 w-2 bg-emerald-500 border border-zinc-950" />
-              </div>
-              <div className="overflow-hidden">
-                <p className="text-[10px] font-bold truncate leading-tight text-zinc-100 uppercase tracking-tight">{user?.name}</p>
-                <p className="text-[8px] text-zinc-600 font-mono uppercase tracking-widest mt-0.5">
-                  {user?.role === 'SUPER_USER' ? 'Admin Node' : user?.role === 'TECHNICIAN' ? 'Technician' : 'Reviewer'}
-                </p>
-              </div>
-            </div>
-            <button 
-              onClick={handleLogout} 
-              className="p-1 hover:bg-red-500/10 rounded-none text-zinc-600 hover:text-red-500 transition-colors shrink-0 cursor-pointer" 
-              title="Logout"
-            >
-              <span className="material-symbols-outlined text-[18px]">logout</span>
-            </button>
-          </div>
+          <button 
+            onClick={handleLogout} 
+            className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-zinc-900/50 hover:bg-red-500/10 border border-zinc-800/50 hover:border-red-500/20 text-zinc-400 hover:text-red-500 transition-all duration-200 group cursor-pointer"
+          >
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Terminate Session</span>
+            <span className="material-symbols-outlined text-[18px] group-hover:translate-x-0.5 transition-transform">logout</span>
+          </button>
         </div>
 
       </aside>
@@ -173,6 +160,25 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
               );
             })()}
 
+            {/* Top-Right Profile Quick-Access */}
+            <div className="h-8 w-px bg-zinc-800 mx-2 hidden sm:block" />
+            <button
+              onClick={() => setProfileModalOpen(true)}
+              className="flex items-center gap-3 px-3 py-1.5 hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-all group"
+            >
+              <div className="text-right hidden sm:block">
+                <p className="text-[10px] font-black text-white uppercase tracking-tight leading-none group-hover:text-primary transition-colors">
+                  {user?.name}
+                </p>
+                <p className="text-[8px] font-mono text-zinc-600 uppercase tracking-widest mt-1 leading-none">
+                  {user?.role === 'SUPER_USER' ? 'Admin Node' : 'Technician'}
+                </p>
+              </div>
+              <div className="w-8 h-8 bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-black text-zinc-300 group-hover:border-primary/50 transition-colors">
+                {user?.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'U'}
+              </div>
+            </button>
+
           </div>
         </header>
 
@@ -184,6 +190,10 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
         </main>
       </div>
       <CommandMenu />
+      <UserProfileModal 
+        isOpen={profileModalOpen} 
+        onClose={() => setProfileModalOpen(false)} 
+      />
     </div>
   );
 };

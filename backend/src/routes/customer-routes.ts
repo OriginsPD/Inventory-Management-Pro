@@ -124,7 +124,7 @@ export const customerRoutes = new Elysia({ prefix: '/api/customers' })
 
     return { dispatched, returned };
   })
-  .post("/", async ({ body }) => {
+  .post("/", async ({ body, user }) => {
     const payload = {
       name: body.name,
       type: body.type as 'PERSON' | 'COMPANY',
@@ -138,7 +138,7 @@ export const customerRoutes = new Elysia({ prefix: '/api/customers' })
     if (useDb) {
       try {
         const res = await db.insert(schema.customers).values(payload).returning();
-        await writeAudit("CUSTOMER_CREATE", `Created customer ${body.name}`);
+        await writeAudit("CUSTOMER_CREATE", `Created customer ${body.name}`, null, null, res[0].id, user?.id);
         return res[0];
       } catch (e) {
         console.error(e);
@@ -153,7 +153,7 @@ export const customerRoutes = new Elysia({ prefix: '/api/customers' })
     };
 
     mockCustomers.push(newCustomer);
-    await writeAudit("CUSTOMER_CREATE", `Created customer ${body.name} (In-Memory)`);
+    await writeAudit("CUSTOMER_CREATE", `Created customer ${body.name} (In-Memory)`, null, null, newCustomer.id, user?.id);
     return newCustomer;
   }, {
     body: t.Object({

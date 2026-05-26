@@ -11,7 +11,8 @@ export async function writeAudit(
   text: string,
   deviceId?: string | null,
   deviceIdentifier?: string | null,
-  customerId?: string | null
+  customerId?: string | null,
+  userId?: string | null
 ) {
   if (useDb) {
     try {
@@ -20,7 +21,8 @@ export async function writeAudit(
         details: text,
         deviceId: deviceId || null,
         deviceIdentifier: deviceIdentifier || null,
-        customerId: customerId || null
+        customerId: customerId || null,
+        userId: userId || null
       });
     } catch (e) {
       console.error("Failed to write db audit log", e);
@@ -28,6 +30,7 @@ export async function writeAudit(
   } else {
     mockDeviceAuditLogs.unshift({
       id: randomUUID(),
+      userId: userId || undefined,
       actionType: action,
       details: text,
       deviceId: deviceId || undefined,

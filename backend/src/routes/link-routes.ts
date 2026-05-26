@@ -222,7 +222,7 @@ export const linkRoutes = new Elysia({ prefix: '/api/device-links' })
   })
 
   // Execute Relationship Commit
-  .post("/commit", async ({ body }) => {
+  .post("/commit", async ({ body, user }) => {
     let created = 0;
     const errors: string[] = [];
     const allModels = useDb ? await db.select().from(schema.deviceModels) : mockDeviceModels;
@@ -275,7 +275,8 @@ export const linkRoutes = new Elysia({ prefix: '/api/device-links' })
                   actionType: "INGEST",
                   details: `Auto-created primary tracker '${link.primaryISN}' during pairing`,
                   deviceId: primary.id,
-                  deviceIdentifier: primary.identifier
+                  deviceIdentifier: primary.identifier,
+                  userId: user?.id
                 });
               }
             }
@@ -304,7 +305,8 @@ export const linkRoutes = new Elysia({ prefix: '/api/device-links' })
                   actionType: "INGEST",
                   details: `Auto-created child asset '${link.childISN}' (${childType}) during pairing`,
                   deviceId: child.id,
-                  deviceIdentifier: child.identifier
+                  deviceIdentifier: child.identifier,
+                  userId: user?.id
                 });
               }
             }
@@ -346,7 +348,8 @@ export const linkRoutes = new Elysia({ prefix: '/api/device-links' })
                   actionType: "LINK",
                   details: `Linked tracker '${link.primaryISN}' with component '${link.childISN}'`,
                   deviceId: primary.id,
-                  deviceIdentifier: link.primaryISN
+                  deviceIdentifier: link.primaryISN,
+                  userId: user?.id
                 });
               }
             } else {
@@ -380,7 +383,7 @@ export const linkRoutes = new Elysia({ prefix: '/api/device-links' })
               updatedAt: new Date().toISOString()
             };
             mockDevices.push(primary);
-            await writeAudit("INGEST", `Auto-created primary tracker '${link.primaryISN}' during pairing`, primary.id, link.primaryISN);
+            await writeAudit("INGEST", `Auto-created primary tracker '${link.primaryISN}' during pairing`, primary.id, link.primaryISN, null, user?.id);
           }
         }
 
@@ -399,7 +402,7 @@ export const linkRoutes = new Elysia({ prefix: '/api/device-links' })
               updatedAt: new Date().toISOString()
             };
             mockDevices.push(child);
-            await writeAudit("INGEST", `Auto-created child asset '${link.childISN}' (${childType}) during pairing`, child.id, link.childISN);
+            await writeAudit("INGEST", `Auto-created child asset '${link.childISN}' (${childType}) during pairing`, child.id, link.childISN, null, user?.id);
           }
         }
 
@@ -426,7 +429,7 @@ export const linkRoutes = new Elysia({ prefix: '/api/device-links' })
             });
             created++;
             childToParentMap.set(child.id, primary.id);
-            await writeAudit("LINK", `Linked tracker '${link.primaryISN}' with component '${link.childISN}'`, primary.id, link.primaryISN);
+            await writeAudit("LINK", `Linked tracker '${link.primaryISN}' with component '${link.childISN}'`, primary.id, link.primaryISN, null, user?.id);
           }
         } else {
           throw new Error(`Could not resolve primary or child templates for '${link.primaryISN}' -> '${link.childISN}'.`);
@@ -446,7 +449,7 @@ export const linkRoutes = new Elysia({ prefix: '/api/device-links' })
   })
 
   // Execute Relationship Unlink
-  .post("/unlink", async ({ body }) => {
+  .post("/unlink", async ({ body, user }) => {
     let unlinked = 0;
     const errors: string[] = [];
 
@@ -467,7 +470,7 @@ export const linkRoutes = new Elysia({ prefix: '/api/device-links' })
               )
             );
             unlinked++;
-            await writeAudit("UNLINK", `Unlinked tracker '${link.primaryISN}' from component '${link.childISN}'`);
+            await writeAudit("UNLINK", `Unlinked tracker '${link.primaryISN}' from component '${link.childISN}'`, primary.id, link.primaryISN, null, user?.id);
           }
         } catch (e: any) {
           errors.push(`Unlinking failed: ${e.message}`);
@@ -483,7 +486,7 @@ export const linkRoutes = new Elysia({ prefix: '/api/device-links' })
           ));
           if (mockDeviceRelationships.length < initialLength) {
             unlinked++;
-            await writeAudit("UNLINK", `Unlinked tracker '${link.primaryISN}' from component '${link.childISN}'`);
+            await writeAudit("UNLINK", `Unlinked tracker '${link.primaryISN}' from component '${link.childISN}'`, primary.id, link.primaryISN, null, user?.id);
           }
         }
       }

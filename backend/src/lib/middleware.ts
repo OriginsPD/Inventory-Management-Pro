@@ -76,7 +76,8 @@ export const authMiddleware = new Elysia({ name: 'auth-middleware' })
             return { error: "Forbidden: Super User access required to manage device models" };
           }
         } else if (path.startsWith("/api/users")) {
-          if (user.role !== "SUPER_USER") {
+          // Allow users to update their own profile and password
+          if (!path.startsWith("/api/users/me") && user.role !== "SUPER_USER") {
             set.status = 403;
             return { error: "Forbidden: Super User access required to manage users" };
           }

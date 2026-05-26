@@ -22,6 +22,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ user: User; session: Session }>;
   logout: () => Promise<void>;
   checkSession: () => Promise<void>;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  setSession: React.Dispatch<React.SetStateAction<Session | null>>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -134,7 +136,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, isLoading, login, logout, checkSession }}>
+    <AuthContext.Provider value={{ user, session, isLoading, login, logout, checkSession, setUser, setSession }}>
       {children}
     </AuthContext.Provider>
   );
