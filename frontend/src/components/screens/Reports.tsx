@@ -9,12 +9,13 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '../ui/select';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { playSuccessBeep, playErrorBuzz } from '../../lib/audio';
 import { useDevices, useCustomers } from '../../lib/hooks/useDomain';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client';
 import { Device, Customer, AuditLog } from '../../lib/types/domain';
+import { InlineErrorState } from '../ui/inline-error-state';
 
 interface StockAlert {
   id: string;
@@ -31,20 +32,67 @@ type ReportType = 'inventory' | 'stock' | 'customer' | 'audit';
 export const ReportsScreen = () => {
   const [activeReport, setActiveReport] = useState<ReportType>('inventory');
 
-  const { data: devices = [], isLoading: isLoadingDevices } = useDevices();
-  const { data: customers = [], isLoading: isLoadingCustomers } = useCustomers();
+  const {
+    data: devices = [],
+    isLoading: isLoadingDevices,
+    isError: isDevicesError,
+    error: devicesError,
+    refetch: refetchDevices
+  } = useDevices();
+  const {
+    data: customers = [],
+    isLoading: isLoadingCustomers,
+    isError: isCustomersError,
+    error: customersError,
+    refetch: refetchCustomers
+  } = useCustomers();
   
-  const { data: auditLogs = [], isLoading: isLoadingLogs } = useQuery({
+  const {
+    data: auditLogs = [],
+    isLoading: isLoadingLogs,
+    isError: isAuditLogsError,
+    error: auditLogsError,
+    refetch: refetchAuditLogs
+  } = useQuery({
     queryKey: ['audit-logs-full'],
     queryFn: () => apiClient.get<AuditLog[]>('/api/audit-logs'),
   });
 
-  const { data: stockAlerts = [], isLoading: isLoadingAlerts } = useQuery({
+  const {
+    data: stockAlerts = [],
+    isLoading: isLoadingAlerts,
+    isError: isStockAlertsError,
+    error: stockAlertsError,
+    refetch: refetchStockAlerts
+  } = useQuery({
     queryKey: ['stock-alerts'],
     queryFn: () => apiClient.get<StockAlert[]>('/api/stock-alerts'),
   });
 
   const isLoading = isLoadingDevices || isLoadingCustomers || isLoadingLogs || isLoadingAlerts;
+  const activeReportError =
+    activeReport === 'inventory' ? devicesError :
+    activeReport === 'stock' ? stockAlertsError :
+    activeReport === 'customer' ? customersError || devicesError :
+    auditLogsError;
+  const isActiveReportError =
+    activeReport === 'inventory' ? isDevicesError :
+    activeReport === 'stock' ? isStockAlertsError :
+    activeReport === 'customer' ? isCustomersError || isDevicesError :
+    isAuditLogsError;
+
+  const retryActiveReport = () => {
+    if (activeReport === 'inventory') {
+      refetchDevices();
+    } else if (activeReport === 'stock') {
+      refetchStockAlerts();
+    } else if (activeReport === 'customer') {
+      refetchCustomers();
+      refetchDevices();
+    } else {
+      refetchAuditLogs();
+    }
+  };
   const [isExporting, setIsExporting] = useState(false);
   const [search, setSearch] = useState('');
   
@@ -183,7 +231,7 @@ export const ReportsScreen = () => {
     }
   }, [activeReport, filteredInventory, filteredStock, filteredCustomers, filteredLogs, devices, stockAlerts, customerReportData, auditLogs]);
 
-  // Client-side Excel Exporter (SheetJS Engine)
+  // Client-side Excel Exporter
   const handleExportExcel = async () => {
     try {
       setIsExporting(true);
@@ -241,58 +289,60 @@ export const ReportsScreen = () => {
         }));
       }
 
-      const worksheet = XLSX.utils.json_to_sheet(jsonSheetData);
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'IMS Pro';
+      workbook.created = new Date();
+      const worksheet = workbook.addWorksheet('IMS Report');
+      const headers = Object.keys(jsonSheetData[0] || {});
+      const isTextIdentifier = (header: string) => {
+        const lowerHeader = header.toLowerCase();
+        return lowerHeader === 'id' ||
+          lowerHeader.split(/[^a-z]/).includes('id') ||
+          lowerHeader.includes('uuid') ||
+          lowerHeader.includes('guid') ||
+          lowerHeader.includes('identifier') ||
+          lowerHeader.includes('serial') ||
+          lowerHeader.includes('imei') ||
+          lowerHeader.includes('isn') ||
+          lowerHeader.includes('phone') ||
+          lowerHeader.includes('tax');
+      };
 
-      // Force text format for long numeric identifiers to prevent scientific notation (e.g. 8.69066E+14)
-      if (jsonSheetData.length > 0) {
-        const headers = Object.keys(jsonSheetData[0] || {});
-        const textColumnIndices: number[] = [];
-        headers.forEach((header, idx) => {
-          const lowerHeader = header.toLowerCase();
-          const isTextId = lowerHeader === 'id' || 
-                           lowerHeader.split(/[^a-z]/).includes('id') || 
-                           lowerHeader.includes('uuid') ||
-                           lowerHeader.includes('guid') ||
-                           lowerHeader.includes('identifier') ||
-                           lowerHeader.includes('serial') ||
-                           lowerHeader.includes('imei') ||
-                           lowerHeader.includes('isn') ||
-                           lowerHeader.includes('phone') ||
-                           lowerHeader.includes('tax');
-          if (isTextId) {
-            textColumnIndices.push(idx);
+      worksheet.columns = headers.map(header => ({
+        header,
+        key: header,
+        width: Math.max(
+          header.length + 2,
+          ...jsonSheetData.map(row => String(row[header] ?? '').length + 2)
+        ),
+        style: isTextIdentifier(header) ? { numFmt: '@' } : undefined,
+      }));
+
+      jsonSheetData.forEach(row => {
+        const safeRow = { ...row };
+        headers.forEach(header => {
+          if (isTextIdentifier(header) && safeRow[header] !== undefined && safeRow[header] !== null) {
+            safeRow[header] = String(safeRow[header]);
           }
         });
+        worksheet.addRow(safeRow);
+      });
 
-        const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
-        for (let r = range.s.r + 1; r <= range.e.r; r++) {
-          textColumnIndices.forEach(c => {
-            const cellAddress = XLSX.utils.encode_cell({ r, c });
-            const cell = worksheet[cellAddress];
-            if (cell) {
-              cell.t = 's'; // Force cell type to String
-              cell.v = String(cell.v); // Ensure value is represented as a string
-              if (cell.w) delete cell.w; // Delete formatted text cache so Excel parses it raw
-            }
-          });
-        }
-      }
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.views = [{ state: 'frozen', ySplit: 1 }];
 
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "IMS Report");
-
-      // Auto-fit column width padding for optimal presentation
-      const maxColWidths = jsonSheetData.reduce((acc: any, row: any) => {
-        Object.keys(row).forEach((key, colIdx) => {
-          const contentLen = String(row[key] ?? '').length;
-          const labelLen = key.length;
-          acc[colIdx] = Math.max(acc[colIdx] || 0, contentLen, labelLen);
-        });
-        return acc;
-      }, []);
-      worksheet['!cols'] = maxColWidths.map((w: number) => ({ w: w + 2 }));
-
-      XLSX.writeFile(workbook, `ims_export_${reportType}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `ims_export_${reportType}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       playSuccessBeep();
     } catch (err) {
       console.error(err);
@@ -620,6 +670,15 @@ export const ReportsScreen = () => {
                 <Skeleton className="h-10 w-full bg-primary/5" />
                 <Skeleton className="h-10 w-full bg-primary/5" />
               </div>
+            ) : isActiveReportError ? (
+              <div className="p-4 bg-transparent">
+                <InlineErrorState
+                  title="Report data failed to load"
+                  description="The selected report source could not be loaded. Retry the report before exporting."
+                  error={activeReportError}
+                  onRetry={retryActiveReport}
+                />
+              </div>
             ) : activeReportDetails.data.length === 0 ? (
               <div className="p-4 bg-transparent">
                 <EmptyState
@@ -792,7 +851,7 @@ export const ReportsScreen = () => {
             )}
 
             {/* Preview limit caption bar */}
-            {!isLoading && activeReportDetails.data.length > 15 && (
+            {!isLoading && !isActiveReportError && activeReportDetails.data.length > 15 && (
               <div className="p-3 bg-primary/10 border-t border-primary/10 flex items-center gap-1.5 text-[10px] text-muted-foreground justify-center">
                 <span className="material-symbols-outlined text-xs text-primary select-none">info</span>
                 <span>Showing top 15 records in the live preview. Download to export the full breakdown of {activeReportDetails.data.length} records.</span>

@@ -77,7 +77,7 @@ export const UserManagementScreen = () => {
       setIsLoading(true);
     }
     try {
-      const data = await apiClient.get<User[]>('/api/users');
+      const data = await apiClient.get<User[]>('/api/users/admin');
       setUsers(data);
     } catch (e) {
       console.error(e);
@@ -120,7 +120,7 @@ export const UserManagementScreen = () => {
   const onSubmit = async (values: UserFormValues) => {
     try {
       if (editingUser) {
-        await apiClient.put(`/api/users/${editingUser.id}`, {
+        await apiClient.put(`/api/users/admin/${editingUser.id}`, {
           name: values.name,
           email: values.email,
           role: values.role,
@@ -131,7 +131,7 @@ export const UserManagementScreen = () => {
           toast.error('Password is required and must be at least 6 characters');
           return;
         }
-        await apiClient.post('/api/users', {
+        await apiClient.post('/api/users/admin', {
           name: values.name,
           email: values.email,
           password: values.password,
@@ -155,7 +155,7 @@ export const UserManagementScreen = () => {
     if (!isConfirmed) return;
 
     try {
-      await apiClient.delete(`/api/users/${userToDelete.id}`);
+      await apiClient.delete(`/api/users/admin/${userToDelete.id}`);
       toast.success('User deleted successfully');
       fetchUsers(true);
     } catch (e: unknown) {

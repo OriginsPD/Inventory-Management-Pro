@@ -2,11 +2,17 @@ import { Elysia, t } from "elysia";
 import { randomUUID } from "crypto";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
-import { eq, ne, and } from "drizzle-orm";
+import { eq, ne, and, desc } from "drizzle-orm";
 import { getBetterAuth, mockUsers, type InMemoryUser } from "../auth-service.js";
 import { useDb } from "../lib/db-init.js";
 import { authMiddleware } from "../lib/middleware.js";
 import { mockDeviceAuditLogs } from "../lib/mock-data.js";
+
+const userRoleSchema = t.Union([
+  t.Literal("SUPER_USER"),
+  t.Literal("TECHNICIAN"),
+  t.Literal("REVIEWER"),
+]);
 
 export const userRoutes = new Elysia({ prefix: '/api/users' })
   .use(authMiddleware)
@@ -70,7 +76,7 @@ export const userRoutes = new Elysia({ prefix: '/api/users' })
     return { error: "User not found" };
   }, {
     body: t.Object({
-      name: t.String()
+      name: t.String({ minLength: 1 })
     })
   })
 
@@ -120,7 +126,7 @@ export const userRoutes = new Elysia({ prefix: '/api/users' })
   }, {
     body: t.Object({
       currentPassword: t.String(),
-      newPassword: t.String()
+      newPassword: t.String({ minLength: 6 })
     })
   })
 
@@ -217,10 +223,10 @@ export const userRoutes = new Elysia({ prefix: '/api/users' })
       };
     }, {
       body: t.Object({
-        name: t.String(),
-        email: t.String(),
-        password: t.String(),
-        role: t.String()
+        name: t.String({ minLength: 1 }),
+        email: t.String({ format: "email" }),
+        password: t.String({ minLength: 6 }),
+        role: userRoleSchema
       })
     })
 
@@ -293,9 +299,9 @@ export const userRoutes = new Elysia({ prefix: '/api/users' })
       };
     }, {
       body: t.Object({
-        name: t.String(),
-        email: t.String(),
-        role: t.String()
+        name: t.String({ minLength: 1 }),
+        email: t.String({ format: "email" }),
+        role: userRoleSchema
       })
     })
 

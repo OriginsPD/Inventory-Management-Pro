@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { apiClient } from '../../lib/api-client';
 import { Device, DeviceModel } from '../../lib/types/domain';
 
 import { ScrollArea } from '../ui/scroll-area';
+import { InlineErrorState } from '../ui/inline-error-state';
 
 interface DashboardStats {
   totalDevices: number;
@@ -51,6 +52,7 @@ export const DashboardScreen = () => {
   const [breakdown, setBreakdown] = useState<AssetBreakdown[]>([]);
   const [activeTab, setActiveTab] = useState<'dispatches' | 'ingestions'>('dispatches');
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
 
   const fetchStats = async () => {
@@ -68,6 +70,7 @@ export const DashboardScreen = () => {
       setStats(statsObj);
     } catch (e) {
       console.error(e);
+      throw e;
     }
   };
 
@@ -77,6 +80,7 @@ export const DashboardScreen = () => {
       setModels(data);
     } catch (e) {
       console.error(e);
+      throw e;
     }
   };
 
@@ -86,6 +90,7 @@ export const DashboardScreen = () => {
       setStockAlerts(data);
     } catch (e) {
       console.error(e);
+      throw e;
     }
   };
 
@@ -95,6 +100,7 @@ export const DashboardScreen = () => {
       setRecentLogs(logs);
     } catch (e) {
       console.error(e);
+      throw e;
     }
   };
 
@@ -104,6 +110,7 @@ export const DashboardScreen = () => {
       setTrendData(trend);
     } catch (e) {
       console.error(e);
+      throw e;
     }
   };
 
@@ -113,24 +120,34 @@ export const DashboardScreen = () => {
       setBreakdown(data);
     } catch (e) {
       console.error(e);
+      throw e;
     }
   };
 
-  useEffect(() => {
-    const loadAllData = async () => {
-      setIsLoading(true);
-      await Promise.all([
-        fetchStats(),
-        fetchAuditLogs(),
-        fetchTrendData(),
-        fetchBreakdownData(),
-        fetchModels(),
-        fetchStockAlerts(),
-      ]);
-      setIsLoading(false);
-    };
-    loadAllData();
+  const loadAllData = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+
+    const results = await Promise.allSettled([
+      fetchStats(),
+      fetchAuditLogs(),
+      fetchTrendData(),
+      fetchBreakdownData(),
+      fetchModels(),
+      fetchStockAlerts(),
+    ]);
+
+    const failedRequest = results.find(result => result.status === 'rejected');
+    if (failedRequest?.status === 'rejected') {
+      setLoadError(failedRequest.reason);
+    }
+
+    setIsLoading(false);
   }, []);
+
+  useEffect(() => {
+    loadAllData();
+  }, [loadAllData]);
 
   useEffect(() => {
     if (stockAlerts.length > 0) {
@@ -274,6 +291,17 @@ export const DashboardScreen = () => {
             <p className="text-muted-foreground mt-1 text-sm">Real-time logistics and inventory health telemetry.</p>
           </div>
         </div>
+
+        {loadError !== null && !isLoading && (
+          <div className="glass-panel rounded-xl overflow-hidden">
+            <InlineErrorState
+              title="Dashboard data failed to load"
+              description="One or more dashboard data sources failed. Retry to refresh the operations snapshot."
+              error={loadError}
+              onRetry={loadAllData}
+            />
+          </div>
+        )}
 
         {/* KPI Metrics Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">

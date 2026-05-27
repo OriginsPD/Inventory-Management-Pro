@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useFeedback } from '../ui/feedback-provider';
 import { apiClient } from '../../lib/api-client';
 import { useAuth } from '../ui/auth-context';
@@ -18,8 +18,10 @@ export const QCBench = () => {
   const { user } = useAuth();
   const { data: devices = [], isLoading, refetch: fetchDevices } = useDevices();
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const pageSize = 10;
 
   // Checklist State
   const [results, setResults] = useState<Record<string, { status: QCCheckStatus; notes: string }>>({});
@@ -37,6 +39,18 @@ export const QCBench = () => {
       return matchesSearch && isEligible;
     });
   }, [devices, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredDevices.length / pageSize));
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedDevices = filteredDevices.slice(startIndex, startIndex + pageSize);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  useEffect(() => {
+    setCurrentPage(page => Math.min(page, totalPages));
+  }, [totalPages]);
 
   const handleSelectDevice = (device: Device) => {
     setSelectedDevice(device);
@@ -470,8 +484,8 @@ export const QCBench = () => {
                     <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto bg-primary/10" /></TableCell>
                   </TableRow>
                 ))
-              ) : filteredDevices.length > 0 ? (
-                filteredDevices.map((device: Device) => {
+              ) : paginatedDevices.length > 0 ? (
+                paginatedDevices.map((device: Device) => {
                   const qcStatus = device.metadata?.qcStatus;
                   const qcTestedAt = device.metadata?.qcTestedAt;
 
@@ -527,6 +541,40 @@ export const QCBench = () => {
               )}
             </TableBody>
           </Table>
+
+          {!isLoading && filteredDevices.length > 0 && (
+            <div className="flex flex-col gap-3 border-t border-primary/10 bg-primary/5 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-xs text-muted-foreground">
+                Showing <span className="font-mono font-bold text-foreground">{startIndex + 1}</span>
+                {' '}to{' '}
+                <span className="font-mono font-bold text-foreground">{Math.min(startIndex + pageSize, filteredDevices.length)}</span>
+                {' '}of{' '}
+                <span className="font-mono font-bold text-foreground">{filteredDevices.length}</span>
+                {' '}eligible device{filteredDevices.length === 1 ? '' : 's'}.
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(page => Math.max(page - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="inline-flex h-8 items-center justify-center rounded-lg border border-primary/10 bg-primary/5 px-3 text-xs font-bold text-foreground transition-all hover:bg-primary/15 disabled:pointer-events-none disabled:opacity-30"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(page => Math.min(page + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="inline-flex h-8 items-center justify-center rounded-lg border border-primary/10 bg-primary/5 px-3 text-xs font-bold text-foreground transition-all hover:bg-primary/15 disabled:pointer-events-none disabled:opacity-30"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
   );

@@ -3,18 +3,16 @@ import { CommandMenu } from '../ui/command-menu';
 import { apiClient } from '../../lib/api-client';
 import { useAuth } from '../ui/auth-context';
 import { useFeedback } from '../ui/feedback-provider';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { StockAlert } from '../../lib/types/domain';
-import { UserProfileModal } from '../screens/UserProfileModal';
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => {
   const { user, logout } = useAuth();
   const { toast } = useFeedback();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [stockAlerts, setStockAlerts] = useState<StockAlert[]>([]);
 
-  console.log('[DEBUG] AppShell Render - profileModalOpen:', profileModalOpen);
   const currentPath = location.pathname;
 
   useEffect(() => {
@@ -163,7 +161,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
             {/* Top-Right Profile Quick-Access */}
             <div className="h-8 w-px bg-zinc-800 mx-2 hidden sm:block" />
             <button
-              onClick={() => setProfileModalOpen(true)}
+              onClick={() => navigate('/profile')}
               className="flex items-center gap-3 px-3 py-1.5 hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-all group"
             >
               <div className="text-right hidden sm:block">
@@ -190,10 +188,6 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
         </main>
       </div>
       <CommandMenu />
-      <UserProfileModal 
-        isOpen={profileModalOpen} 
-        onClose={() => setProfileModalOpen(false)} 
-      />
     </div>
   );
 };

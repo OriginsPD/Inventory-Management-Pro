@@ -20,6 +20,16 @@ import {
   cascadeDeviceStatusMemory 
 } from "../lib/utils.js";
 
+const deviceStatusSchema = t.Union([
+  t.Literal("IN_STOCK"),
+  t.Literal("DISPATCHED"),
+  t.Literal("TESTING"),
+  t.Literal("DAMAGED"),
+  t.Literal("REPLACED"),
+  t.Literal("PROMOTIONAL"),
+  t.Literal("RMA"),
+]);
+
 export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
   .get("/", async ({ query }) => {
     if (useDb) {
@@ -103,13 +113,13 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
   }, {
     query: t.Object({
       search: t.Optional(t.String()),
-      status: t.Optional(t.String()),
+      status: t.Optional(deviceStatusSchema),
       modelId: t.Optional(t.String())
     })
   })
   
   // Single Entry
-  .post("/", async ({ body, user }) => {
+  .post("/", async ({ body, user }: any) => {
     const metadata = body.metadata || {};
     const allModels = useDb ? await db.select().from(schema.deviceModels) : mockDeviceModels;
     const model = allModels.find(m => m.id === body.modelId);
@@ -167,16 +177,16 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
     return newDevice;
   }, {
     body: t.Object({
-      identifier: t.String(),
+      identifier: t.String({ minLength: 1 }),
       modelId: t.String(),
-      status: t.Optional(t.String()),
+      status: t.Optional(deviceStatusSchema),
       customerId: t.Optional(t.Nullable(t.String())),
       metadata: t.Optional(t.Any())
     })
   })
 
   // Bulk Ingestion
-  .post("/bulk", async ({ body, user }) => {
+  .post("/bulk", async ({ body, user }: any) => {
     const added: any[] = [];
     const errors: string[] = [];
     const allModels = useDb ? await db.select().from(schema.deviceModels) : mockDeviceModels;
@@ -219,7 +229,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
         const existingDevices = await db
           .select({ identifier: schema.devices.identifier })
           .from(schema.devices)
-          .where(sql`identifier IN (${sql.join(itemsToIngest.map(item => sql`${item.identifier}`), sql`, `)})`);
+          .where(sql`identifier IN (${sql.join(itemsToIngest.map((item: any) => sql`${item.identifier}`), sql`, `)})`);
         
         const dbDuplicates = new Set(existingDevices.map(d => d.identifier));
         const finalInsertItems: any[] = [];
@@ -299,16 +309,16 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
   }, {
     body: t.Object({
       devices: t.Array(t.Object({
-        identifier: t.String(),
+        identifier: t.String({ minLength: 1 }),
         modelId: t.String(),
-        status: t.Optional(t.String()),
+        status: t.Optional(deviceStatusSchema),
         customerId: t.Optional(t.Nullable(t.String())),
         metadata: t.Optional(t.Any())
       }))
     })
   })
   // Bulk Deletion
-  .post("/bulk-delete", async ({ body, user }) => {
+  .post("/bulk-delete", async ({ body, user }: any) => {
     const deletedIds: string[] = [];
     const errors: string[] = [];
 
@@ -322,7 +332,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
         const devicesToDelete = await db
           .select({ id: schema.devices.id, identifier: schema.devices.identifier })
           .from(schema.devices)
-          .where(sql`id IN (${sql.join(idsToQuery.map(id => sql`${id}`), sql`, `)})`);
+          .where(sql`id IN (${sql.join(idsToQuery.map((id: string) => sql`${id}`), sql`, `)})`);
         
         if (devicesToDelete.length > 0) {
           const foundIds = devicesToDelete.map(d => d.id);
@@ -383,7 +393,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
       ids: t.Array(t.String())
     })
   })
-  .put("/:id", async ({ params, body, user }) => {
+  .put("/:id", async ({ params, body, user }: any) => {
     const metadata = body.metadata || {};
     const payload = {
       identifier: body.identifier,
@@ -498,15 +508,15 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
     return updatedDevice;
   }, {
     body: t.Object({
-      identifier: t.String(),
+      identifier: t.String({ minLength: 1 }),
       modelId: t.String(),
-      status: t.Optional(t.String()),
+      status: t.Optional(deviceStatusSchema),
       customerId: t.Optional(t.Nullable(t.String())),
       metadata: t.Optional(t.Any())
     })
   })
 
-  .post("/swap", async ({ body, user }) => {
+  .post("/swap", async ({ body, user }: any) => {
     if (useDb) {
       try {
         return await db.transaction(async (tx) => {
@@ -810,7 +820,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
   })
 
 
-  .delete("/:id", async ({ params, user }) => {
+  .delete("/:id", async ({ params, user }: any) => {
     let identifier = "";
     if (useDb) {
       try {
@@ -859,7 +869,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
     return logs;
   })
 
-  .get("/:id/telemetry-check", async ({ params, user }) => {
+  .get("/:id/telemetry-check", async ({ params, user }: any) => {
     let devObj: any = null;
     if (useDb) {
       try {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -31,35 +31,40 @@ export const UserProfileModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && activeTab === 'activity') {
-      fetchAuditLogs();
-    }
-  }, [isOpen, activeTab]);
-
-  const fetchAuditLogs = async () => {
+  const fetchAuditLogs = useCallback(async () => {
     setIsLoadingLogs(true);
     try {
-      const logs = await apiClient.get<AuditEntry[]>('/api/users/me/audit');
+      const logs = await apiClient.get<AuditEntry[]>('/api/users/me/audit', {
+        suppressAuthRedirect: true,
+      });
       setAuditLogs(logs);
     } catch (e) {
       console.error('Failed to fetch personal audit logs', e);
+      setAuditLogs([]);
     } finally {
       setIsLoadingLogs(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'activity') return;
+    const timer = window.setTimeout(() => {
+      fetchAuditLogs();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [isOpen, activeTab, fetchAuditLogs]);
 
   const handleUpdateProfile = async () => {
     if (!name.trim()) return;
     setIsSaving(true);
     try {
-      const res = await apiClient.put<{ success: boolean; user: any }>('/api/users/me/profile', { name });
+      const res = await apiClient.put<{ success: boolean; user: typeof user }>('/api/users/me/profile', { name });
       if (res.success) {
         setUser(res.user);
         toast.success('Operator profile updated');
       }
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to update profile');
+    } catch (e: unknown) {
+      toast.error((e as Error).message || 'Failed to update profile');
     } finally {
       setIsSaving(false);
     }
@@ -82,15 +87,15 @@ export const UserProfileModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to update password');
+    } catch (e: unknown) {
+      toast.error((e as Error).message || 'Failed to update password');
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-2xl bg-zinc-950 border-zinc-800 p-0 overflow-hidden">
         <DialogHeader className="p-6 border-b border-zinc-900">
           <div className="flex items-center justify-between">

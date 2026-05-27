@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ import {
   TableCell,
 } from '../../ui/table';
 import { EmptyState } from '../../ui/empty-state';
-import { DeviceModel, IngestItem, ParsedLink } from '../../../lib/types/domain';
+import { Device, DeviceModel, IngestItem, ParsedLink } from '../../../lib/types/domain';
 import { apiClient } from '../../../lib/api-client';
 import { useFeedback } from '../../ui/feedback-provider';
 import { playSuccessBeep, playErrorBuzz, playChirp } from '../../../lib/audio';
@@ -28,8 +28,24 @@ interface BulkOperationsModalProps {
   models: DeviceModel[];
   onSuccess: () => void;
   isOnline: boolean;
-  bufferPendingSync: (payload: any[]) => void;
-  devices: any[];
+  bufferPendingSync: (payload: BulkIngestPayload[]) => void;
+  devices: Device[];
+  initialScannedIdentifier?: string | null;
+  onInitialScanConsumed?: () => void;
+}
+
+interface BulkIngestPayload {
+  identifier: string;
+  modelId: string;
+  status: 'IN_STOCK';
+  metadata: IngestItem['metadata'];
+  type: string;
+}
+
+interface MutationResponse {
+  success: boolean;
+  error?: string;
+  errors?: string[];
 }
 
 export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
@@ -40,6 +56,8 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
   isOnline,
   bufferPendingSync,
   devices,
+  initialScannedIdentifier,
+  onInitialScanConsumed,
 }) => {
   const { toast } = useFeedback();
   const [bulkSubTab, setBulkSubTab] = useState<'ingest' | 'link'>('ingest');
@@ -99,7 +117,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
 
   // -- INGESTION LOGIC --
 
-  const processIngestionList = (list: IngestItem[]) => {
+  const processIngestionList = useCallback((list: IngestItem[]) => {
     const selectedModel = models.find(m => m.id === bulkSelectedModelId);
     let invalidPatternCount = 0;
     let patternMatchedList = list;
@@ -112,7 +130,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
           if (!isValid) invalidPatternCount++;
           return isValid;
         });
-      } catch (e) {
+      } catch {
         console.error('Invalid model pattern regex:', selectedModel.identifierPattern);
       }
     }
@@ -146,7 +164,19 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
       setBulkIngestList(prev => [...finalUniqueList, ...prev]);
       playSuccessBeep();
     }
-  };
+  }, [bulkIngestList, bulkSelectedModelId, devices, models]);
+
+  useEffect(() => {
+    if (!isOpen || !initialScannedIdentifier) return;
+    if (!bulkSelectedModelId) return;
+
+    const timer = window.setTimeout(() => {
+      processIngestionList([{ identifier: initialScannedIdentifier, metadata: {} }]);
+      setBulkSubTab('ingest');
+      onInitialScanConsumed?.();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [isOpen, initialScannedIdentifier, bulkSelectedModelId, models, onInitialScanConsumed, processIngestionList]);
 
   const handleIngestCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
@@ -208,7 +238,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
       const meta1 = meta1Index !== -1 ? row[meta1Index] || '' : '';
       const meta2 = meta2Index !== -1 ? row[meta2Index] || '' : '';
 
-      const metadata: Record<string, any> = {};
+      const metadata: IngestItem['metadata'] = {};
       if (serial) {
         if (targetType === 'SIM') {
           metadata.phoneNumber = meta1;
@@ -243,7 +273,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
       return;
     }
 
-    const payload = bulkIngestList.map(item => ({
+    const payload: BulkIngestPayload[] = bulkIngestList.map(item => ({
       identifier: item.identifier,
       modelId: bulkSelectedModelId,
       status: 'IN_STOCK',
@@ -260,7 +290,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
     }
 
     try {
-      const data = await apiClient.post<any>('/api/devices/bulk', { devices: payload });
+      const data = await apiClient.post<MutationResponse>('/api/devices/bulk', { devices: payload });
       if (data.success) {
         toast.success(`Successfully ingested ${payload.length} devices.`);
         setBulkIngestList([]);
@@ -273,7 +303,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
         setBulkIngestList([]);
         onClose();
       }
-    } catch (e) {
+    } catch {
       bufferPendingSync(payload);
       toast.info('Bulk ingestion cached to local sync buffer due to connection error.');
       setBulkIngestList([]);
@@ -306,11 +336,11 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
       }).filter(pair => pair.primaryISN && pair.childISN);
 
       try {
-        const data = await apiClient.post<any>('/api/device-links/preview', { links });
+        const data = await apiClient.post<ParsedLink[]>('/api/device-links/preview', { links });
         setLinkPairs(data);
-        if (data.some((d: any) => d.status === 'invalid')) playErrorBuzz();
+        if (data.some((d) => d.status === 'invalid')) playErrorBuzz();
         else playSuccessBeep();
-      } catch (err) {
+      } catch {
         setLinkError('Failed to preview CSV relationships.');
         playErrorBuzz();
       }
@@ -322,21 +352,21 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
     if (!primaryScan || !childScan) return;
     setLinkError('');
     try {
-      const data = await apiClient.post<any>('/api/device-links/preview', { links: [{ primaryISN: primaryScan, childISN: childScan }] });
+      const data = await apiClient.post<ParsedLink[]>('/api/device-links/preview', { links: [{ primaryISN: primaryScan, childISN: childScan }] });
       if (data && data[0]) {
         setLinkPairs(prev => [data[0], ...prev]);
         setPrimaryScan('');
         setChildScan('');
         if (data[0].status === 'invalid') {
           playErrorBuzz();
-          toast.error(`Invalid link: ${data[0].reason || 'validation failed'}`);
+          toast.error(`Invalid link: ${data[0].message || 'validation failed'}`);
         } else {
           playSuccessBeep();
           toast.success(`Validated connection preview: ${primaryScan} ── ${childScan}`);
         }
         scanLinkPrimaryRef.current?.focus();
       }
-    } catch (e) {
+    } catch {
       setLinkError('Failed to validate connection.');
       toast.error('Internal server error occurred while validating device link.');
       playErrorBuzz();
@@ -356,7 +386,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
     }
 
     try {
-      const data = await apiClient.post<any>('/api/device-links/commit', { links: valid });
+      const data = await apiClient.post<MutationResponse>('/api/device-links/commit', { links: valid });
       if (data.success) {
         toast.success(`Successfully committed ${valid.length} linked relationships.`);
         setLinkPairs([]);
@@ -367,7 +397,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
         toast.error(data.error || 'Failed to commit linked relationships.');
         playErrorBuzz();
       }
-    } catch (e) {
+    } catch {
       setLinkError('Failed to commit relationships.');
       toast.error('Internal server error occurred while committing relationships.');
       playErrorBuzz();

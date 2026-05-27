@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../../lib/api-client';
-import { Device, DeviceModel, AuditLog } from '../../../lib/types/domain';
+import { Device, DeviceModel, AuditLog, DeviceRelationship } from '../../../lib/types/domain';
+
+type BulkDevicePayload = Partial<Device>;
 
 export const useInventory = (filters: { search?: string; status?: string; modelId?: string } = {}) => {
   const queryClient = useQueryClient();
@@ -23,7 +25,7 @@ export const useInventory = (filters: { search?: string; status?: string; modelI
 
   const relationshipsQuery = useQuery({
     queryKey: ['device-links'],
-    queryFn: () => apiClient.get<any[]>('/api/device-links'),
+    queryFn: () => apiClient.get<DeviceRelationship[]>('/api/device-links'),
   });
 
   const deleteMutation = useMutation({
@@ -41,7 +43,7 @@ export const useInventory = (filters: { search?: string; status?: string; modelI
   });
 
   const syncMutation = useMutation({
-    mutationFn: (devices: any[]) => apiClient.post('/api/devices/bulk', { devices }),
+    mutationFn: (devices: BulkDevicePayload[]) => apiClient.post('/api/devices/bulk', { devices }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['devices'] });
     },
@@ -50,13 +52,21 @@ export const useInventory = (filters: { search?: string; status?: string; modelI
   return {
     devices: devicesQuery.data || [],
     isLoadingDevices: devicesQuery.isLoading,
+    devicesError: devicesQuery.error,
+    isDevicesError: devicesQuery.isError,
     models: modelsQuery.data || [],
     isLoadingModels: modelsQuery.isLoading,
+    modelsError: modelsQuery.error,
+    isModelsError: modelsQuery.isError,
     relationships: relationshipsQuery.data || [],
+    relationshipsError: relationshipsQuery.error,
+    isRelationshipsError: relationshipsQuery.isError,
+    hasInventoryError: devicesQuery.isError || modelsQuery.isError || relationshipsQuery.isError,
     deleteDevice: deleteMutation.mutateAsync,
     bulkDeleteDevices: bulkDeleteMutation.mutateAsync,
     syncDevices: syncMutation.mutateAsync,
     refetchDevices: devicesQuery.refetch,
+    refetchModels: modelsQuery.refetch,
     refetchRelationships: relationshipsQuery.refetch,
   };
 };

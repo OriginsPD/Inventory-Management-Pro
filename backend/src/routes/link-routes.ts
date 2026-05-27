@@ -222,7 +222,7 @@ export const linkRoutes = new Elysia({ prefix: '/api/device-links' })
   })
 
   // Execute Relationship Commit
-  .post("/commit", async ({ body, user }) => {
+  .post("/commit", async ({ body, user }: any) => {
     let created = 0;
     const errors: string[] = [];
     const allModels = useDb ? await db.select().from(schema.deviceModels) : mockDeviceModels;
@@ -449,7 +449,7 @@ export const linkRoutes = new Elysia({ prefix: '/api/device-links' })
   })
 
   // Execute Relationship Unlink
-  .post("/unlink", async ({ body, user }) => {
+  .post("/unlink", async ({ body, user }: any) => {
     let unlinked = 0;
     const errors: string[] = [];
 

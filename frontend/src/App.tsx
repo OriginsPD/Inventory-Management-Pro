@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
 import { useAuth } from './components/ui/auth-context';
+import { AuthorizedRoute } from './components/routing/AuthorizedRoute';
 
 // Lazy load screens
 const DashboardScreen = lazy(() => import('./components/screens/DashboardScreen').then(m => ({ default: m.DashboardScreen })));
@@ -14,6 +15,11 @@ const Customers = lazy(() => import('./components/screens/Customers').then(m => 
 const SettingsScreen = lazy(() => import('./components/screens/SettingsScreen').then(m => ({ default: m.SettingsScreen })));
 const ReportsScreen = lazy(() => import('./components/screens/Reports').then(m => ({ default: m.ReportsScreen })));
 const UserManagementScreen = lazy(() => import('./components/screens/UserManagementScreen').then(m => ({ default: m.UserManagementScreen })));
+const UserProfileScreen = lazy(() => import('./components/screens/UserProfileScreen').then(m => ({ default: m.UserProfileScreen })));
+const NotFoundScreen = lazy(() => import('./components/screens/errors/NotFoundScreen').then(m => ({ default: m.NotFoundScreen })));
+const ForbiddenScreen = lazy(() => import('./components/screens/errors/ForbiddenScreen').then(m => ({ default: m.ForbiddenScreen })));
+const ServerErrorScreen = lazy(() => import('./components/screens/errors/ServerErrorScreen').then(m => ({ default: m.ServerErrorScreen })));
+const OfflineScreen = lazy(() => import('./components/screens/errors/OfflineScreen').then(m => ({ default: m.OfflineScreen })));
 const LoginScreen = lazy(() => import('./components/screens/LoginScreen').then(m => ({ default: m.LoginScreen })));
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -137,11 +143,41 @@ const App = () => {
 
           <Route path="/users" element={
             <ProtectedRoute>
-              <UserManagementScreen />
+              <AuthorizedRoute roles={['SUPER_USER']}>
+                <UserManagementScreen />
+              </AuthorizedRoute>
             </ProtectedRoute>
           } />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <UserProfileScreen />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/403" element={
+            <ProtectedRoute>
+              <ForbiddenScreen />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/500" element={
+            <ProtectedRoute>
+              <ServerErrorScreen />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/offline" element={
+            <ProtectedRoute>
+              <OfflineScreen />
+            </ProtectedRoute>
+          } />
+
+          <Route path="*" element={
+            <ProtectedRoute>
+              <NotFoundScreen />
+            </ProtectedRoute>
+          } />
         </Routes>
       </Suspense>
     </BrowserRouter>

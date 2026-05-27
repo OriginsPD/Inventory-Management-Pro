@@ -2,6 +2,8 @@ import { Elysia } from "elysia";
 import { getBetterAuth, mockUsers, mockSessions } from "../auth-service.js";
 import { useDb } from "./db-init.js";
 
+const canUseMockAuth = () => !useDb && process.env.NODE_ENV !== "production" && process.env.IMS_ENABLE_DEV_AUTH === "true";
+
 export const authMiddleware = new Elysia({ name: 'auth-middleware' })
   .derive(async ({ request }: { request: Request }) => {
     let user: any = null;
@@ -31,9 +33,9 @@ export const authMiddleware = new Elysia({ name: 'auth-middleware' })
           }
         }
       } catch (e) {
-        // ignore
+        console.warn("Session validation failed:", e instanceof Error ? e.message : String(e));
       }
-    } else {
+    } else if (canUseMockAuth()) {
       if (token) {
         const mockSession = mockSessions.get(token);
         if (mockSession && mockSession.expiresAt > Date.now()) {

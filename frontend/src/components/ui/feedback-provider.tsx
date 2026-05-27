@@ -74,7 +74,7 @@ export const FeedbackProvider = ({ children }: { children: React.ReactNode }) =>
       
       {/* Toast Overlay Container */}
       <ToastContainer
-        position="top-right"
+        position="bottom-right"
         autoClose={4000}
         hideProgressBar={true}
         newestOnTop={true}

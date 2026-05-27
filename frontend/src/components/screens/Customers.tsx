@@ -25,6 +25,7 @@ import {
 import { useCustomers } from '../../lib/hooks/useDomain';
 import { Customer, Device } from '../../lib/types/domain';
 import { useQuery } from '@tanstack/react-query';
+import { InlineErrorState } from '../ui/inline-error-state';
 
 interface CustomerFormValues {
   name: string;
@@ -37,14 +38,26 @@ interface CustomerFormValues {
 
 export const Customers = () => {
   const { toast, confirm } = useFeedback();
-  const { data: customers = [], isLoading, refetch: fetchCustomers } = useCustomers();
+  const {
+    data: customers = [],
+    isLoading,
+    isError: isCustomersError,
+    error: customersError,
+    refetch: fetchCustomers
+  } = useCustomers();
   const [search, setSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // History state
-  const { data: history = { dispatched: [], returned: [] }, isLoading: isHistoryLoading } = useQuery({
+  const {
+    data: history = { dispatched: [], returned: [] },
+    isLoading: isHistoryLoading,
+    isError: isHistoryError,
+    error: historyError,
+    refetch: refetchHistory
+  } = useQuery({
     queryKey: ['customer-history', selectedCustomer?.id],
     queryFn: () => apiClient.get<{ dispatched: Device[], returned: Device[] }>(`/api/customers/${selectedCustomer?.id}/history`),
     enabled: !!selectedCustomer?.id
@@ -224,6 +237,15 @@ export const Customers = () => {
                       Array.from({ length: 3 }).map((_, i) => (
                         <div key={i} className="p-4"><Skeleton className="h-12 w-full animate-pulse" /></div>
                       ))
+                    ) : isHistoryError ? (
+                      <div className="p-4">
+                        <InlineErrorState
+                          title="Distribution history failed to load"
+                          description="The customer profile loaded, but the device distribution history request failed."
+                          error={historyError}
+                          onRetry={() => refetchHistory()}
+                        />
+                      </div>
                     ) : history.dispatched.length > 0 ? (
                       history.dispatched.map((dev: Device) => (
                         <div key={dev.id} className="p-4 flex items-center justify-between hover:bg-primary/5 transition-colors">
@@ -316,6 +338,17 @@ export const Customers = () => {
                     <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                   </TableRow>
                 ))
+              ) : isCustomersError ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-auto p-0">
+                    <InlineErrorState
+                      title="Customers failed to load"
+                      description="The customer registry could not be loaded. Retry before adding or editing customer records."
+                      error={customersError}
+                      onRetry={() => fetchCustomers()}
+                    />
+                  </TableCell>
+                </TableRow>
               ) : filteredCustomers.length > 0 ? (
                 filteredCustomers.map((customer) => (
                   <TableRow key={customer.id} className="group hover:bg-primary/5 transition-colors">

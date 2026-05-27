@@ -13,6 +13,11 @@ import {
 } from "../lib/mock-data.js";
 import { writeAudit } from "../lib/utils.js";
 
+const customerTypeSchema = t.Union([
+  t.Literal("PERSON"),
+  t.Literal("COMPANY"),
+]);
+
 export const customerRoutes = new Elysia({ prefix: '/api/customers' })
   .get("/", async () => {
     if (useDb) {
@@ -124,7 +129,7 @@ export const customerRoutes = new Elysia({ prefix: '/api/customers' })
 
     return { dispatched, returned };
   })
-  .post("/", async ({ body, user }) => {
+  .post("/", async ({ body, user }: any) => {
     const payload = {
       name: body.name,
       type: body.type as 'PERSON' | 'COMPANY',
@@ -138,8 +143,12 @@ export const customerRoutes = new Elysia({ prefix: '/api/customers' })
     if (useDb) {
       try {
         const res = await db.insert(schema.customers).values(payload).returning();
-        await writeAudit("CUSTOMER_CREATE", `Created customer ${body.name}`, null, null, res[0].id, user?.id);
-        return res[0];
+        const createdCustomer = res[0];
+        if (!createdCustomer) {
+          return { error: "Customer creation failed" };
+        }
+        await writeAudit("CUSTOMER_CREATE", `Created customer ${body.name}`, null, null, createdCustomer.id, user?.id);
+        return createdCustomer;
       } catch (e) {
         console.error(e);
       }
@@ -157,9 +166,9 @@ export const customerRoutes = new Elysia({ prefix: '/api/customers' })
     return newCustomer;
   }, {
     body: t.Object({
-      name: t.String(),
-      type: t.String(),
-      email: t.Optional(t.String()),
+      name: t.String({ minLength: 1 }),
+      type: customerTypeSchema,
+      email: t.Optional(t.String({ format: "email" })),
       phone: t.Optional(t.String()),
       address: t.Optional(t.String()),
       taxId: t.Optional(t.String()),
@@ -203,9 +212,9 @@ export const customerRoutes = new Elysia({ prefix: '/api/customers' })
     return null;
   }, {
     body: t.Object({
-      name: t.String(),
-      type: t.String(),
-      email: t.Optional(t.String()),
+      name: t.String({ minLength: 1 }),
+      type: customerTypeSchema,
+      email: t.Optional(t.String({ format: "email" })),
       phone: t.Optional(t.String()),
       address: t.Optional(t.String()),
       taxId: t.Optional(t.String()),

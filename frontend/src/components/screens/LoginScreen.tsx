@@ -16,7 +16,6 @@ export const LoginScreen = () => {
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors },
   } = useForm<LoginCredentials>({
     resolver: zodResolver(LoginCredentialsSchema),
@@ -39,12 +38,6 @@ export const LoginScreen = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleAutofillAdmin = () => {
-    setValue('email', 'admin@imspro.com');
-    setValue('password', 'AdminPass123!');
-    setErrorMsg(null);
   };
 
   return (
@@ -122,25 +115,6 @@ export const LoginScreen = () => {
             </Button>
           </form>
 
-          {/* Quick-autofill Helper Box */}
-          <div className="border-t border-zinc-900 pt-5">
-            <button
-              onClick={handleAutofillAdmin}
-              className="w-full group bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800/50 hover:border-zinc-700 p-3 text-left transition-all cursor-pointer flex items-center justify-between"
-            >
-              <div className="space-y-1">
-                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest block">
-                  Emergency Bypass
-                </span>
-                <span className="text-[9px] font-mono text-zinc-600 block">
-                  admin@imspro.com // AdminPass123!
-                </span>
-              </div>
-              <span className="material-symbols-outlined text-[16px] text-zinc-700 group-hover:text-primary transition-colors">
-                login
-              </span>
-            </button>
-          </div>
         </div>
 
         {/* Footer info */}

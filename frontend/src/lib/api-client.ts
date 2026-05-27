@@ -3,6 +3,7 @@ const BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3
 interface RequestOptions extends RequestInit {
   bypassCache?: boolean;
   cacheTtl?: number; // duration in ms, default 2000
+  suppressAuthRedirect?: boolean;
 }
 
 interface CacheEntry {
@@ -11,6 +12,18 @@ interface CacheEntry {
 }
 
 const cache = new Map<string, CacheEntry>();
+
+export class ApiError extends Error {
+  status: number;
+  code?: string;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+  }
+}
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const method = options.method || 'GET';
@@ -35,24 +48,31 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     }
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-    credentials: 'include',
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
+  } catch (e) {
+    throw new ApiError((e as Error).message || 'Network request failed', 0, 'NETWORK_ERROR');
+  }
 
   if (!response.ok) {
-    if (response.status === 401) {
+    if (response.status === 401 && !options.suppressAuthRedirect) {
       window.dispatchEvent(new CustomEvent('auth-session-expired'));
     }
     let errorMessage = `API Request failed with status ${response.status}`;
+    let errorCode: string | undefined;
     try {
       const errorData = await response.json();
-      errorMessage = errorData.message || errorMessage;
+      errorMessage = errorData.error || errorData.message || errorMessage;
+      errorCode = errorData.code;
     } catch {
       // ignore
     }
-    throw new Error(errorMessage);
+    throw new ApiError(errorMessage, response.status, errorCode);
   }
 
   // If status is 204 No Content
@@ -64,7 +84,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   // Cache GET requests
   if (method === 'GET') {
-    const ttl = options.cacheTtl !== undefined ? options.cacheTtl : 2000; // 2 seconds default cache
+    const ttl = options.cacheTtl !== undefined ? options.cacheTtl : 0;
     if (ttl > 0) {
       cache.set(cacheKey, {
         data,

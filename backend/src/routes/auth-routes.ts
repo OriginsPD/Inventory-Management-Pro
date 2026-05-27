@@ -4,6 +4,22 @@ import { getBetterAuth, mockUsers, mockSessions } from "../auth-service.js";
 import { useDb } from "../lib/db-init.js";
 import { toBetterAuthRequest } from "../lib/utils.js";
 
+const canUseMockAuth = () => !useDb && process.env.NODE_ENV !== "production" && process.env.IMS_ENABLE_DEV_AUTH === "true";
+
+function publicSession(session: any) {
+  if (!session) return session;
+  const { token: _token, ...safeSession } = session;
+  return safeSession;
+}
+
+function publicAuthEnvelope(data: any) {
+  if (!data) return data;
+  return {
+    ...data,
+    session: publicSession(data.session),
+  };
+}
+
 export const authRoutes = new Elysia({ prefix: '/api/auth' })
   .post("/sign-in/email", async ({ body, set, request }) => {
     const { email, password } = body;
@@ -49,27 +65,35 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
           }
           
           // Better Auth sometimes returns { user, session } and sometimes { user, token }
-          // We normalize this so the frontend always sees { user, session }
+          // We normalize this so the frontend always sees non-secret session metadata.
           const unwrapped = data.data || data;
           
           if (unwrapped.user && !unwrapped.session && unwrapped.token) {
             unwrapped.session = {
               id: unwrapped.token,
-              token: unwrapped.token,
               userId: unwrapped.user.id,
               expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString()
             };
           }
 
-          return unwrapped;
+          delete unwrapped.token;
+          return publicAuthEnvelope(unwrapped);
         }
       } catch (e: any) {
         set.status = 400;
-        return { error: e.message || "Invalid credentials" };
+        return { error: "Invalid credentials" };
       }
+
+      set.status = 500;
+      return { error: "Authentication service unavailable" };
     }
     
     // Fallback Mock Sign-In
+    if (!canUseMockAuth()) {
+      set.status = 503;
+      return { error: "Development authentication is disabled" };
+    }
+
     const user = mockUsers.get(email);
     if (!user || user.passwordHash !== password) {
       set.status = 400;
@@ -87,13 +111,13 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
       updatedAt: new Date(),
     });
     
-    set.headers["set-cookie"] = `better-auth.session-token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`;
+    const secureCookie = process.env.NODE_ENV === "production" ? "; Secure" : "";
+    set.headers["set-cookie"] = `better-auth.session-token=${token}; Path=/; HttpOnly; SameSite=Lax${secureCookie}; Max-Age=${60 * 60 * 24 * 7}`;
     return {
       session: {
         id: token,
         userId: user.id,
         expiresAt: new Date(expiresAt).toISOString(),
-        token
       },
       user: {
         id: user.id,
@@ -137,15 +161,23 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
             return { session: null, user: null };
           }
           const data = await rawResponse.json();
-          return data;
+          return publicAuthEnvelope(data);
         } catch (e) {
           set.status = 401;
           return { session: null, user: null };
         }
       }
+
+      set.status = 500;
+      return { session: null, user: null };
     }
 
     // Fallback Mock session
+    if (!canUseMockAuth()) {
+      set.status = 401;
+      return { session: null, user: null };
+    }
+
     if (!token) {
       set.status = 401;
       return { session: null, user: null };
@@ -168,7 +200,6 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
         id: token,
         userId: mockUser.id,
         expiresAt: new Date(mockSession.expiresAt).toISOString(),
-        token
       },
       user: {
         id: mockUser.id,
@@ -193,9 +224,17 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
           // swallow errors on sign-out
         }
         // Always clear the cookie even if Better Auth call fails
-        set.headers["set-cookie"] = `better-auth.session-token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+        const secureCookie = process.env.NODE_ENV === "production" ? "; Secure" : "";
+        set.headers["set-cookie"] = `better-auth.session-token=; Path=/; HttpOnly; SameSite=Lax${secureCookie}; Max-Age=0`;
         return { success: true };
       }
+
+      set.status = 500;
+      return { error: "Authentication service unavailable" };
+    }
+
+    if (!canUseMockAuth()) {
+      return { success: true };
     }
 
     const cookies = request.headers.get("cookie") || "";
@@ -209,6 +248,7 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
       mockSessions.delete(token);
     }
 
-    set.headers["set-cookie"] = `better-auth.session-token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+    const secureCookie = process.env.NODE_ENV === "production" ? "; Secure" : "";
+    set.headers["set-cookie"] = `better-auth.session-token=; Path=/; HttpOnly; SameSite=Lax${secureCookie}; Max-Age=0`;
     return { success: true };
   });

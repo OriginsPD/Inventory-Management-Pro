@@ -15,26 +15,30 @@ import { systemRoutes } from "./routes/system-routes.js";
 // Initialize DB Connection and Seeding
 initDbConnection();
 
-const app = new Elysia()
+const configuredOrigins = (process.env.TRUSTED_ORIGINS || process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map(origin => origin.trim())
+  .filter(Boolean);
+const trustedOrigins = configuredOrigins.length > 0
+  ? configuredOrigins
+  : process.env.NODE_ENV === "production"
+    ? []
+    : ["http://localhost:5173"];
+
+const baseApp = new Elysia()
   .onRequest(({ request }) => {
     console.log(`[${new Date().toISOString()}] ${request.method} ${new URL(request.url).pathname}`);
-  })
-  .use(swagger())
+  });
+
+const app = (process.env.NODE_ENV !== "production" || process.env.ENABLE_SWAGGER === "true"
+  ? baseApp.use(swagger())
+  : baseApp)
   .use(cors({
     credentials: true,
     origin: (request) => {
       const origin = request.headers.get("origin");
       if (!origin) return true;
-      try {
-        const url = new URL(origin);
-        if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
-          return true;
-        }
-      } catch (_) {
-        // ignore
-      }
-      const allowedOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
-      return origin === allowedOrigin;
+      return trustedOrigins.includes(origin);
     }
   }))
   

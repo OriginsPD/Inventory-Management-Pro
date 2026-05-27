@@ -12,6 +12,7 @@ import { ManageLinksModal } from './inventory/ManageLinksModal';
 import { Device } from '../../lib/types/domain';
 import { useHotScanner } from '../../lib/hooks/useHotScanner';
 import { playSuccessBeep, playChirp, playErrorBuzz } from '../../lib/audio';
+import { InlineErrorState } from '../ui/inline-error-state';
 
 export const DeviceInventory = () => {
   const { user } = useAuth();
@@ -45,6 +46,7 @@ export const DeviceInventory = () => {
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [viewModalDevice, setViewModalDevice] = useState<Device | null>(null);
   const [linkModalDevice, setLinkModalDevice] = useState<Device | null>(null);
+  const [pendingScannerBarcode, setPendingScannerBarcode] = useState<string | null>(null);
 
   // Offline buffer state
   const [pendingSyncItems, setPendingSyncItems] = useState<Partial<Device>[]>(() => {
@@ -59,18 +61,31 @@ export const DeviceInventory = () => {
     isLoadingDevices, 
     models, 
     relationships, 
+    devicesError,
+    modelsError,
+    relationshipsError,
+    hasInventoryError,
     deleteDevice, 
     bulkDeleteDevices, 
     syncDevices,
     refetchDevices,
+    refetchModels,
     refetchRelationships
   } = useInventory({ search: debouncedSearch, status: statusFilter, modelId: modelFilter });
+
+  const inventoryError = devicesError || modelsError || relationshipsError;
+
+  const retryInventoryQueries = () => {
+    refetchDevices();
+    refetchModels();
+    refetchRelationships();
+  };
 
   const syncPendingItems = useCallback(async (itemsToSync?: Partial<Device>[]) => {
     const items = itemsToSync || pendingSyncItems;
     if (items.length === 0) return;
     try {
-      await syncDevices(items as any);
+      await syncDevices(items);
       localStorage.removeItem('ims_pending_sync');
       setPendingSyncItems([]);
       playSuccessBeep();
@@ -118,8 +133,9 @@ export const DeviceInventory = () => {
   };
 
   // Hot Scanner listener
-  useHotScanner(() => {
+  useHotScanner((barcode) => {
     if (activeModal === 'none') {
+      setPendingScannerBarcode(barcode);
       playChirp();
       setActiveModal('bulk');
     }
@@ -130,8 +146,8 @@ export const DeviceInventory = () => {
     const result = [...devices];
     if (sortField) {
       result.sort((a, b) => {
-        const valA = ((a as any)[sortField] || '').toString().toLowerCase();
-        const valB = ((b as any)[sortField] || '').toString().toLowerCase();
+        const valA = String((a as unknown as Record<string, unknown>)[sortField] ?? '').toLowerCase();
+        const valB = String((b as unknown as Record<string, unknown>)[sortField] ?? '').toLowerCase();
         if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
         if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
         return 0;
@@ -220,6 +236,17 @@ export const DeviceInventory = () => {
         visibleColumns={visibleColumns} setVisibleColumns={setVisibleColumns}
       />
 
+      {hasInventoryError && (
+        <div className="glass-panel rounded-xl overflow-hidden">
+          <InlineErrorState
+            title="Inventory data failed to load"
+            description="Some inventory data could not be loaded. Retry the request before editing devices or managing links."
+            error={inventoryError}
+            onRetry={retryInventoryQueries}
+          />
+        </div>
+      )}
+
       <div className="space-y-4">
         <SelectionBanner 
           devices={devices} paginatedDevices={paginatedDevices}
@@ -263,6 +290,8 @@ export const DeviceInventory = () => {
         isOnline={isOnline}
         bufferPendingSync={bufferPendingSync}
         devices={devices}
+        initialScannedIdentifier={pendingScannerBarcode}
+        onInitialScanConsumed={() => setPendingScannerBarcode(null)}
       />
 
       <DeviceDetailModal device={viewModalDevice} onClose={() => setViewModalDevice(null)} />

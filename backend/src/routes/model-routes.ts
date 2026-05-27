@@ -6,6 +6,18 @@ import { eq } from "drizzle-orm";
 import { useDb } from "../lib/db-init.js";
 import { mockDeviceModels, type DeviceModel } from "../lib/mock-data.js";
 
+const assetTypeSchema = t.Union([
+  t.Literal("TRACKER"),
+  t.Literal("SIM"),
+  t.Literal("PERIPHERAL"),
+  t.Literal("DASH_CAM"),
+  t.Literal("SD_CARD"),
+  t.Literal("PANIC_BUTTON"),
+  t.Literal("FUEL_SENSOR"),
+  t.Literal("KEYFOB"),
+  t.Literal("TRAVEL_ADAPTER"),
+]);
+
 export const modelRoutes = new Elysia({ prefix: '/api/device-models' })
   .get("/", async () => {
     if (useDb) {
@@ -48,10 +60,10 @@ export const modelRoutes = new Elysia({ prefix: '/api/device-models' })
     return newModel;
   }, {
     body: t.Object({
-      name: t.String(),
-      brand: t.String(),
-      assetType: t.Optional(t.String()),
-      allowedChildren: t.Optional(t.Array(t.String())),
+      name: t.String({ minLength: 1 }),
+      brand: t.String({ minLength: 1 }),
+      assetType: t.Optional(assetTypeSchema),
+      allowedChildren: t.Optional(t.Array(assetTypeSchema)),
       maxStock: t.Optional(t.Number()),
       identifierPattern: t.Optional(t.Nullable(t.String()))
     })
@@ -95,10 +107,10 @@ export const modelRoutes = new Elysia({ prefix: '/api/device-models' })
     return updatedModel;
   }, {
     body: t.Object({
-      name: t.String(),
-      brand: t.String(),
-      assetType: t.Optional(t.String()),
-      allowedChildren: t.Optional(t.Array(t.String())),
+      name: t.String({ minLength: 1 }),
+      brand: t.String({ minLength: 1 }),
+      assetType: t.Optional(assetTypeSchema),
+      allowedChildren: t.Optional(t.Array(assetTypeSchema)),
       maxStock: t.Optional(t.Number()),
       identifierPattern: t.Optional(t.Nullable(t.String()))
     })

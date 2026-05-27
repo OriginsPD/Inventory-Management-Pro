@@ -11,9 +11,13 @@ export function getBetterAuth(useDb: boolean) {
   if (authInstance) return authInstance;
 
   if (useDb) {
-    try {
-      authInstance = betterAuth({
-        database: drizzleAdapter(db, {
+    const authSecret = process.env.BETTER_AUTH_SECRET;
+    if (!authSecret && process.env.NODE_ENV === "production") {
+      throw new Error("BETTER_AUTH_SECRET is required in production");
+    }
+
+    authInstance = betterAuth({
+      database: drizzleAdapter(db, {
           provider: "pg",
           schema: {
             user: schema.users,
@@ -21,27 +25,27 @@ export function getBetterAuth(useDb: boolean) {
             account: schema.accounts,
             verification: schema.verifications,
           }
-        }),
-        secret: process.env.BETTER_AUTH_SECRET || "ims-pro-super-secret-key-123456789",
-        baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3002",
-        trustedOrigins: [process.env.CORS_ORIGIN || "http://localhost:5173"],
-        emailAndPassword: {
-          enabled: true
-        },
-        user: {
-          additionalFields: {
-            role: {
-              type: "string",
-              defaultValue: "REVIEWER",
-              input: true,
-            }
+      }),
+      secret: authSecret || "ims-pro-dev-only-auth-secret-change-before-production",
+      baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3002",
+      trustedOrigins: (process.env.TRUSTED_ORIGINS || process.env.CORS_ORIGIN || "http://localhost:5173")
+        .split(",")
+        .map(origin => origin.trim())
+        .filter(Boolean),
+      emailAndPassword: {
+        enabled: true
+      },
+      user: {
+        additionalFields: {
+          role: {
+            type: "string",
+            defaultValue: "REVIEWER",
+            input: true,
           }
         }
-      });
-      return authInstance;
-    } catch (e) {
-      console.error("Failed to initialize Better Auth with database, falling back to mock", e);
-    }
+      }
+    });
+    return authInstance;
   }
 
   // If useDb is false or initialization failed, we return a mock object
@@ -73,14 +77,21 @@ export interface InMemorySession {
 export const mockUsers = new Map<string, InMemoryUser>();
 export const mockSessions = new Map<string, InMemorySession>();
 
-// Seed the default admin in memory
-const adminId = "00000000-0000-0000-0000-000000000000";
-mockUsers.set("admin@imspro.com", {
-  id: adminId,
-  name: "System Admin",
-  email: "admin@imspro.com",
-  role: "SUPER_USER",
-  passwordHash: "AdminPass123!",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-});
+// Dev-only fallback user. Disabled unless explicitly configured.
+const devAuthEnabled = process.env.IMS_ENABLE_DEV_AUTH === "true";
+const devAdminEmail = process.env.IMS_DEV_ADMIN_EMAIL;
+const devAdminPassword = process.env.IMS_DEV_ADMIN_PASSWORD;
+
+if (devAuthEnabled && devAdminEmail && devAdminPassword) {
+  mockUsers.set(devAdminEmail, {
+    id: "00000000-0000-0000-0000-000000000000",
+    name: "System Admin",
+    email: devAdminEmail,
+    role: "SUPER_USER",
+    passwordHash: devAdminPassword,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+} else if (devAuthEnabled) {
+  console.warn("IMS_ENABLE_DEV_AUTH is true, but IMS_DEV_ADMIN_EMAIL or IMS_DEV_ADMIN_PASSWORD is missing. Dev auth user was not seeded.");
+}

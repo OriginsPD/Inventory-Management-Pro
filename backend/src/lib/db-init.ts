@@ -13,24 +13,32 @@ export async function initDbConnection() {
     await db.select().from(schema.deviceModels).limit(1);
     useDb = true;
     console.log("⚡ [IMS API] Successfully connected to Neon DB / Postgres instance.");
+    getBetterAuth(true);
 
-    // Seed default admin user if not exists
+    // Seed a bootstrap admin only when explicitly configured.
     try {
-      const existingAdmin = await db.select().from(schema.users).where(eq(schema.users.email, "admin@imspro.com")).limit(1);
+      const bootstrapEmail = process.env.IMS_BOOTSTRAP_ADMIN_EMAIL;
+      const bootstrapPassword = process.env.IMS_BOOTSTRAP_ADMIN_PASSWORD;
+      if (!bootstrapEmail || !bootstrapPassword) {
+        console.warn("Bootstrap admin seed skipped. Set IMS_BOOTSTRAP_ADMIN_EMAIL and IMS_BOOTSTRAP_ADMIN_PASSWORD for first-run setup.");
+        return;
+      }
+
+      const existingAdmin = await db.select().from(schema.users).where(eq(schema.users.email, bootstrapEmail)).limit(1);
       if (existingAdmin.length === 0) {
-        console.log("Seeding default Super User admin@imspro.com in database...");
+        console.log(`Seeding bootstrap Super User ${bootstrapEmail} in database...`);
         const auth = getBetterAuth(true);
         if (auth) {
           await auth.api.signUpEmail({
             body: {
-              email: "admin@imspro.com",
-              password: "AdminPass123!",
+              email: bootstrapEmail,
+              password: bootstrapPassword,
               name: "System Admin"
             }
           });
           // Update the role to SUPER_USER
-          await db.update(schema.users).set({ role: "SUPER_USER" }).where(eq(schema.users.email, "admin@imspro.com"));
-          console.log("⚡ Super User admin@imspro.com seeded successfully.");
+          await db.update(schema.users).set({ role: "SUPER_USER" }).where(eq(schema.users.email, bootstrapEmail));
+          console.log(`⚡ Bootstrap Super User ${bootstrapEmail} seeded successfully.`);
         }
       }
     } catch (err) {
