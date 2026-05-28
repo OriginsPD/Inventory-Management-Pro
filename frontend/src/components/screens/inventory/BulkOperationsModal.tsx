@@ -85,6 +85,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
   const [primaryScan, setPrimaryScan] = useState('');
   const [childScan, setChildScan] = useState('');
   const [linkError, setLinkError] = useState('');
+  const [autoCreateDevices, setAutoCreateDevices] = useState(false);
 
   const scanIngestInputRef = useRef<HTMLInputElement>(null);
   const scanLinkPrimaryRef = useRef<HTMLInputElement>(null);
@@ -101,12 +102,33 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
     setDuplicateCountAlert(0);
     setPatternCountAlert(0);
     setIsCsvMapping(false);
+    setAutoCreateDevices(false);
     if (models.length > 0 && !bulkSelectedModelId) {
       setBulkSelectedModelId(models[0].id || '');
     }
   } else if (!isOpen && lastOpen) {
     setLastOpen(false);
   }
+
+  // Revalidate relationships when autoCreateDevices toggle changes
+  useEffect(() => {
+    if (isOpen && linkPairs.length > 0) {
+      const revalidate = async () => {
+        const links = linkPairs.map(p => ({ primaryISN: p.primaryISN, childISN: p.childISN }));
+        try {
+          const data = await apiClient.post<ParsedLink[]>('/api/device-links/preview', { links, autoCreate: autoCreateDevices });
+          setLinkPairs(data);
+          if (data.some((d) => d.status === 'invalid')) playErrorBuzz();
+          else playSuccessBeep();
+        } catch {
+          setLinkError('Failed to revalidate relationship pairings.');
+          playErrorBuzz();
+        }
+      };
+      revalidate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoCreateDevices]);
 
   const getSelectedModelType = (id: string) => {
     const m = models.find(x => x.id === id);
@@ -336,7 +358,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
       }).filter(pair => pair.primaryISN && pair.childISN);
 
       try {
-        const data = await apiClient.post<ParsedLink[]>('/api/device-links/preview', { links });
+        const data = await apiClient.post<ParsedLink[]>('/api/device-links/preview', { links, autoCreate: autoCreateDevices });
         setLinkPairs(data);
         if (data.some((d) => d.status === 'invalid')) playErrorBuzz();
         else playSuccessBeep();
@@ -352,7 +374,10 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
     if (!primaryScan || !childScan) return;
     setLinkError('');
     try {
-      const data = await apiClient.post<ParsedLink[]>('/api/device-links/preview', { links: [{ primaryISN: primaryScan, childISN: childScan }] });
+      const data = await apiClient.post<ParsedLink[]>('/api/device-links/preview', {
+        links: [{ primaryISN: primaryScan, childISN: childScan }],
+        autoCreate: autoCreateDevices
+      });
       if (data && data[0]) {
         setLinkPairs(prev => [data[0], ...prev]);
         setPrimaryScan('');
@@ -386,7 +411,10 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
     }
 
     try {
-      const data = await apiClient.post<MutationResponse>('/api/device-links/commit', { links: valid });
+      const data = await apiClient.post<MutationResponse>('/api/device-links/commit', {
+        links: valid,
+        autoCreate: autoCreateDevices
+      });
       if (data.success) {
         toast.success(`Successfully committed ${valid.length} linked relationships.`);
         setLinkPairs([]);
@@ -406,7 +434,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="glass-panel-elevated rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
+      <DialogContent className="glass-panel-elevated rounded-2xl sm:max-w-6xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
         <DialogHeader className="hidden">
           <DialogTitle>Bulk Operations</DialogTitle>
           <DialogDescription>Stage Bulk Ingestions or Polymorphic Link pairings.</DialogDescription>
@@ -584,6 +612,23 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                   </div>
                 </div>
 
+                <div className="flex items-center justify-between border border-primary/10 rounded-xl p-4 bg-primary/5">
+                  <div className="space-y-0.5">
+                    <h4 className="text-xs font-bold text-foreground">Auto-Ingestion Option</h4>
+                    <p className="text-[10px] text-muted-foreground">Auto-create parent or child assets if they do not exist in inventory.</p>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input 
+                      type="checkbox" 
+                      checked={autoCreateDevices} 
+                      onChange={(e) => setAutoCreateDevices(e.target.checked)} 
+                      className="sr-only peer"
+                    />
+                    <div className="relative w-8 h-4 bg-zinc-800 rounded-full transition-colors peer-checked:bg-primary/10 border border-primary/10 after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-zinc-500 peer-checked:after:bg-primary after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:after:translate-x-3.5"></div>
+                    <span className="text-xs font-semibold text-foreground">Enable Auto-Create</span>
+                  </label>
+                </div>
+
                 <div className="border border-primary/10 rounded-xl bg-background overflow-hidden">
                   <div className="bg-card/60 p-2.5 px-4 text-xs font-semibold text-muted-foreground flex justify-between items-center border-b border-primary/10 sticky top-0 z-10">
                     <span>Prepared Relationships ({linkPairs.length})</span>
@@ -591,13 +636,36 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                   </div>
                   <div className="divide-y divide-primary/5 font-mono text-xs">
                     {linkPairs.length > 0 ? linkPairs.map((pair, idx) => (
-                      <div key={idx} className={`p-2.5 px-4 flex justify-between items-center ${pair.status === 'invalid' ? 'bg-red-500/5' : 'hover:bg-primary/5'}`}>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-foreground">{pair.primaryISN}</span>
-                          <span className="text-primary font-bold">→</span>
-                          <span className="font-bold text-muted-foreground">{pair.childISN}</span>
+                      <div key={idx} className={`p-2.5 px-4 flex flex-col gap-1.5 ${pair.status === 'invalid' ? 'bg-red-500/5' : 'hover:bg-primary/5'}`}>
+                        <div className="flex justify-between items-center w-full">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-foreground">{pair.primaryISN}</span>
+                            <span className="text-primary font-bold">→</span>
+                            <span className="font-bold text-muted-foreground">{pair.childISN}</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            {pair.status === 'valid' && (pair.autoCreatePrimary || pair.autoCreateChild) && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                                {pair.autoCreatePrimary && pair.autoCreateChild 
+                                  ? 'Auto-create Both' 
+                                  : pair.autoCreatePrimary 
+                                    ? 'Auto-create Parent' 
+                                    : `Auto-create ${pair.childType || 'Child'}`}
+                              </span>
+                            )}
+                            
+                            <button onClick={() => setLinkPairs(linkPairs.filter((_, i) => i !== idx))} className="text-muted-foreground hover:text-red-400 p-1 rounded transition-colors cursor-pointer">
+                              <span className="material-symbols-outlined text-sm">close</span>
+                            </button>
+                          </div>
                         </div>
-                        <button onClick={() => setLinkPairs(linkPairs.filter((_, i) => i !== idx))} className="text-muted-foreground hover:text-red-400 p-1 rounded transition-colors cursor-pointer"><span className="material-symbols-outlined text-sm">close</span></button>
+                        
+                        {pair.message && (
+                          <div className={`text-[10px] leading-tight ${pair.status === 'invalid' ? 'text-red-400 font-semibold' : 'text-emerald-400 font-medium'}`}>
+                            {pair.message}
+                          </div>
+                        )}
                       </div>
                     )) : <EmptyState title="No relationships prepared" description="Scan pairs or upload CSV." />}
                   </div>
