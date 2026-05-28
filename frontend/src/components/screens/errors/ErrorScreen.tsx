@@ -49,11 +49,11 @@ export const ErrorScreen = ({
           <h1 className={cn('font-black tracking-tight text-white uppercase', compact ? 'text-xl' : 'text-3xl')}>
             {title}
           </h1>
-          <p className="text-sm text-zinc-500 leading-relaxed max-w-md mx-auto">{description}</p>
+          <p className="text-sm text-muted leading-relaxed max-w-md mx-auto">{description}</p>
         </div>
 
         {details && (
-          <pre className="text-left text-[10px] font-mono text-zinc-500 bg-zinc-950 border border-zinc-800 p-3 max-h-40 overflow-auto whitespace-pre-wrap">
+            <pre className="text-left text-[10px] font-mono text-muted bg-card border border-border p-3 max-h-40 overflow-auto whitespace-pre-wrap">
             {details}
           </pre>
         )}
@@ -68,7 +68,7 @@ export const ErrorScreen = ({
           <Button
             variant="ghost"
             onClick={handleSecondary}
-            className="w-full sm:w-auto text-zinc-500 hover:text-white hover:bg-zinc-900 rounded-none h-10 px-5 text-[10px] font-black uppercase tracking-[0.2em]"
+              className="w-full sm:w-auto text-muted hover:text-foreground hover:bg-muted rounded-none h-10 px-5 text-[10px] font-black uppercase tracking-[0.2em]"
           >
             {secondaryLabel}
           </Button>

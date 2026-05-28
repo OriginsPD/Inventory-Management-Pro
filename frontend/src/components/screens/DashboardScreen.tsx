@@ -314,7 +314,7 @@ export const DashboardScreen = () => {
             ))
           ) : (
             <>
-              <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(125,211,252,0.08)] transition-all">
+                <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Total Hardware</span>
                   <span className="material-symbols-outlined text-primary text-xl">inventory</span>
@@ -327,7 +327,7 @@ export const DashboardScreen = () => {
                 </div>
               </div>
 
-              <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(125,211,252,0.08)] transition-all">
+                <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Active Dispatched</span>
                   <span className="material-symbols-outlined text-secondary-foreground text-xl">local_shipping</span>
@@ -340,7 +340,7 @@ export const DashboardScreen = () => {
                 </div>
               </div>
 
-              <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(125,211,252,0.08)] transition-all">
+                <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Testing Bench</span>
                   <span className="material-symbols-outlined text-purple-300 text-xl">biotech</span>
@@ -353,7 +353,7 @@ export const DashboardScreen = () => {
                 </div>
               </div>
 
-              <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(125,211,252,0.08)] transition-all">
+                <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Ready Stock</span>
                   <span className="material-symbols-outlined text-primary text-xl">package_2</span>
@@ -366,7 +366,7 @@ export const DashboardScreen = () => {
                 </div>
               </div>
 
-              <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(125,211,252,0.08)] transition-all">
+                <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">QC Pass Rate</span>
                   <span className="material-symbols-outlined text-primary text-xl">task_alt</span>
@@ -746,7 +746,7 @@ export const DashboardScreen = () => {
             </div>
 
             {/* Recommendations Insight card */}
-            <div className="glass-panel border-primary/20 bg-primary/5 rounded-2xl p-5 shadow-[0_0_20px_rgba(125,211,252,0.05)] transition-all">
+            <div className="glass-panel border-primary/20 bg-primary/5 rounded-2xl p-5 shadow-[0_0_20px_rgba(var(--color-primary-rgb),0.05)] transition-all">
               <div className="flex items-center gap-2.5 mb-2.5">
                 <span className="material-symbols-outlined text-primary text-xl">lightbulb</span>
                 <h4 className="font-bold text-sm text-primary uppercase tracking-wider text-[11px]">Warehouse Insight</h4>

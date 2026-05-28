@@ -42,87 +42,89 @@
 }
 
 :root {
-  /* base-nova Light theme (OKLCH mapping) */
-  --background: oklch(0.99 0.001 286); /* Neutral, crisp white */
-  --foreground: oklch(0.18 0.006 286); /* High-contrast zinc/slate gray */
+  /* Neutral workspace with Amber as the default accent */
+  --background: #f8fafc;
+  --foreground: #17120d;
   
-  --card: oklch(1.0 0 0);
-  --card-foreground: oklch(0.18 0.006 286);
+  --card: #ffffff;
+  --card-foreground: #17120d;
 
-  --popover: oklch(1.0 0 0);
-  --popover-foreground: oklch(0.18 0.006 286);
+  --popover: #ffffff;
+  --popover-foreground: #17120d;
 
-  --primary: oklch(0.20 0.007 286); /* Charcoal zinc */
-  --primary-foreground: oklch(0.98 0.002 286);
+  --primary: #ff8a1f;
+  --color-primary-rgb: 255, 138, 31;
+  --primary-foreground: #ffffff;
+  
+  --secondary: #f4f4f5;
+  --secondary-foreground: #17120d;
+  
+  --muted: #f4f4f5;
+  --muted-foreground: #5f5650;
+  
+  --accent: #ff8a1f;
+  --accent-foreground: #17120d;
 
-  --secondary: oklch(0.95 0.003 286);
-  --secondary-foreground: oklch(0.20 0.007 286);
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
 
-  --muted: oklch(0.95 0.003 286);
-  --muted-foreground: oklch(0.48 0.010 286);
-
-  --accent: oklch(0.93 0.004 286);
-  --accent-foreground: oklch(0.20 0.007 286);
-
-  --destructive: oklch(0.60 0.160 29); /* Industrial warning red */
-  --destructive-foreground: oklch(0.98 0.002 286);
-
-  --border: oklch(0.90 0.003 286); /* Thin borders */
-  --input: oklch(0.90 0.003 286);
-  --ring: oklch(0.20 0.007 286);
+  --border: #e4e4e7;
+  --input: #d4d4d8;
+  --ring: #ff8a1f;
   --radius: 6px;
 }
 
 .dark {
-  /* NeoBase Zinc Theme (OKLCH mapping) - Pure Industrial aesthetic */
-  --background: oklch(0.12 0.005 286); /* Near-black Zinc background #09090b */
-  --foreground: oklch(0.92 0.005 286); /* Zinc white #f4f4f5 */
+  /* Neutral dark workspace with Amber as the default accent */
+  --background: #09090b;
+  --foreground: #fff6ed;
   
-  --card: oklch(0.15 0.005 286 / 0.65); /* Translucent zinc-900 card */
-  --card-foreground: oklch(0.92 0.005 286);
+  --card: #111113;
+  --card-foreground: #fff6ed;
 
-  --popover: oklch(0.15 0.005 286 / 0.95);
-  --popover-foreground: oklch(0.92 0.005 286);
+  --popover: #111113;
+  --popover-foreground: #fff6ed;
 
-  --primary: oklch(0.65 0.20 40); /* IMS Orange #f97316 equivalent */
-  --primary-foreground: oklch(0.12 0.005 286);
+  --primary: #ff8a1f;
+  --color-primary-rgb: 255, 138, 31;
+  --primary-foreground: #160a00;
 
-  --secondary: oklch(0.20 0.005 286 / 0.6); /* surface-container */
-  --secondary-foreground: oklch(0.85 0.005 286);
+  --secondary: #18181b;
+  --secondary-foreground: #fff6ed;
 
-  --muted: oklch(0.20 0.005 286 / 0.6);
-  --muted-foreground: oklch(0.70 0.005 286); /* #a1a1aa */
+  --muted: #18181b;
+  --muted-foreground: #d4d4d8;
 
-  --accent: oklch(0.25 0.005 286 / 0.8);
-  --accent-foreground: oklch(0.92 0.005 286);
+  --accent: #ff8a1f;
+  --accent-foreground: #160a00;
 
-  --destructive: oklch(0.60 0.16 29); /* Industrial warning red */
-  --destructive-foreground: oklch(0.98 0.002 286);
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
 
-  --border: oklch(0.92 0.005 286 / 0.1); /* Subtle edge-lit border */
-  --input: oklch(0.92 0.005 286 / 0.05);
-  --ring: oklch(0.65 0.20 40 / 0.5);
+  --border: #27272a;
+  --input: #3f3f46;
+  --ring: #ff8a1f;
 }
 
 /* Glassmorphism Primitives */
 .glass-panel {
-  background: rgba(18, 18, 20, 0.6);
+  background: color-mix(in srgb, var(--card) 72%, transparent);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
 }
 
 .glass-panel-elevated {
-  background: rgba(18, 18, 20, 0.8);
+  background: color-mix(in srgb, var(--card) 86%, transparent);
   backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
 }
 
 .glow-accent {
-  box-shadow: 0 0 30px rgba(249, 115, 22, 0.08);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--primary) 10%, transparent);
 }
 
 .glow-accent-hover:hover {
-  box-shadow: 0 0 25px rgba(249, 115, 22, 0.15);
+  box-shadow: 0 0 25px color-mix(in srgb, var(--primary) 18%, transparent);
   transition: all 0.3s ease;
 }
 
@@ -136,40 +138,48 @@
 /* Custom Accent Themes */
 /* Light Mode Accents */
 :root[data-accent="orange"] {
-  --primary: oklch(0.60 0.20 40); /* Vercel Orange */
-  --ring: oklch(0.60 0.20 40);
+  --primary: #ff6900;
+  --color-primary-rgb: 255, 105, 0;
+  --ring: #ff6900;
 }
 :root[data-accent="amber"] {
-  --primary: oklch(0.64 0.16 70); /* Amber */
-  --ring: oklch(0.64 0.16 70);
+  --primary: #ff8a1f;
+  --color-primary-rgb: 255, 138, 31;
+  --ring: #ff8a1f;
 }
 :root[data-accent="emerald"] {
   --primary: oklch(0.60 0.17 140); /* Emerald */
+  --color-primary-rgb: 16, 185, 129;
   --ring: oklch(0.60 0.17 140);
 }
 :root[data-accent="indigo"] {
   --primary: oklch(0.54 0.19 265); /* Indigo */
+  --color-primary-rgb: 99, 102, 241;
   --ring: oklch(0.54 0.19 265);
 }
 
 /* Dark Mode Accents */
 .dark[data-accent="orange"] {
-  --primary: oklch(0.65 0.20 40);
-  --ring: oklch(0.65 0.20 40);
-  --primary-foreground: oklch(0.12 0.006 286);
+  --primary: #ff6900;
+  --color-primary-rgb: 255, 105, 0;
+  --ring: #ff6900;
+  --primary-foreground: #160a00;
 }
 .dark[data-accent="amber"] {
-  --primary: oklch(0.76 0.15 70);
-  --ring: oklch(0.76 0.15 70);
-  --primary-foreground: oklch(0.12 0.006 286);
+  --primary: #ff8a1f;
+  --color-primary-rgb: 255, 138, 31;
+  --ring: #ff8a1f;
+  --primary-foreground: #160a00;
 }
 .dark[data-accent="emerald"] {
   --primary: oklch(0.75 0.15 140);
+  --color-primary-rgb: 52, 211, 153;
   --ring: oklch(0.75 0.15 140);
   --primary-foreground: oklch(0.12 0.006 286);
 }
 .dark[data-accent="indigo"] {
   --primary: oklch(0.72 0.16 265);
+  --color-primary-rgb: 129, 140, 248;
   --ring: oklch(0.72 0.16 265);
   --primary-foreground: oklch(0.12 0.006 286);
 }
@@ -230,79 +240,6 @@ body {
   }
 }
 
-/* Accessibility Contrast Override for Hardcoded Gray Text */
-.dark [class*="text-[#bec8ce]"] {
-  color: var(--muted-foreground) !important;
-}
-
-/* ==========================================================
-   Light Mode Theme Normalization Overrides
-   ==========================================================
-   These rules override hardcoded dark-theme colors (navy background `#081326`,
-   slate card `#0f1524`, ice-blue text `#d8e2fd`, and gray text `#bec8ce`)
-   specifically in light mode (when the `.dark` class is absent on :root),
-   ensuring a standard light mode is applied without breaking dark mode.
-*/
-:root:not(.dark) {
-  /* Override main layout and container backgrounds */
-  div[class*="bg-[#081326]"],
-  header[class*="bg-[#081326]"],
-  main[class*="bg-[#081326]"],
-  section[class*="bg-[#081326]"] {
-    background-color: var(--background) !important;
-  }
-  
-  [class*="bg-[#0f1524]"] {
-    background-color: var(--card) !important;
-  }
-
-  /* Specific input background overrides */
-  input[class*="bg-[#081326]"] {
-    background-color: var(--input) !important;
-  }
-  div[class*="bg-[#081326]/50"],
-  button[class*="bg-[#081326]/50"] {
-    background-color: var(--secondary) !important;
-  }
-  
-  /* Override text colors to match light theme constraints */
-  [class*="text-[#d8e2fd]"] {
-    color: var(--foreground) !important;
-  }
-  [class*="text-[#bec8ce]"] {
-    color: var(--muted-foreground) !important;
-  }
-  
-  /* Primary buttons text color: dark navy in dark theme (on light ice-blue)
-     must turn into light text in light theme (on dark charcoal) */
-  button[class*="text-[#081326]"],
-  span[class*="text-[#081326]"],
-  a[class*="text-[#081326]"],
-  div[class*="text-[#081326]"] {
-    color: var(--primary-foreground) !important;
-  }
-
-  /* Hover states */
-  [class*="hover:text-[#d8e2fd]"]:hover {
-    color: var(--foreground) !important;
-  }
-
-  /* Glassmorphism panels adaptation to clean light borders and cards */
-  .glass-panel {
-    background: var(--card) !important;
-    backdrop-filter: none !important;
-    border-color: var(--border) !important;
-  }
-  .glass-panel-elevated {
-    background: var(--card) !important;
-    backdrop-filter: none !important;
-    border-color: var(--border) !important;
-  }
-  .glow-accent {
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
-  }
-}
-
 /* ==========================================================
    React-Toastify Custom NeoBase Theme Overrides
    ========================================================== */
@@ -323,10 +260,10 @@ body {
 
 /* Dark mode toast appearance */
 .dark .Toastify__toast {
-  background: rgba(15, 21, 36, 0.9) !important;
+  background: color-mix(in srgb, var(--card) 92%, transparent) !important;
   backdrop-filter: blur(16px);
-  color: #d8e2fd !important;
-  border: 1px solid rgba(125, 211, 252, 0.15) !important;
+  color: var(--foreground) !important;
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border)) !important;
 }
 
 .dark .Toastify__toast--success {

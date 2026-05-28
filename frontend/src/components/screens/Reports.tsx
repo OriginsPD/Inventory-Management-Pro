@@ -826,7 +826,7 @@ export const ReportsScreen = () => {
                               row.actionType === 'STATUS_CHANGE' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' :
                               row.actionType === 'SWAP' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
                               row.actionType === 'DELETE' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                              'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20'
+                              'bg-muted text-muted border border-border'
                             }`}>
                               {row.actionType}
                             </span>

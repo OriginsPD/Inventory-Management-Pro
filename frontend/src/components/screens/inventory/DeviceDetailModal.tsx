@@ -146,14 +146,14 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
             ) : (
               <div className="relative border-l border-primary/10 pl-6 ml-3 space-y-6 text-left">
                 {auditLogs.map((log) => {
-                  let dotColor = 'bg-zinc-400 border-zinc-500';
+    let dotColor = 'bg-muted border-border';
                   if (log.actionType === 'INGEST') dotColor = 'bg-emerald-400 border-emerald-500';
                   else if (log.actionType === 'STATUS_CHANGE') dotColor = 'bg-blue-400 border-blue-500';
                   else if (log.actionType === 'TELEMETRY_CHECK') dotColor = 'bg-emerald-400 border-emerald-500';
                   else if (log.actionType === 'DELETE') dotColor = 'bg-red-400 border-red-500';
                   else if (log.actionType === 'SWAP') dotColor = 'bg-amber-400 border-amber-500';
                   else if (log.actionType === 'LINK') dotColor = 'bg-blue-400 border-blue-500';
-                  else if (log.actionType === 'UNLINK') dotColor = 'bg-zinc-400 border-zinc-500';
+    else if (log.actionType === 'UNLINK') dotColor = 'bg-muted border-border';
 
                   return (
                     <div key={log.id} className="relative">

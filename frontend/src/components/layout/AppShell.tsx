@@ -54,7 +54,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
   ];
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex bg-[#09090b] text-zinc-100 font-sans antialiased selection:bg-primary/30 relative">
+    <div className="h-screen w-screen overflow-hidden flex bg-background text-foreground font-sans antialiased selection:bg-primary/30 relative">
       {/* Mobile Sidebar overlay */}
       {sidebarOpen && (
         <div 
@@ -64,15 +64,15 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
       )}
 
       {/* Sidebar Component */}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col border-r border-zinc-800 bg-zinc-950 transition-transform duration-200 lg:static lg:translate-x-0 shrink-0 ${
+      <aside className={`fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col border-r border-border bg-card transition-transform duration-200 lg:static lg:translate-x-0 shrink-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        <div className="relative flex h-20 items-center justify-center px-6 border-b border-zinc-800 shrink-0">
+        <div className="relative flex h-20 items-center justify-center px-6 border-b border-border shrink-0">
           <div className="flex items-center justify-center">
             <img src="/logo.svg" alt="Amber Connect" className="h-14 w-auto max-w-[210px] object-contain" />
           </div>
           <button 
-            className="absolute right-4 top-1/2 -translate-y-1/2 lg:hidden p-1 hover:bg-zinc-900 rounded text-zinc-500 hover:text-zinc-100"
+            className="absolute right-4 top-1/2 -translate-y-1/2 lg:hidden p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
             onClick={() => setSidebarOpen(false)}
           >
             <span className="material-symbols-outlined text-sm">close</span>
@@ -82,7 +82,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
         <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-8">
           {navGroups.map((group) => (
             <div key={group.label} className="space-y-3">
-              <p className="px-3 text-[9px] font-bold uppercase tracking-[0.25em] text-zinc-600">
+              <p className="px-3 text-[9px] font-bold uppercase tracking-[0.25em] text-muted-foreground">
                 {group.label}
               </p>
               <div className="space-y-0.5">
@@ -94,8 +94,8 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
                       to={item.path}
                       className={`flex items-center gap-3 px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-all duration-200 ${
                         isActive 
-                          ? 'bg-zinc-900 text-primary border-l-2 border-primary' 
-                          : 'text-zinc-500 hover:bg-zinc-900/50 hover:text-zinc-100'
+                          ? 'bg-primary/10 text-primary border-l-2 border-primary' 
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                       }`}
                     >
                       <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
@@ -109,10 +109,10 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
         </nav>
 
         {/* Logout Section */}
-        <div className="p-4 border-t border-zinc-900">
+        <div className="p-4 border-t border-border">
           <button 
             onClick={handleLogout} 
-            className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-zinc-900/50 hover:bg-red-500/10 border border-zinc-800/50 hover:border-red-500/20 text-zinc-400 hover:text-red-500 transition-all duration-200 group cursor-pointer"
+            className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-muted/60 hover:bg-red-500/10 border border-border hover:border-red-500/20 text-muted-foreground hover:text-red-500 transition-all duration-200 group cursor-pointer"
           >
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Terminate Session</span>
             <span className="material-symbols-outlined text-[18px] group-hover:translate-x-0.5 transition-transform">logout</span>
@@ -122,11 +122,11 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
       </aside>
 
       {/* Main Content Layout */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 bg-[#09090b]">
-        <header className="flex h-14 items-center justify-between border-b border-zinc-800 bg-zinc-950 px-6 shrink-0 z-10">
+      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 bg-background">
+        <header className="flex h-14 items-center justify-between border-b border-border bg-card px-6 shrink-0 z-10">
           <button 
             onClick={() => setSidebarOpen(true)}
-            className="p-1.5 -ml-1.5 lg:hidden text-zinc-500 hover:text-zinc-100"
+            className="p-1.5 -ml-1.5 lg:hidden text-muted-foreground hover:text-foreground"
           >
             <span className="material-symbols-outlined">menu</span>
           </button>
@@ -159,20 +159,20 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
             })()}
 
             {/* Top-Right Profile Quick-Access */}
-            <div className="h-8 w-px bg-zinc-800 mx-2 hidden sm:block" />
+            <div className="h-8 w-px bg-border mx-2 hidden sm:block" />
             <button
               onClick={() => navigate('/profile')}
-              className="flex items-center gap-3 px-3 py-1.5 hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-all group"
+              className="flex items-center gap-3 px-3 py-1.5 hover:bg-muted border border-transparent hover:border-border transition-all group"
             >
               <div className="text-right hidden sm:block">
-                <p className="text-[10px] font-black text-white uppercase tracking-tight leading-none group-hover:text-primary transition-colors">
+                <p className="text-[10px] font-black text-foreground uppercase tracking-tight leading-none group-hover:text-primary transition-colors">
                   {user?.name}
                 </p>
-                <p className="text-[8px] font-mono text-zinc-600 uppercase tracking-widest mt-1 leading-none">
+                <p className="text-[8px] font-mono text-muted-foreground uppercase tracking-widest mt-1 leading-none">
                   {user?.role === 'SUPER_USER' ? 'Admin Node' : 'Technician'}
                 </p>
               </div>
-              <div className="w-8 h-8 bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-black text-zinc-300 group-hover:border-primary/50 transition-colors">
+              <div className="w-8 h-8 bg-muted border border-border flex items-center justify-center text-[10px] font-black text-foreground group-hover:border-primary/50 transition-colors">
                 {user?.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'U'}
               </div>
             </button>

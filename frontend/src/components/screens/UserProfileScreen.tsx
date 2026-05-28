@@ -92,27 +92,27 @@ export const UserProfileScreen = () => {
   return (
     <div className="max-w-4xl mx-auto w-full animate-in fade-in duration-300">
       <div className="mb-6 flex flex-col gap-2">
-        <h1 className="text-3xl font-black tracking-tight text-white uppercase italic">
+        <h1 className="text-3xl font-black tracking-tight text-foreground uppercase italic">
           Operator <span className="text-primary">Profile</span>
         </h1>
-        <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+        <p className="text-[10px] font-mono text-muted uppercase tracking-widest">
           Authorized Node ID: {user?.id.substring(0, 8)}... · {user?.email} · {user?.role.replace('_', ' ')}
         </p>
       </div>
 
-      <div className="bg-zinc-950 border border-zinc-800 overflow-hidden">
-        <div className="p-6 border-b border-zinc-900 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="bg-card border border-border overflow-hidden">
+        <div className="p-6 border-b border-border flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm font-black text-white uppercase tracking-tight">{user?.name}</p>
-            <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest mt-1">
+            <p className="text-sm font-black text-foreground uppercase tracking-tight">{user?.name}</p>
+            <p className="text-[10px] font-mono text-muted uppercase tracking-widest mt-1">
               {user?.role === 'SUPER_USER' ? 'Admin Node' : user?.role === 'TECHNICIAN' ? 'Technician Node' : 'Review Node'}
             </p>
           </div>
-          <div className="flex bg-zinc-900 p-1 border border-zinc-800 w-fit">
+          <div className="flex bg-muted/60 p-1 border border-border w-fit">
             <button
               onClick={() => setActiveTab('activity')}
               className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                activeTab === 'activity' ? 'bg-primary text-white' : 'text-zinc-500 hover:text-zinc-300'
+                activeTab === 'activity' ? 'bg-primary text-white' : 'text-muted hover:text-foreground'
               }`}
             >
               Activity History
@@ -120,7 +120,7 @@ export const UserProfileScreen = () => {
             <button
               onClick={() => setActiveTab('security')}
               className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                activeTab === 'security' ? 'bg-primary text-white' : 'text-zinc-500 hover:text-zinc-300'
+                activeTab === 'security' ? 'bg-primary text-white' : 'text-muted hover:text-foreground'
               }`}
             >
               Security & Account
@@ -133,39 +133,39 @@ export const UserProfileScreen = () => {
             {isLoadingLogs ? (
               <div className="space-y-4">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-12 bg-zinc-900/50 animate-pulse border border-zinc-800/50" />
+                  <div key={i} className="h-12 bg-muted/60 animate-pulse border border-border" />
                 ))}
               </div>
             ) : auditLogs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-zinc-600">
+              <div className="flex flex-col items-center justify-center py-20 text-muted">
                 <span className="material-symbols-outlined text-4xl mb-2 opacity-20">history</span>
                 <p className="text-[10px] font-mono uppercase tracking-[0.2em]">No recent activity logs recorded</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {auditLogs.map((log) => (
-                  <div key={log.id} className="group bg-zinc-900/30 hover:bg-zinc-900/60 border border-zinc-900 hover:border-zinc-800 p-3 transition-all flex items-start justify-between gap-4">
+                  <div key={log.id} className="group bg-muted/30 hover:bg-muted/60 border border-border hover:border-primary/30 p-3 transition-all flex items-start justify-between gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-tighter ${
                           log.actionType === 'INGEST' ? 'bg-emerald-500/10 text-emerald-500' :
                           log.actionType === 'DELETE' ? 'bg-red-500/10 text-red-500' :
                           log.actionType === 'LINK' ? 'bg-primary/10 text-primary' :
-                          'bg-zinc-800 text-zinc-400'
+                          'bg-muted text-muted'
                         }`}>
                           {log.actionType}
                         </span>
                         {log.deviceIdentifier && (
-                          <span className="text-[10px] font-mono text-zinc-300 font-bold">{log.deviceIdentifier}</span>
+                          <span className="text-[10px] font-mono text-foreground font-bold">{log.deviceIdentifier}</span>
                         )}
                       </div>
-                      <p className="text-[11px] text-zinc-400 leading-snug">{log.details}</p>
+                      <p className="text-[11px] text-muted leading-snug">{log.details}</p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-[9px] font-mono text-zinc-600 uppercase tracking-tighter">
+                      <p className="text-[9px] font-mono text-muted uppercase tracking-tighter">
                         {format(new Date(log.createdAt), 'yyyy-MM-dd')}
                       </p>
-                      <p className="text-[9px] font-mono text-zinc-700">
+                      <p className="text-[9px] font-mono text-muted/70">
                         {format(new Date(log.createdAt), 'HH:mm:ss')}
                       </p>
                     </div>
@@ -178,24 +178,24 @@ export const UserProfileScreen = () => {
           <div className="p-8 space-y-10 min-h-[420px]">
             <div className="space-y-6">
               <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-zinc-800" />
-                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Operator Identity</span>
-                <div className="h-px flex-1 bg-zinc-800" />
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-[10px] font-black text-muted uppercase tracking-[0.3em]">Operator Identity</span>
+                <div className="h-px flex-1 bg-border" />
               </div>
 
               <div className="grid gap-3">
-                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-[0.15em] ml-0.5">Full Operator Name</label>
+                <label className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] ml-0.5">Full Operator Name</label>
                 <div className="flex gap-2">
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Operator Name"
-                    className="bg-zinc-900 border-zinc-800 text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-zinc-100"
+                    className="bg-background border-border text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-foreground"
                   />
                   <Button
                     onClick={handleUpdateProfile}
                     disabled={isSaving || !name.trim() || name === user?.name}
-                    className="bg-zinc-800 hover:bg-zinc-700 text-white rounded-none px-6 h-10 text-[9px] font-black uppercase tracking-widest transition-all"
+                    className="bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-none px-6 h-10 text-[9px] font-black uppercase tracking-widest transition-all"
                   >
                     Update
                   </Button>
@@ -205,9 +205,9 @@ export const UserProfileScreen = () => {
 
             <div className="space-y-6">
               <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-zinc-800" />
-                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Credential Rotation</span>
-                <div className="h-px flex-1 bg-zinc-800" />
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-[10px] font-black text-muted uppercase tracking-[0.3em]">Credential Rotation</span>
+                <div className="h-px flex-1 bg-border" />
               </div>
 
               <div className="space-y-4">
@@ -216,7 +216,7 @@ export const UserProfileScreen = () => {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="Current security token"
-                  className="bg-zinc-900 border-zinc-800 text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-zinc-100"
+                  className="bg-background border-border text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-foreground"
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
@@ -224,14 +224,14 @@ export const UserProfileScreen = () => {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="New security token"
-                    className="bg-zinc-900 border-zinc-800 text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-zinc-100"
+                    className="bg-background border-border text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-foreground"
                   />
                   <Input
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm new token"
-                    className="bg-zinc-900 border-zinc-800 text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-zinc-100"
+                    className="bg-background border-border text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-foreground"
                   />
                 </div>
 

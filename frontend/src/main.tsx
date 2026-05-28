@@ -11,8 +11,8 @@ import './index.css';
 // Initialize Theme and Layout Settings globally before render
 (function initTheme() {
   try {
-    const savedAccent = localStorage.getItem('ims_theme_accent') || 'zinc';
-    if (savedAccent && savedAccent !== 'zinc') {
+    const savedAccent = localStorage.getItem('ims_theme_accent') || 'amber';
+    if (savedAccent && savedAccent !== 'amber') {
       document.documentElement.setAttribute('data-accent', savedAccent);
     } else {
       document.documentElement.removeAttribute('data-accent');
@@ -25,11 +25,13 @@ import './index.css';
       document.documentElement.classList.remove('density-compact');
     }
 
-    // Force dark mode as per SaaS-Elite design mandates if no preference is set
-    if (!localStorage.getItem('theme')) {
-      localStorage.setItem('theme', 'dark');
+    const savedTheme = localStorage.getItem('theme') || 'system';
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (savedTheme === 'dark' || (savedTheme === 'system' && prefersDark)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
-    document.documentElement.classList.add('dark');
   } catch (e) {
     console.error('Theme initialization failed', e);
   }

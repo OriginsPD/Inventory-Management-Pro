@@ -32,19 +32,19 @@ const workflowStats = [
 
 export const LandingScreen = () => {
   return (
-    <main className="min-h-screen bg-[#09090b] text-zinc-100 overflow-hidden">
+    <main className="min-h-screen bg-background text-foreground overflow-hidden">
       <section className="relative min-h-screen px-5 py-6 sm:px-8 lg:px-12 flex flex-col">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(132,70,255,0.18),transparent_32%),linear-gradient(135deg,rgba(24,24,27,0.95),rgba(9,9,11,1)_55%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#09090b] to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(var(--color-primary-rgb),0.16),transparent_32%),linear-gradient(135deg,rgba(var(--color-card-rgb),0.96),rgba(var(--color-background-rgb),1)_55%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-background to-transparent" />
 
         <header className="relative z-10 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/logo.svg" alt="Amber Connect" className="h-10 w-auto max-w-[210px] object-contain" />
-            <p className="hidden text-[10px] text-zinc-500 font-mono uppercase tracking-[0.18em] sm:block">Inventory Command</p>
+            <p className="hidden text-[10px] text-muted font-mono uppercase tracking-[0.18em] sm:block">Inventory Command</p>
           </div>
           <Link
             to="/login"
-            className="hidden sm:inline-flex h-10 items-center justify-center border border-zinc-700 px-4 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-200 hover:border-primary/60 hover:text-primary transition-colors"
+            className="hidden sm:inline-flex h-10 items-center justify-center border border-border px-4 text-[11px] font-bold uppercase tracking-[0.14em] text-foreground hover:border-primary/60 hover:text-primary transition-colors"
           >
             Sign In
           </Link>
@@ -58,10 +58,10 @@ export const LandingScreen = () => {
             </div>
 
             <div className="space-y-5">
-              <h1 className="text-4xl font-black leading-tight text-white sm:text-5xl lg:text-6xl">
+              <h1 className="text-4xl font-black leading-tight text-foreground sm:text-5xl lg:text-6xl">
                 Control hardware stock, dispatch, QC, and audit trails from one workspace.
               </h1>
-              <p className="max-w-2xl text-sm leading-7 text-zinc-400 sm:text-base">
+              <p className="max-w-2xl text-sm leading-7 text-muted sm:text-base">
                 The platform helps operations teams manage physical devices through the full lifecycle: receiving inventory,
                 linking components, dispatching assets to customers, testing hardware, handling RMA swaps, and exporting
                 reports for accountability.
@@ -78,39 +78,39 @@ export const LandingScreen = () => {
               </Link>
               <a
                 href="#features"
-                className="inline-flex h-12 items-center justify-center gap-2 border border-zinc-700 px-6 text-xs font-bold uppercase tracking-[0.14em] text-zinc-300 hover:border-zinc-500 hover:text-white transition-colors"
+                className="inline-flex h-12 items-center justify-center gap-2 border border-border px-6 text-xs font-bold uppercase tracking-[0.14em] text-muted hover:border-primary/50 hover:text-foreground transition-colors"
               >
                 View Features
               </a>
             </div>
 
-            <div className="grid max-w-xl grid-cols-3 border border-zinc-800 bg-zinc-950/70">
+            <div className="grid max-w-xl grid-cols-3 border border-border bg-card/70">
               {workflowStats.map((stat) => (
-                <div key={stat.label} className="border-r border-zinc-800 p-4 last:border-r-0">
-                  <p className="text-2xl font-black text-white">{stat.value}</p>
-                  <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.12em] text-zinc-500">{stat.label}</p>
+                <div key={stat.label} className="border-r border-border p-4 last:border-r-0">
+                  <p className="text-2xl font-black text-foreground">{stat.value}</p>
+                  <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.12em] text-muted">{stat.label}</p>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="relative min-h-[360px] lg:min-h-[520px]">
-            <div className="absolute inset-0 rounded-[2rem] border border-zinc-800 bg-zinc-950/60 shadow-2xl" />
-            <div className="absolute inset-6 overflow-hidden border border-primary/20 bg-[#111113]">
+            <div className="absolute inset-0 rounded-[2rem] border border-border bg-card/60 shadow-2xl" />
+            <div className="absolute inset-6 overflow-hidden border border-primary/20 bg-card">
               <img
                 src={heroImage}
                 alt="Layered inventory system module"
                 className="absolute right-4 top-4 h-48 w-48 object-contain opacity-90 sm:h-64 sm:w-64"
               />
-              <div className="absolute inset-x-0 bottom-0 space-y-4 bg-gradient-to-t from-[#111113] via-[#111113]/95 to-transparent p-6 pt-28">
+              <div className="absolute inset-x-0 bottom-0 space-y-4 bg-gradient-to-t from-card via-card/95 to-transparent p-6 pt-28">
                 <div className="grid grid-cols-2 gap-3">
                   {['IN_STOCK', 'DISPATCHED', 'TESTING', 'RMA'].map((status, idx) => (
-                    <div key={status} className="border border-zinc-800 bg-zinc-950/80 p-3">
+                    <div key={status} className="border border-border bg-background/80 p-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-zinc-400">{status}</span>
+                        <span className="text-[10px] font-bold text-muted">{status}</span>
                         <span className={`h-2 w-2 rounded-full ${idx === 0 ? 'bg-emerald-400' : idx === 1 ? 'bg-sky-400' : idx === 2 ? 'bg-amber-400' : 'bg-red-400'}`} />
                       </div>
-                      <div className="mt-3 h-1.5 bg-zinc-800">
+                      <div className="mt-3 h-1.5 bg-muted">
                         <div className="h-full bg-primary" style={{ width: `${72 - idx * 13}%` }} />
                       </div>
                     </div>
@@ -118,7 +118,7 @@ export const LandingScreen = () => {
                 </div>
                 <div className="border border-primary/25 bg-primary/10 p-4">
                   <p className="text-xs font-black uppercase tracking-[0.14em] text-primary">Operational focus</p>
-                  <p className="mt-2 text-sm leading-6 text-zinc-300">
+                  <p className="mt-2 text-sm leading-6 text-muted">
                     Keep device movement, technician checks, customer allocation, and audit history connected.
                   </p>
                 </div>
@@ -132,14 +132,14 @@ export const LandingScreen = () => {
         <div className="mx-auto max-w-7xl">
           <div className="mb-8 max-w-2xl">
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-primary">What It Helps With</p>
-            <h2 className="mt-3 text-2xl font-black text-white sm:text-3xl">A focused workspace for inventory teams.</h2>
+            <h2 className="mt-3 text-2xl font-black text-foreground sm:text-3xl">A focused workspace for inventory teams.</h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {featureCards.map((feature) => (
-              <article key={feature.title} className="border border-zinc-800 bg-zinc-950 p-5">
+              <article key={feature.title} className="border border-border bg-card p-5">
                 <span className="material-symbols-outlined text-2xl text-primary">{feature.icon}</span>
-                <h3 className="mt-5 text-sm font-black uppercase tracking-[0.08em] text-white">{feature.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-zinc-500">{feature.description}</p>
+                <h3 className="mt-5 text-sm font-black uppercase tracking-[0.08em] text-foreground">{feature.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-muted">{feature.description}</p>
               </article>
             ))}
           </div>

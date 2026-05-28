@@ -452,7 +452,7 @@ export const Customers = () => {
         <DialogContent className="glass-panel-elevated max-w-lg w-full overflow-hidden border-0 p-0 animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
           <DialogHeader className="p-6 border-b border-primary/10 bg-card/60 text-left space-y-0.5">
             <DialogTitle className="text-lg font-extrabold text-foreground p-0">{selectedCustomer ? 'Edit Customer Profile' : 'Register New Customer'}</DialogTitle>
-            <DialogDescription className="text-xs text-[#cbd5e1] mt-0.5">Capture essential details for device allocation and tracking.</DialogDescription>
+            <DialogDescription className="text-xs text-muted mt-0.5">Capture essential details for device allocation and tracking.</DialogDescription>
           </DialogHeader>
 
             <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">

@@ -96,22 +96,22 @@ export const UserProfileModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-2xl bg-zinc-950 border-zinc-800 p-0 overflow-hidden">
-        <DialogHeader className="p-6 border-b border-zinc-900">
+      <DialogContent className="max-w-2xl bg-card border-border p-0 overflow-hidden">
+        <DialogHeader className="p-6 border-b border-border">
           <div className="flex items-center justify-between">
             <div>
-              <DialogTitle className="text-xl font-black tracking-tight text-white uppercase italic">
+              <DialogTitle className="text-xl font-black tracking-tight text-foreground uppercase italic">
                 Operator <span className="text-primary">Profile</span>
               </DialogTitle>
-              <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mt-1">
+              <p className="text-[10px] font-mono text-muted uppercase tracking-widest mt-1">
                 Authorized Node ID: {user?.id.substring(0, 8)}...
               </p>
             </div>
-            <div className="flex bg-zinc-900 p-1 border border-zinc-800">
+            <div className="flex bg-muted/60 p-1 border border-border">
               <button
                 onClick={() => setActiveTab('activity')}
                 className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                  activeTab === 'activity' ? 'bg-primary text-white' : 'text-zinc-500 hover:text-zinc-300'
+                  activeTab === 'activity' ? 'bg-primary text-white' : 'text-muted hover:text-foreground'
                 }`}
               >
                 Activity History
@@ -119,7 +119,7 @@ export const UserProfileModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
               <button
                 onClick={() => setActiveTab('security')}
                 className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                  activeTab === 'security' ? 'bg-primary text-white' : 'text-zinc-500 hover:text-zinc-300'
+                  activeTab === 'security' ? 'bg-primary text-white' : 'text-muted hover:text-foreground'
                 }`}
               >
                 Security & Account
@@ -134,39 +134,39 @@ export const UserProfileModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
               {isLoadingLogs ? (
                 <div className="space-y-4">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="h-12 bg-zinc-900/50 animate-pulse border border-zinc-800/50" />
+                    <div key={i} className="h-12 bg-muted/60 animate-pulse border border-border" />
                   ))}
                 </div>
               ) : auditLogs.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-zinc-600">
+                <div className="flex flex-col items-center justify-center py-20 text-muted">
                   <span className="material-symbols-outlined text-4xl mb-2 opacity-20">history</span>
                   <p className="text-[10px] font-mono uppercase tracking-[0.2em]">No recent activity logs recorded</p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {auditLogs.map((log) => (
-                    <div key={log.id} className="group bg-zinc-900/30 hover:bg-zinc-900/60 border border-zinc-900 hover:border-zinc-800 p-3 transition-all flex items-start justify-between gap-4">
+                    <div key={log.id} className="group bg-muted/30 hover:bg-muted/60 border border-border hover:border-primary/30 p-3 transition-all flex items-start justify-between gap-4">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-tighter ${
                             log.actionType === 'INGEST' ? 'bg-emerald-500/10 text-emerald-500' :
                             log.actionType === 'DELETE' ? 'bg-red-500/10 text-red-500' :
                             log.actionType === 'LINK' ? 'bg-primary/10 text-primary' :
-                            'bg-zinc-800 text-zinc-400'
+                            'bg-muted text-muted'
                           }`}>
                             {log.actionType}
                           </span>
                           {log.deviceIdentifier && (
-                            <span className="text-[10px] font-mono text-zinc-300 font-bold">{log.deviceIdentifier}</span>
+                            <span className="text-[10px] font-mono text-foreground font-bold">{log.deviceIdentifier}</span>
                           )}
                         </div>
-                        <p className="text-[11px] text-zinc-400 leading-snug">{log.details}</p>
+                        <p className="text-[11px] text-muted leading-snug">{log.details}</p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-[9px] font-mono text-zinc-600 uppercase tracking-tighter">
+                        <p className="text-[9px] font-mono text-muted uppercase tracking-tighter">
                           {format(new Date(log.createdAt), 'yyyy-MM-dd')}
                         </p>
-                        <p className="text-[9px] font-mono text-zinc-700">
+                        <p className="text-[9px] font-mono text-muted/70">
                           {format(new Date(log.createdAt), 'HH:mm:ss')}
                         </p>
                       </div>
@@ -180,24 +180,24 @@ export const UserProfileModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
               {/* Profile Section */}
               <div className="space-y-6">
                 <div className="flex items-center gap-3">
-                  <div className="h-px flex-1 bg-zinc-800" />
-                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Operator Identity</span>
-                  <div className="h-px flex-1 bg-zinc-800" />
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-[10px] font-black text-muted uppercase tracking-[0.3em]">Operator Identity</span>
+                  <div className="h-px flex-1 bg-border" />
                 </div>
                 
                 <div className="grid gap-3">
-                  <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-[0.15em] ml-0.5">Full Operator Name</label>
+                  <label className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] ml-0.5">Full Operator Name</label>
                   <div className="flex gap-2">
                     <Input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Operator Name"
-                      className="bg-zinc-900 border-zinc-800 text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-zinc-100"
+                      className="bg-background border-border text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-foreground"
                     />
                     <Button
                       onClick={handleUpdateProfile}
                       disabled={isSaving || !name.trim() || name === user?.name}
-                      className="bg-zinc-800 hover:bg-zinc-700 text-white rounded-none px-6 h-10 text-[9px] font-black uppercase tracking-widest transition-all"
+                      className="bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-none px-6 h-10 text-[9px] font-black uppercase tracking-widest transition-all"
                     >
                       Update
                     </Button>
@@ -208,42 +208,42 @@ export const UserProfileModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
               {/* Security Section */}
               <div className="space-y-6">
                 <div className="flex items-center gap-3">
-                  <div className="h-px flex-1 bg-zinc-800" />
-                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Credential Rotation</span>
-                  <div className="h-px flex-1 bg-zinc-800" />
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-[10px] font-black text-muted uppercase tracking-[0.3em]">Credential Rotation</span>
+                  <div className="h-px flex-1 bg-border" />
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-[0.15em] ml-0.5">Current Security Token</label>
+                    <label className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] ml-0.5">Current Security Token</label>
                     <Input
                       type="password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="bg-zinc-900 border-zinc-800 text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-zinc-100"
+                      className="bg-background border-border text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-foreground"
                     />
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-[0.15em] ml-0.5">New Security Token</label>
+                      <label className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] ml-0.5">New Security Token</label>
                       <Input
                         type="password"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="bg-zinc-900 border-zinc-800 text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-zinc-100"
+                        className="bg-background border-border text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-foreground"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-[0.15em] ml-0.5">Confirm New Token</label>
+                      <label className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] ml-0.5">Confirm New Token</label>
                       <Input
                         type="password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="bg-zinc-900 border-zinc-800 text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-zinc-100"
+                        className="bg-background border-border text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-foreground"
                       />
                     </div>
                   </div>
@@ -261,11 +261,11 @@ export const UserProfileModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
           )}
         </div>
 
-        <div className="p-4 bg-zinc-950 border-t border-zinc-900 flex justify-end">
+        <div className="p-4 bg-card border-t border-border flex justify-end">
           <Button
             variant="ghost"
             onClick={onClose}
-            className="text-zinc-500 hover:text-white text-[9px] font-black uppercase tracking-widest hover:bg-zinc-900 rounded-none px-6"
+            className="text-muted hover:text-foreground text-[9px] font-black uppercase tracking-widest hover:bg-muted rounded-none px-6"
           >
             Terminate Session View
           </Button>

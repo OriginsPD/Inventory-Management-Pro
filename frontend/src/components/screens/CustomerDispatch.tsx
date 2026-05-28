@@ -776,7 +776,7 @@ export const CustomerDispatch = () => {
           <DialogContent className="glass-panel-elevated rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
             <DialogHeader className="p-6 border-b border-primary/10 text-left space-y-0.5">
               <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">Stage Available Devices</DialogTitle>
-              <DialogDescription className="text-xs text-[#cbd5e1] mt-0.5">Select and queue available units from warehouse stock to prepare dispatch.</DialogDescription>
+            <DialogDescription className="text-xs text-muted mt-0.5">Select and queue available units from warehouse stock to prepare dispatch.</DialogDescription>
             </DialogHeader>
 
               {/* Filters */}
@@ -928,7 +928,7 @@ export const CustomerDispatch = () => {
             <DialogContent className="glass-panel-elevated rounded-2xl max-w-xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
               <DialogHeader className="p-6 border-b border-primary/10 text-left space-y-0.5">
                 <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">Dispatch Batch Details</DialogTitle>
-                <DialogDescription className="flex items-center gap-1.5 text-xs text-[#cbd5e1] mt-1">
+            <DialogDescription className="flex items-center gap-1.5 text-xs text-muted mt-1">
                   <span className="material-symbols-outlined text-sm text-primary">person</span>
                   <span className="font-bold text-foreground">{viewBatch.customerName}</span>
                   <span className="text-[10px] text-muted-foreground">•</span>

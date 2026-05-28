@@ -12,7 +12,7 @@ export const SettingsScreen = () => {
   });
 
   const [accentColor, setAccentColor] = useState(() => {
-    return localStorage.getItem('ims_theme_accent') || 'zinc';
+    return localStorage.getItem('ims_theme_accent') || 'amber';
   });
 
   const [density, setDensity] = useState(() => {
@@ -46,7 +46,7 @@ export const SettingsScreen = () => {
   const handleSelectAccent = (color: string) => {
     setAccentColor(color);
     localStorage.setItem('ims_theme_accent', color);
-    if (color !== 'zinc') {
+    if (color !== 'amber') {
       document.documentElement.setAttribute('data-accent', color);
     } else {
       document.documentElement.removeAttribute('data-accent');
@@ -243,7 +243,7 @@ export const SettingsScreen = () => {
                           : 'border-primary/10 bg-transparent text-muted-foreground hover:text-foreground hover:bg-primary/5'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-xl mb-2 text-amber-400">light_mode</span>
+                      <span className="material-symbols-outlined text-xl mb-2 text-primary">light_mode</span>
                       <span className="text-xs font-semibold">Light Mode</span>
                     </button>
 
@@ -269,7 +269,7 @@ export const SettingsScreen = () => {
                           : 'border-primary/10 bg-transparent text-muted-foreground hover:text-foreground hover:bg-primary/5'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-xl mb-2 text-zinc-400">computer</span>
+                      <span className="material-symbols-outlined text-xl mb-2 text-muted">computer</span>
                       <span className="text-xs font-semibold">System Default</span>
                     </button>
                   </div>
@@ -316,11 +316,10 @@ export const SettingsScreen = () => {
                     <p className="text-xs text-muted-foreground mt-0.5">Select a custom accent color theme for buttons, active items, and alerts.</p>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
                     {[
-                      { name: 'Default (Zinc)', value: 'zinc', bg: 'bg-zinc-500' },
                       { name: 'Orange', value: 'orange', bg: 'bg-orange-500' },
-                      { name: 'Amber', value: 'amber', bg: 'bg-amber-500' },
+                      { name: 'Amber', value: 'amber', bg: 'bg-primary' },
                       { name: 'Emerald', value: 'emerald', bg: 'bg-emerald-500' },
                       { name: 'Indigo', value: 'indigo', bg: 'bg-indigo-500' }
                     ].map((accent) => {

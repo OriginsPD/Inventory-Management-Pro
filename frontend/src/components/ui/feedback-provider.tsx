@@ -92,7 +92,7 @@ export const FeedbackProvider = ({ children }: { children: React.ReactNode }) =>
             <span className="material-symbols-outlined text-primary text-xl select-none">help_outline</span>
             <DialogTitle className="text-sm font-bold text-foreground p-0">{confirmData?.title}</DialogTitle>
           </DialogHeader>
-          <DialogDescription className="text-xs text-[#cbd5e1] leading-relaxed break-words">
+          <DialogDescription className="text-xs text-muted leading-relaxed break-words">
             {confirmData?.message}
           </DialogDescription>
           <div className="flex items-center gap-3 justify-end pt-2">
