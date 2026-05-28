@@ -52,9 +52,7 @@ export const LoginScreen = () => {
             </span>
             <span className="text-[9px] font-mono tracking-[0.2em] text-zinc-400 uppercase">Gateway Node 01</span>
           </div>
-          <h1 className="text-4xl font-black tracking-tighter text-white">
-            IMS<span className="text-primary">PRO</span>
-          </h1>
+          <img src="/logo.svg" alt="Amber Connect" className="mx-auto h-16 w-auto max-w-[280px] object-contain" />
         </div>
 
         {/* Login Card */}
@@ -78,7 +76,7 @@ export const LoginScreen = () => {
               </label>
               <Input
                 type="email"
-                placeholder="operator@imspro.com"
+                placeholder="operator@amberconnect.com"
                 className={`bg-zinc-900 border-zinc-800 text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-zinc-100 placeholder:text-zinc-700 transition-colors ${
                   errors.email ? 'border-red-500/50' : ''
                 }`}
@@ -120,7 +118,7 @@ export const LoginScreen = () => {
         {/* Footer info */}
         <div className="text-center">
           <p className="text-[9px] font-mono text-zinc-700 uppercase tracking-[0.4em]">
-            IMS-PRO // CORE-NODE // VER 3.0.0
+            AMBER CONNECT // CORE-NODE // VER 3.0.0
           </p>
         </div>
       </div>

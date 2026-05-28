@@ -290,7 +290,7 @@ export const ReportsScreen = () => {
       }
 
       const workbook = new ExcelJS.Workbook();
-      workbook.creator = 'IMS Pro';
+      workbook.creator = 'Amber Connect';
       workbook.created = new Date();
       const worksheet = workbook.addWorksheet('IMS Report');
       const headers = Object.keys(jsonSheetData[0] || {});

@@ -21,6 +21,7 @@ const ForbiddenScreen = lazy(() => import('./components/screens/errors/Forbidden
 const ServerErrorScreen = lazy(() => import('./components/screens/errors/ServerErrorScreen').then(m => ({ default: m.ServerErrorScreen })));
 const OfflineScreen = lazy(() => import('./components/screens/errors/OfflineScreen').then(m => ({ default: m.OfflineScreen })));
 const LoginScreen = lazy(() => import('./components/screens/LoginScreen').then(m => ({ default: m.LoginScreen })));
+const LandingScreen = lazy(() => import('./components/screens/LandingScreen').then(m => ({ default: m.LandingScreen })));
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
@@ -63,8 +64,9 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (user) {
     const state = location.state as LocationState;
-    const from = state?.from?.pathname || "/";
-    return <Navigate to={from} replace />;
+    const from = state?.from?.pathname;
+    const target = from && from !== "/" && from !== "/login" ? from : "/dashboard";
+    return <Navigate to={target} replace />;
   }
 
   return <>{children}</>;
@@ -81,13 +83,19 @@ const App = () => {
         </div>
       }>
         <Routes>
+          <Route path="/" element={
+            <PublicRoute>
+              <LandingScreen />
+            </PublicRoute>
+          } />
+
           <Route path="/login" element={
             <PublicRoute>
               <LoginScreen />
             </PublicRoute>
           } />
           
-          <Route path="/" element={
+          <Route path="/dashboard" element={
             <ProtectedRoute>
               <DashboardScreen />
             </ProtectedRoute>

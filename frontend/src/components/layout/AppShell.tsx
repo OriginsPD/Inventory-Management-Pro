@@ -34,7 +34,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
     {
       label: 'Operations',
       items: [
-        { name: 'Dashboard', path: '/', icon: 'dashboard' },
+        { name: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
         { name: 'Inventory', path: '/inventory', icon: 'inventory_2' },
         { name: 'Dispatch', path: '/dispatch', icon: 'local_shipping' },
         { name: 'QC Bench', path: '/qc', icon: 'biotech' },
@@ -67,12 +67,12 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
       <aside className={`fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col border-r border-zinc-800 bg-zinc-950 transition-transform duration-200 lg:static lg:translate-x-0 shrink-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        <div className="flex h-14 items-center justify-between px-6 border-b border-zinc-800 shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-black tracking-[0.2em] text-white uppercase">IMS<span className="text-primary">PRO</span></span>
+        <div className="relative flex h-20 items-center justify-center px-6 border-b border-zinc-800 shrink-0">
+          <div className="flex items-center justify-center">
+            <img src="/logo.svg" alt="Amber Connect" className="h-14 w-auto max-w-[210px] object-contain" />
           </div>
           <button 
-            className="lg:hidden p-1 hover:bg-zinc-900 rounded text-zinc-500 hover:text-zinc-100"
+            className="absolute right-4 top-1/2 -translate-y-1/2 lg:hidden p-1 hover:bg-zinc-900 rounded text-zinc-500 hover:text-zinc-100"
             onClick={() => setSidebarOpen(false)}
           >
             <span className="material-symbols-outlined text-sm">close</span>

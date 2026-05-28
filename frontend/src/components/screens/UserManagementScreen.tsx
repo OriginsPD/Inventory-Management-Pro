@@ -354,7 +354,7 @@ export const UserManagementScreen = () => {
               <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">Email Address</label>
               <Input
                 type="email"
-                placeholder="jane@imspro.com"
+                  placeholder="jane@amberconnect.com"
                 className={`bg-background/50 border-primary/10 text-xs h-10 rounded-xl text-foreground placeholder:text-muted-foreground/30 ${
                   errors.email ? 'border-red-500/50' : ''
                 }`}
