@@ -38,9 +38,12 @@ export const LandingScreen = () => {
         <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-background to-transparent" />
 
         <header className="relative z-10 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logo.svg" alt="Amber Connect" className="h-10 w-auto max-w-[210px] object-contain" />
-            <p className="hidden text-[10px] text-muted font-mono uppercase tracking-[0.18em] sm:block">Inventory Command</p>
+          <div className="flex items-center gap-4">
+            <img src="/logo.svg" alt="Amber Connect" className="h-16 sm:h-20 w-auto object-contain" />
+            <p className="hidden text-base sm:text-lg text-foreground font-sans tracking-tight border-l border-border/80 pl-4 ml-2 sm:flex items-center gap-1.5">
+              <span className="font-black text-foreground">Inventory</span>
+              <span className="font-light text-muted-foreground">management system</span>
+            </p>
           </div>
           <Link
             to="/login"
@@ -61,7 +64,7 @@ export const LandingScreen = () => {
               <h1 className="text-4xl font-black leading-tight text-foreground sm:text-5xl lg:text-6xl">
                 Control hardware stock, dispatch, QC, and audit trails from one workspace.
               </h1>
-              <p className="max-w-2xl text-sm leading-7 text-muted sm:text-base">
+              <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
                 The platform helps operations teams manage physical devices through the full lifecycle: receiving inventory,
                 linking components, dispatching assets to customers, testing hardware, handling RMA swaps, and exporting
                 reports for accountability.
@@ -71,14 +74,14 @@ export const LandingScreen = () => {
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link
                 to="/login"
-                className="inline-flex h-12 items-center justify-center gap-2 bg-primary px-6 text-xs font-black uppercase tracking-[0.16em] text-white hover:bg-primary/90 transition-colors"
+                className="inline-flex h-12 items-center justify-center gap-2 bg-primary px-6 text-xs font-black uppercase tracking-[0.16em] text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <span className="material-symbols-outlined text-lg">login</span>
                 Sign In to Console
               </Link>
               <a
                 href="#features"
-                className="inline-flex h-12 items-center justify-center gap-2 border border-border px-6 text-xs font-bold uppercase tracking-[0.14em] text-muted hover:border-primary/50 hover:text-foreground transition-colors"
+                className="inline-flex h-12 items-center justify-center gap-2 border border-border px-6 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
               >
                 View Features
               </a>
@@ -88,7 +91,7 @@ export const LandingScreen = () => {
               {workflowStats.map((stat) => (
                 <div key={stat.label} className="border-r border-border p-4 last:border-r-0">
                   <p className="text-2xl font-black text-foreground">{stat.value}</p>
-                  <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.12em] text-muted">{stat.label}</p>
+                  <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.12em] text-muted-foreground">{stat.label}</p>
                 </div>
               ))}
             </div>
@@ -107,7 +110,7 @@ export const LandingScreen = () => {
                   {['IN_STOCK', 'DISPATCHED', 'TESTING', 'RMA'].map((status, idx) => (
                     <div key={status} className="border border-border bg-background/80 p-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-muted">{status}</span>
+                        <span className="text-[10px] font-bold text-muted-foreground">{status}</span>
                         <span className={`h-2 w-2 rounded-full ${idx === 0 ? 'bg-emerald-400' : idx === 1 ? 'bg-sky-400' : idx === 2 ? 'bg-amber-400' : 'bg-red-400'}`} />
                       </div>
                       <div className="mt-3 h-1.5 bg-muted">
@@ -118,7 +121,7 @@ export const LandingScreen = () => {
                 </div>
                 <div className="border border-primary/25 bg-primary/10 p-4">
                   <p className="text-xs font-black uppercase tracking-[0.14em] text-primary">Operational focus</p>
-                  <p className="mt-2 text-sm leading-6 text-muted">
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
                     Keep device movement, technician checks, customer allocation, and audit history connected.
                   </p>
                 </div>
@@ -139,7 +142,7 @@ export const LandingScreen = () => {
               <article key={feature.title} className="border border-border bg-card p-5">
                 <span className="material-symbols-outlined text-2xl text-primary">{feature.icon}</span>
                 <h3 className="mt-5 text-sm font-black uppercase tracking-[0.08em] text-foreground">{feature.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-muted">{feature.description}</p>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">{feature.description}</p>
               </article>
             ))}
           </div>

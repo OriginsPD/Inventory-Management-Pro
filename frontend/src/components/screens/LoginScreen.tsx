@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { LoginCredentialsSchema, type LoginCredentials } from '@ims-pro/shared';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
+import { Link } from 'react-router-dom';
 
 export const LoginScreen = () => {
   const { login } = useAuth();
@@ -44,22 +45,19 @@ export const LoginScreen = () => {
     <div className="min-h-screen w-full flex items-center justify-center bg-background relative overflow-hidden select-none px-4 font-sans">
       <div className="w-full max-w-[400px] z-10 space-y-8">
         {/* Brand Header */}
-        <div className="text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-card border border-border rounded-sm">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary"></span>
-            </span>
-            <span className="text-[9px] font-mono tracking-[0.2em] text-muted uppercase">Gateway Node 01</span>
-          </div>
-          <img src="/logo.svg" alt="Amber Connect" className="mx-auto h-16 w-auto max-w-[280px] object-contain" />
+        <div className="text-center">
+          <Link to="/" className="inline-block hover:opacity-90 transition-opacity">
+            <img src="/logo.svg" alt="Amber Connect" className="mx-auto h-16 w-auto max-w-[280px] object-contain" />
+          </Link>
         </div>
+
+        {/* Login Card */}
 
         {/* Login Card */}
         <div className="bg-card p-8 border border-border shadow-2xl space-y-6">
           <div className="space-y-1">
             <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">Authentication Required</h2>
-            <p className="text-[11px] text-muted leading-normal font-medium">Provide operator credentials to initialize secure terminal session.</p>
+            <p className="text-[11px] text-muted-foreground leading-normal font-medium">Provide operator credentials to initialize secure terminal session.</p>
           </div>
 
           {errorMsg && (
@@ -71,13 +69,13 @@ export const LoginScreen = () => {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] block ml-0.5">
+              <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.15em] block ml-0.5">
                 Operator ID (Email)
               </label>
               <Input
                 type="email"
                 placeholder="operator@amberconnect.com"
-                className={`bg-background border-border text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-foreground placeholder:text-muted/60 transition-colors ${
+                className={`bg-background border-border text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-foreground placeholder:text-muted-foreground/60 transition-colors ${
                   errors.email ? 'border-red-500/50' : ''
                 }`}
                 {...register('email')}
@@ -88,13 +86,13 @@ export const LoginScreen = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] block ml-0.5">
+              <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.15em] block ml-0.5">
                 Security Token (Password)
               </label>
               <Input
                 type="password"
                 placeholder="••••••••"
-                className={`bg-background border-border text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-foreground placeholder:text-muted/60 transition-colors ${
+                className={`bg-background border-border text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-foreground placeholder:text-muted-foreground/60 transition-colors ${
                   errors.password ? 'border-red-500/50' : ''
                 }`}
                 {...register('password')}
@@ -107,7 +105,7 @@ export const LoginScreen = () => {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-primary hover:bg-primary/90 text-white font-black rounded-none h-10 text-[10px] uppercase tracking-[0.2em] cursor-pointer transition-all disabled:opacity-50 mt-2 active:scale-[0.99]"
+              className="w-full font-black rounded-none h-10 text-[10px] uppercase tracking-[0.2em] cursor-pointer transition-all disabled:opacity-50 mt-2 active:scale-[0.99]"
             >
               {isSubmitting ? 'Establishing Link...' : 'Authorize Session'}
             </Button>
@@ -115,12 +113,7 @@ export const LoginScreen = () => {
 
         </div>
 
-        {/* Footer info */}
-        <div className="text-center">
-          <p className="text-[9px] font-mono text-muted/70 uppercase tracking-[0.4em]">
-            AMBER CONNECT // CORE-NODE // VER 3.0.0
-          </p>
-        </div>
+
       </div>
     </div>
   );
