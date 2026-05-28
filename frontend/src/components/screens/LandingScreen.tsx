@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import heroImage from '../../assets/hero.png';
+import { FaviconBg } from '../ui/FaviconBg';
 
 const featureCards = [
   {
@@ -35,6 +36,7 @@ export const LandingScreen = () => {
     <main className="min-h-screen bg-background text-foreground overflow-hidden">
       <section className="relative min-h-screen px-5 py-6 sm:px-8 lg:px-12 flex flex-col">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(var(--color-primary-rgb),0.16),transparent_32%),linear-gradient(135deg,rgba(var(--color-card-rgb),0.96),rgba(var(--color-background-rgb),1)_55%)]" />
+        <FaviconBg className="-top-48 -right-48 w-[800px] h-[800px] sm:-top-80 sm:-right-80 sm:w-[1200px] sm:h-[1200px] opacity-[0.08] dark:opacity-[0.02] rotate-[-15deg] text-foreground" />
         <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-background to-transparent" />
 
         <header className="relative z-10 flex items-center justify-between">

@@ -7,6 +7,7 @@ import { LoginCredentialsSchema, type LoginCredentials } from '@ims-pro/shared';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Link } from 'react-router-dom';
+import { FaviconBg } from '../ui/FaviconBg';
 
 export const LoginScreen = () => {
   const { login } = useAuth();
@@ -43,6 +44,7 @@ export const LoginScreen = () => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background relative overflow-hidden select-none px-4 font-sans">
+      <FaviconBg className="-top-48 -right-48 w-[800px] h-[800px] sm:-top-80 sm:-right-80 sm:w-[1200px] sm:h-[1200px] opacity-[0.08] dark:opacity-[0.02] rotate-[-15deg] text-foreground" />
       <div className="w-full max-w-[400px] z-10 space-y-8">
         {/* Brand Header */}
         <div className="text-center">
