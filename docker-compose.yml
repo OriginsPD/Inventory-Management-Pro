@@ -21,35 +21,37 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
+      target: dev
     container_name: ims-pro-backend
     restart: unless-stopped
     volumes:
-      - ./backend:/app
+      - .:/app
       - /app/node_modules
-      - ./packages:/packages
+      - /app/backend/node_modules
+      - /app/packages/shared/node_modules
     develop:
       watch:
         - action: sync
           path: ./backend
-          target: /app
+          target: /app/backend
           ignore:
             - node_modules
         - action: sync
           path: ./packages
-          target: /packages
+          target: /app/packages
         - action: rebuild
           path: ./backend/package.json
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - BETTER_AUTH_URL=${BETTER_AUTH_URL}
       - CORS_ORIGIN=${CORS_ORIGIN}
       - PORT=${PORT}
       - HOSTNAME=${HOSTNAME}
     ports:
-      - "3002:3000"
+      - "3002:3002"
     depends_on:
       db:
         condition: service_healthy
@@ -58,25 +60,29 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
+      target: dev
+      args:
+        - VITE_API_URL=${VITE_API_URL}
     container_name: ims-pro-frontend
     restart: unless-stopped
     volumes:
-      - ./frontend:/app
+      - .:/app
       - /app/node_modules
-      - ./packages:/packages
+      - /app/frontend/node_modules
+      - /app/packages/shared/node_modules
     develop:
       watch:
         - action: sync
           path: ./frontend/src
-          target: /app/src
+          target: /app/frontend/src
         - action: sync
           path: ./frontend/vite.config.ts
-          target: /app/vite.config.ts
+          target: /app/frontend/vite.config.ts
         - action: sync
           path: ./packages
-          target: /packages
+          target: /app/packages
         - action: rebuild
           path: ./frontend/package.json
     environment:

@@ -20,4 +20,8 @@ export default defineConfig({
   optimizeDeps: {
     include: ['date-fns'],
   },
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+  },
 })

@@ -13,7 +13,7 @@ import { analyticsRoutes } from "./routes/analytics-routes.js";
 import { systemRoutes } from "./routes/system-routes.js";
 
 // Initialize DB Connection and Seeding
-initDbConnection();
+await initDbConnection();
 
 const configuredOrigins = (process.env.TRUSTED_ORIGINS || process.env.CORS_ORIGIN || "")
   .split(",")
@@ -62,7 +62,10 @@ const app = (process.env.NODE_ENV !== "production" || process.env.ENABLE_SWAGGER
   .use(analyticsRoutes)
   .use(systemRoutes)
 
-  .listen(3002);
+  .listen({
+    port: process.env.PORT ? parseInt(process.env.PORT) : 3002,
+    hostname: process.env.HOSTNAME || "0.0.0.0"
+  });
 
 console.log(`🦊 Elysia API is running at ${app.server?.hostname}:${app.server?.port}`);
 

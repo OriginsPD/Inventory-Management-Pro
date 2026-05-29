@@ -69,3 +69,8 @@ Replace hardware deployed at a customer site without losing history.
 -   **Better Auth:** Session-based authentication with cross-origin cookie support.
 -   **Auth Guards:** All routes are protected via TanStack Router's `beforeLoad` hook.
 -   **Audit Logs:** Every mutation triggers an entry in the `audit_logs` table for compliance.
+
+## Documentation
+
+- [Application Guide](docs/overview.md)
+- [Architecture](docs/architecture.md)

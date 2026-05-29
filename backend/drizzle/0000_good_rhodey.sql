@@ -2,8 +2,8 @@ CREATE TYPE "public"."asset_type" AS ENUM('TRACKER', 'SIM', 'PERIPHERAL', 'DASH_
 CREATE TYPE "public"."customer_type" AS ENUM('PERSON', 'COMPANY');--> statement-breakpoint
 CREATE TYPE "public"."device_status" AS ENUM('IN_STOCK', 'DISPATCHED', 'TESTING', 'DAMAGED', 'REPLACED', 'PROMOTIONAL', 'RMA');--> statement-breakpoint
 CREATE TABLE "accounts" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid NOT NULL,
+	"id" text PRIMARY KEY DEFAULT gen_random_uuid()::text NOT NULL,
+	"user_id" text NOT NULL,
 	"account_id" varchar(255) NOT NULL,
 	"provider_id" varchar(50) NOT NULL,
 	"password" text,
@@ -26,6 +26,7 @@ CREATE TABLE "customers" (
 --> statement-breakpoint
 CREATE TABLE "device_audit_logs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" text,
 	"device_id" uuid,
 	"device_identifier" varchar(255),
 	"customer_id" uuid,
@@ -75,8 +76,8 @@ CREATE TABLE "qc_reports" (
 );
 --> statement-breakpoint
 CREATE TABLE "sessions" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid NOT NULL,
+	"id" text PRIMARY KEY DEFAULT gen_random_uuid()::text NOT NULL,
+	"user_id" text NOT NULL,
 	"token" varchar(255) NOT NULL,
 	"expires_at" timestamp NOT NULL,
 	"ip_address" varchar(45),
@@ -87,7 +88,7 @@ CREATE TABLE "sessions" (
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"id" text PRIMARY KEY DEFAULT gen_random_uuid()::text NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"email" varchar(255) NOT NULL,
 	"email_verified" boolean DEFAULT false NOT NULL,
@@ -99,7 +100,7 @@ CREATE TABLE "users" (
 );
 --> statement-breakpoint
 CREATE TABLE "verifications" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"id" text PRIMARY KEY DEFAULT gen_random_uuid()::text NOT NULL,
 	"identifier" varchar(255) NOT NULL,
 	"value" text NOT NULL,
 	"expires_at" timestamp NOT NULL,
@@ -108,6 +109,7 @@ CREATE TABLE "verifications" (
 );
 --> statement-breakpoint
 ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "device_audit_logs" ADD CONSTRAINT "device_audit_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "device_audit_logs" ADD CONSTRAINT "device_audit_logs_device_id_devices_id_fk" FOREIGN KEY ("device_id") REFERENCES "public"."devices"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "device_audit_logs" ADD CONSTRAINT "device_audit_logs_customer_id_customers_id_fk" FOREIGN KEY ("customer_id") REFERENCES "public"."customers"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "device_relationships" ADD CONSTRAINT "device_relationships_primary_device_id_devices_id_fk" FOREIGN KEY ("primary_device_id") REFERENCES "public"."devices"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -117,6 +119,7 @@ ALTER TABLE "devices" ADD CONSTRAINT "devices_customer_id_customers_id_fk" FOREI
 ALTER TABLE "qc_reports" ADD CONSTRAINT "qc_reports_device_id_devices_id_fk" FOREIGN KEY ("device_id") REFERENCES "public"."devices"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "accounts_user_id_idx" ON "accounts" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "device_audit_logs_user_id_idx" ON "device_audit_logs" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "device_audit_logs_device_id_idx" ON "device_audit_logs" USING btree ("device_id");--> statement-breakpoint
 CREATE INDEX "device_audit_logs_device_identifier_idx" ON "device_audit_logs" USING btree ("device_identifier");--> statement-breakpoint
 CREATE INDEX "device_audit_logs_customer_id_idx" ON "device_audit_logs" USING btree ("customer_id");--> statement-breakpoint

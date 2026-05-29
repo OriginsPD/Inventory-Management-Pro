@@ -21,6 +21,7 @@ import { Device, DeviceModel, IngestItem, ParsedLink } from '../../../lib/types/
 import { apiClient } from '../../../lib/api-client';
 import { useFeedback } from '../../ui/feedback-provider';
 import { playSuccessBeep, playErrorBuzz, playChirp } from '../../../lib/audio';
+import ExcelJS from 'exceljs';
 
 interface BulkOperationsModalProps {
   isOpen: boolean;
@@ -46,6 +47,176 @@ interface MutationResponse {
   success: boolean;
   error?: string;
   errors?: string[];
+}
+
+interface ParsedTabularFile {
+  headers: string[];
+  rows: string[][];
+  headerRowNumber: number;
+}
+
+function cleanCell(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'object' && 'text' in value) {
+    return cleanCell((value as { text?: unknown }).text);
+  }
+  if (typeof value === 'object' && 'result' in value) {
+    return cleanCell((value as { result?: unknown }).result);
+  }
+  if (typeof value === 'object' && 'richText' in value) {
+    const richText = (value as { richText?: Array<{ text?: string }> }).richText;
+    return richText?.map(part => part.text ?? '').join('').trim() ?? '';
+  }
+  return String(value).trim().replace(/^\uFEFF/, '').replace(/^["']|["']$/g, '');
+}
+
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    const next = text[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        cell += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === ',' && !inQuotes) {
+      row.push(cleanCell(cell));
+      cell = '';
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && next === '\n') i += 1;
+      row.push(cleanCell(cell));
+      if (row.some(value => value.length > 0)) rows.push(row);
+      row = [];
+      cell = '';
+      continue;
+    }
+
+    cell += char;
+  }
+
+  row.push(cleanCell(cell));
+  if (row.some(value => value.length > 0)) rows.push(row);
+  return rows;
+}
+
+function normalizeRows(rows: string[][]): string[][] {
+  return rows
+    .map(row => row.map(cleanCell))
+    .filter(row => row.some(cell => cell.length > 0));
+}
+
+function scoreHeaderRow(row: string[], nextRow?: string[]): number {
+  const cells = row.map(cell => cell.toLowerCase());
+  const joined = cells.join(' ');
+  let score = 0;
+
+  if (row.length >= 2) score += 2;
+  if (/(identifier|serial|isn|imei|iccid|device|asset|tracker|sim)/i.test(joined)) score += 6;
+  if (/(metadata|phone|carrier|firmware|revision|capacity|speed|color|frequency)/i.test(joined)) score += 2;
+  if (cells.some(cell => cell.length > 30)) score -= 3;
+  if (cells.some(cell => /(instruction|metadata|template|import|how to|notes?)/i.test(cell))) score -= 3;
+
+  const nonEmptyCells = row.filter(cell => cell.length > 0).length;
+  const uniqueCells = new Set(row.filter(cell => cell.length > 0).map(cell => cell.toLowerCase())).size;
+  if (uniqueCells === nonEmptyCells) score += 1;
+
+  if (nextRow && nextRow.some(cell => cell.length > 0)) score += 1;
+  return score;
+}
+
+function makeUniqueHeaders(headers: string[]): string[] {
+  const seen = new Map<string, number>();
+  return headers.map((header, index) => {
+    const fallback = `Column ${index + 1}`;
+    const base = header.trim() || fallback;
+    const count = seen.get(base.toLowerCase()) ?? 0;
+    seen.set(base.toLowerCase(), count + 1);
+    return count === 0 ? base : `${base} (${count + 1})`;
+  });
+}
+
+function extractTabularData(rawRows: string[][]): ParsedTabularFile {
+  const rows = normalizeRows(rawRows);
+  if (rows.length === 0) {
+    throw new Error('The selected file is empty.');
+  }
+
+  let headerIndex = 0;
+  let bestScore = Number.NEGATIVE_INFINITY;
+  rows.slice(0, 25).forEach((row, index) => {
+    const score = scoreHeaderRow(row, rows[index + 1]);
+    if (score > bestScore) {
+      bestScore = score;
+      headerIndex = index;
+    }
+  });
+
+  const headers = makeUniqueHeaders(rows[headerIndex]);
+  const dataRows = rows
+    .slice(headerIndex + 1)
+    .map(row => headers.map((_, index) => row[index] ?? ''))
+    .filter(row => row.some(cell => cell.length > 0));
+
+  if (headers.length === 0 || headers.every(header => header.length === 0)) {
+    throw new Error('No column headers were found in the selected file.');
+  }
+  if (dataRows.length === 0) {
+    throw new Error('No data rows were found after the detected header row.');
+  }
+
+  return {
+    headers,
+    rows: dataRows,
+    headerRowNumber: headerIndex + 1,
+  };
+}
+
+function isZipOrXlsx(buffer: ArrayBuffer, file: File): boolean {
+  const bytes = new Uint8Array(buffer.slice(0, 4));
+  return (
+    file.name.toLowerCase().endsWith('.xlsx') ||
+    (bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04)
+  );
+}
+
+async function parseImportFile(file: File): Promise<ParsedTabularFile> {
+  const buffer = await file.arrayBuffer();
+
+  if (isZipOrXlsx(buffer, file)) {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) throw new Error('The Excel workbook does not contain any worksheets.');
+
+    const rows: string[][] = [];
+    worksheet.eachRow({ includeEmpty: false }, row => {
+      const values = Array.isArray(row.values) ? row.values.slice(1) : [];
+      rows.push(values.map(cleanCell));
+    });
+    return extractTabularData(rows);
+  }
+
+  if (!file.name.toLowerCase().endsWith('.csv') && file.type && !file.type.includes('csv') && !file.type.includes('text')) {
+    throw new Error('Unsupported file type. Upload a CSV or XLSX file.');
+  }
+
+  const text = new TextDecoder('utf-8').decode(buffer);
+  return extractTabularData(parseCsv(text));
 }
 
 export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
@@ -74,6 +245,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
   const [isCsvMapping, setIsCsvMapping] = useState(false);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvRows, setCsvRows] = useState<string[][]>([]);
+  const [csvHeaderRowNumber, setCsvHeaderRowNumber] = useState<number | null>(null);
   const [csvMappings, setCsvMappings] = useState({
     identifier: '',
     meta1: '',
@@ -200,35 +372,17 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
     return () => window.clearTimeout(timer);
   }, [isOpen, initialScannedIdentifier, bulkSelectedModelId, models, onInitialScanConsumed, processIngestionList]);
 
-  const handleIngestCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleIngestCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
+    const file = e.target.files[0];
     setDuplicateCountAlert(0);
     setPatternCountAlert(0);
     setBulkIngestError('');
-    const reader = new FileReader();
-
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      const lines = text.split(/[\r\n]+/).map(s => s.trim()).filter(s => s.length > 0);
-      if (lines.length === 0) {
-        setBulkIngestError('The selected CSV file is empty.');
-        playErrorBuzz();
-        return;
-      }
-
-      const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
-      const rows = lines.slice(1).map(line => 
-        line.split(',').map(cell => cell.trim().replace(/^["']|["']$/g, ''))
-      ).filter(row => row.length > 0 && row.some(cell => cell.length > 0));
-
-      if (rows.length === 0) {
-        setBulkIngestError('No data rows found in the CSV file.');
-        playErrorBuzz();
-        return;
-      }
-
+    try {
+      const { headers, rows, headerRowNumber } = await parseImportFile(file);
       setCsvHeaders(headers);
       setCsvRows(rows);
+      setCsvHeaderRowNumber(headerRowNumber);
       setIsCsvMapping(true);
       playChirp();
 
@@ -237,8 +391,14 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
         meta1: headers[1] || '__none__',
         meta2: headers[2] || '__none__'
       });
-    };
-    reader.readAsText(e.target.files[0]);
+    } catch (error) {
+      setBulkIngestError(error instanceof Error ? error.message : 'Failed to parse import file.');
+      setIsCsvMapping(false);
+      setCsvHeaders([]);
+      setCsvRows([]);
+      setCsvHeaderRowNumber(null);
+      playErrorBuzz();
+    }
     e.target.value = '';
   };
 
@@ -262,6 +422,9 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
 
       const metadata: IngestItem['metadata'] = {};
       if (serial) {
+        metadata.field1 = meta1;
+        metadata.field2 = meta2;
+
         if (targetType === 'SIM') {
           metadata.phoneNumber = meta1;
           metadata.carrier = meta2;
@@ -283,6 +446,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
     setIsCsvMapping(false);
     setCsvHeaders([]);
     setCsvRows([]);
+    setCsvHeaderRowNumber(null);
     playSuccessBeep();
   };
 
@@ -346,28 +510,33 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
 
   // -- LINKING LOGIC --
 
-  const handleLinkCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLinkCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const text = event.target?.result as string;
-      const lines = text.split(/[\r\n]+/).map(s => s.trim()).filter(s => s.length > 0);
-      const links = lines.map(line => {
-        const parts = line.split(',').map(p => p.trim());
-        return { primaryISN: parts[0] || '', childISN: parts[1] || '' };
-      }).filter(pair => pair.primaryISN && pair.childISN);
+    const file = e.target.files[0];
+    setLinkError('');
+    try {
+      const { rows } = await parseImportFile(file);
+      const links = rows.map(row => ({
+        primaryISN: row[0] || '',
+        childISN: row[1] || ''
+      })).filter(pair => pair.primaryISN && pair.childISN);
 
-      try {
-        const data = await apiClient.post<ParsedLink[]>('/api/device-links/preview', { links, autoCreate: autoCreateDevices });
-        setLinkPairs(data);
-        if (data.some((d) => d.status === 'invalid')) playErrorBuzz();
-        else playSuccessBeep();
-      } catch {
-        setLinkError('Failed to preview CSV relationships.');
+      if (links.length === 0) {
+        setLinkError('No valid relationship rows were found in the selected file.');
         playErrorBuzz();
+        return;
       }
-    };
-    reader.readAsText(e.target.files[0]);
+
+      const data = await apiClient.post<ParsedLink[]>('/api/device-links/preview', { links, autoCreate: autoCreateDevices });
+      setLinkPairs(data);
+      if (data.some((d) => d.status === 'invalid')) playErrorBuzz();
+      else playSuccessBeep();
+    } catch (error) {
+      setLinkError(error instanceof Error ? error.message : 'Failed to preview imported relationships.');
+      playErrorBuzz();
+    } finally {
+      e.target.value = '';
+    }
   };
 
   const triggerManualLinkScan = async () => {
@@ -483,7 +652,10 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="text-sm font-bold text-foreground">CSV Column Import Wizard</h4>
-                        <p className="text-xs text-muted-foreground">Map your CSV column headers to the database schema.</p>
+                        <p className="text-xs text-muted-foreground">
+                          Map detected column headers to the database schema.
+                          {csvHeaderRowNumber !== null ? ` Header row detected at row ${csvHeaderRowNumber}.` : ''}
+                        </p>
                       </div>
                       <button onClick={() => setIsCsvMapping(false)} className="text-xs text-primary hover:brightness-110 font-bold underline cursor-pointer">Cancel Mapping</button>
                     </div>
@@ -530,12 +702,12 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                       <div className="border border-primary/10 rounded-xl p-4 bg-primary/5 flex flex-col justify-between space-y-4">
                         <div className="text-center">
                           <span className="material-symbols-outlined text-3xl mx-auto text-primary mb-2">table_chart</span>
-                          <h4 className="text-xs font-bold text-foreground">CSV List Upload</h4>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">Drop a CSV file to map columns.</p>
+                          <h4 className="text-xs font-bold text-foreground">Column List Upload</h4>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">Upload CSV or XLSX files. Metadata rows above headers are skipped.</p>
                         </div>
                         <label className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold border border-primary/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 cursor-pointer transition-all">
-                          Browse CSV File
-                          <input type="file" className="hidden" accept=".csv" onChange={handleIngestCSVUpload} />
+                          Browse Import File
+                          <input type="file" className="hidden" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleIngestCSVUpload} />
                         </label>
                       </div>
 
@@ -557,15 +729,20 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                       </div>
                     </div>
 
-                    <div className="border border-primary/10 rounded-xl bg-background overflow-hidden">
+                    <div className="border border-primary/10 rounded-xl bg-background overflow-hidden min-h-0">
                       <div className="bg-card/60 p-2.5 px-4 text-xs font-semibold text-muted-foreground flex justify-between items-center border-b border-primary/10 sticky top-0 z-10">
                         <span>Prepared Ingestion Table ({bulkIngestList.length})</span>
                         {bulkIngestList.length > 0 && <button onClick={() => setBulkIngestList([])} className="text-[10px] text-red-400 hover:underline font-semibold cursor-pointer">Clear List</button>}
                       </div>
-                      <div className="overflow-x-auto max-h-[320px]">
+                      <div
+                        className="h-[360px] max-h-[42vh] min-h-[220px] overflow-y-scroll overflow-x-auto overscroll-contain custom-scrollbar"
+                        tabIndex={0}
+                        onWheel={(event) => event.stopPropagation()}
+                        onTouchMove={(event) => event.stopPropagation()}
+                      >
                         {bulkIngestList.length > 0 ? (
-                          <Table>
-                            <TableHeader><TableRow><TableHead className="px-4 text-[10px]">Serial / ISN</TableHead><TableHead className="px-2 text-[10px]">Meta 1</TableHead><TableHead className="px-2 text-[10px]">Meta 2</TableHead><TableHead className="px-2 text-right text-[10px]">Actions</TableHead></TableRow></TableHeader>
+                          <table className="w-full caption-bottom text-sm">
+                            <TableHeader className="sticky top-0 z-10 bg-background"><TableRow><TableHead className="px-4 text-[10px]">Serial / ISN</TableHead><TableHead className="px-2 text-[10px]">Meta 1</TableHead><TableHead className="px-2 text-[10px]">Meta 2</TableHead><TableHead className="px-2 text-right text-[10px]">Actions</TableHead></TableRow></TableHeader>
                             <TableBody>
                               {bulkIngestList.map((item, idx) => (
                                 <TableRow key={idx} className="hover:bg-primary/5 border-b border-primary/5 text-xs">
@@ -576,7 +753,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                                 </TableRow>
                               ))}
                             </TableBody>
-                          </Table>
+                          </table>
                         ) : <EmptyState title="No devices prepared" description="Scan barcodes or drop a CSV file to begin." />}
                       </div>
                     </div>
@@ -597,11 +774,12 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                   <div className="border border-primary/10 rounded-xl p-4 bg-primary/5 flex flex-col justify-between space-y-4">
                     <div className="text-center">
                       <span className="material-symbols-outlined text-3xl mx-auto text-primary mb-2">table_chart</span>
-                      <h4 className="text-xs font-bold text-foreground">CSV Matrix Upload</h4>
+                      <h4 className="text-xs font-bold text-foreground">Relationship Matrix Upload</h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Upload CSV or XLSX with parent and child identifier columns.</p>
                     </div>
                     <label className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold border border-primary/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 cursor-pointer transition-all">
-                      Browse CSV File
-                      <input type="file" className="hidden" accept=".csv" onChange={handleLinkCSVUpload} />
+                      Browse Import File
+                      <input type="file" className="hidden" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleLinkCSVUpload} />
                     </label>
                   </div>
                   <div className="border border-primary/10 rounded-xl p-4 bg-primary/5 space-y-3">

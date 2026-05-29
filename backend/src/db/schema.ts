@@ -1,4 +1,5 @@
 import { pgTable, uuid, varchar, timestamp, pgEnum, text, integer, boolean, index, jsonb } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { AssetType, DeviceStatus } from '@ims-pro/shared';
 
 // Mapping from shared Zod enums to Postgres Enums
@@ -57,7 +58,7 @@ export const deviceRelationships = pgTable('device_relationships', {
 
 export const deviceAuditLogs = pgTable('device_audit_logs', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
   deviceId: uuid('device_id').references(() => devices.id, { onDelete: 'set null' }),
   deviceIdentifier: varchar('device_identifier', { length: 255 }),
   customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
@@ -100,7 +101,7 @@ export const customers = pgTable('customers', {
 });
 
 export const users = pgTable('users', {
-  id: uuid('id').defaultRandom().primaryKey(),
+  id: text('id').default(sql`gen_random_uuid()::text`).primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }).notNull().unique(),
   emailVerified: boolean('email_verified').default(false).notNull(),
@@ -111,8 +112,8 @@ export const users = pgTable('users', {
 });
 
 export const sessions = pgTable('sessions', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
+  id: text('id').default(sql`gen_random_uuid()::text`).primaryKey(),
+  userId: text('user_id')
     .references(() => users.id, { onDelete: 'cascade' })
     .notNull(),
   token: varchar('token', { length: 255 }).notNull().unique(),
@@ -126,8 +127,8 @@ export const sessions = pgTable('sessions', {
 }));
 
 export const accounts = pgTable('accounts', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
+  id: text('id').default(sql`gen_random_uuid()::text`).primaryKey(),
+  userId: text('user_id')
     .references(() => users.id, { onDelete: 'cascade' })
     .notNull(),
   accountId: varchar('account_id', { length: 255 }).notNull(),
@@ -140,7 +141,7 @@ export const accounts = pgTable('accounts', {
 }));
 
 export const verifications = pgTable('verifications', {
-  id: uuid('id').defaultRandom().primaryKey(),
+  id: text('id').default(sql`gen_random_uuid()::text`).primaryKey(),
   identifier: varchar('identifier', { length: 255 }).notNull(),
   value: text('value').notNull(),
   expiresAt: timestamp('expires_at').notNull(),

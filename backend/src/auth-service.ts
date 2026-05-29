@@ -26,6 +26,11 @@ export function getBetterAuth(useDb: boolean) {
             verification: schema.verifications,
           }
       }),
+      advanced: {
+        database: {
+          generateId: "uuid",
+        },
+      },
       secret: authSecret || "ims-pro-dev-only-auth-secret-change-before-production",
       baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3002",
       trustedOrigins: (process.env.TRUSTED_ORIGINS || process.env.CORS_ORIGIN || "http://localhost:5173")
