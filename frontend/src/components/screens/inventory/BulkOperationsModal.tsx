@@ -234,7 +234,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
   const [bulkSubTab, setBulkSubTab] = useState<'ingest' | 'link'>('ingest');
   
   // Bulk Ingestion state
-  const [bulkSelectedModelId, setBulkSelectedModelId] = useState(models[0]?.id || '');
+  const [bulkSelectedModelId, setBulkSelectedModelId] = useState('');
   const [bulkIngestList, setBulkIngestList] = useState<IngestItem[]>([]);
   const [scanInputText, setScanInputText] = useState('');
   const [bulkIngestError, setBulkIngestError] = useState('');
@@ -264,6 +264,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
   const scanLinkChildRef = useRef<HTMLInputElement>(null);
 
   const [lastOpen, setLastOpen] = useState(false);
+  const hasSelectedModel = bulkSelectedModelId.trim().length > 0;
 
   if (isOpen && !lastOpen) {
     setLastOpen(true);
@@ -275,9 +276,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
     setPatternCountAlert(0);
     setIsCsvMapping(false);
     setAutoCreateDevices(false);
-    if (models.length > 0 && !bulkSelectedModelId) {
-      setBulkSelectedModelId(models[0].id || '');
-    }
+    setBulkSelectedModelId('');
   } else if (!isOpen && lastOpen) {
     setLastOpen(false);
   }
@@ -374,6 +373,12 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
 
   const handleIngestCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
+    if (!hasSelectedModel) {
+      setBulkIngestError('Select a target template model before uploading files.');
+      playErrorBuzz();
+      e.target.value = '';
+      return;
+    }
     const file = e.target.files[0];
     setDuplicateCountAlert(0);
     setPatternCountAlert(0);
@@ -453,7 +458,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
 
 
   const handleBulkIngestSubmit = async () => {
-    if (bulkIngestList.length === 0 || !bulkSelectedModelId) {
+    if (!hasSelectedModel || bulkIngestList.length === 0 || !bulkSelectedModelId) {
       setBulkIngestError('Please scan devices or upload a CSV first.');
       playErrorBuzz();
       return;
@@ -692,22 +697,36 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                   <>
                     <div>
                       <label className="text-xs font-semibold text-muted-foreground block mb-1">Target Template Model</label>
-                      <Select value={bulkSelectedModelId} onValueChange={(val) => { setBulkSelectedModelId(val); setBulkIngestList([]); }}>
+                      <Select
+                        value={bulkSelectedModelId}
+                        onValueChange={(val) => {
+                          if (bulkIngestList.length > 0 && val !== bulkSelectedModelId) {
+                            const confirmed = window.confirm('Changing the model will clear the prepared ingestion table. Continue?');
+                            if (!confirmed) return;
+                            setBulkIngestList([]);
+                          }
+                          setBulkSelectedModelId(val);
+                          setBulkIngestError('');
+                        }}
+                      >
                         <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground"><SelectValue placeholder="Select a model..." /></SelectTrigger>
                         <SelectContent>{models.map(m => (<SelectItem key={m.id} value={m.id}>{m.name} ({m.brand})</SelectItem>))}</SelectContent>
                       </Select>
+                      {!hasSelectedModel && (
+                        <p className="text-[11px] text-amber-400 mt-1.5">Select a model to enable upload and barcode scanning.</p>
+                      )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${!hasSelectedModel ? 'opacity-60' : ''}`}>
                       <div className="border border-primary/10 rounded-xl p-4 bg-primary/5 flex flex-col justify-between space-y-4">
                         <div className="text-center">
                           <span className="material-symbols-outlined text-3xl mx-auto text-primary mb-2">table_chart</span>
                           <h4 className="text-xs font-bold text-foreground">Column List Upload</h4>
                           <p className="text-[11px] text-muted-foreground mt-0.5">Upload CSV or XLSX files. Metadata rows above headers are skipped.</p>
                         </div>
-                        <label className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold border border-primary/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 cursor-pointer transition-all">
+                        <label className={`w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold border border-primary/10 h-9 transition-all ${hasSelectedModel ? 'bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 cursor-pointer' : 'bg-muted/30 text-muted-foreground/60 cursor-not-allowed'}`}>
                           Browse Import File
-                          <input type="file" className="hidden" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleIngestCSVUpload} />
+                          <input type="file" className="hidden" disabled={!hasSelectedModel} accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleIngestCSVUpload} />
                         </label>
                       </div>
 
@@ -721,9 +740,16 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                           type="text"
                           placeholder="Focus & scan barcodes..."
                           value={scanInputText}
+                          disabled={!hasSelectedModel}
                           onChange={(e) => setScanInputText(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter' && scanInputText.trim()) { processIngestionList([{ identifier: scanInputText.trim(), metadata: {} }]); setScanInputText(''); } }}
-                          className="flex h-9 w-full rounded-lg border border-primary/20 bg-primary/5 px-3 py-1 text-xs text-foreground"
+                          onKeyDown={(e) => {
+                            if (!hasSelectedModel) return;
+                            if (e.key === 'Enter' && scanInputText.trim()) {
+                              processIngestionList([{ identifier: scanInputText.trim(), metadata: {} }]);
+                              setScanInputText('');
+                            }
+                          }}
+                          className="flex h-9 w-full rounded-lg border border-primary/20 bg-primary/5 px-3 py-1 text-xs text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                           autoFocus
                         />
                       </div>
@@ -857,7 +883,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
             <div className="p-6 pt-4 border-t border-primary/10 flex gap-2 justify-end bg-card/90 backdrop-blur-2xl rounded-b-2xl">
               <button type="button" onClick={onClose} className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold border border-primary/10 bg-card/60 text-muted-foreground h-9 px-4 cursor-pointer">Cancel</button>
               {bulkSubTab === 'ingest' ? (
-                <button onClick={handleBulkIngestSubmit} disabled={bulkIngestList.length === 0} className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold bg-primary text-primary-foreground shadow h-9 px-4 disabled:opacity-50 cursor-pointer">Commit Ingestion ({bulkIngestList.length})</button>
+                <button onClick={handleBulkIngestSubmit} disabled={!hasSelectedModel || bulkIngestList.length === 0} className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold bg-primary text-primary-foreground shadow h-9 px-4 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">Commit Ingestion ({bulkIngestList.length})</button>
               ) : (
                 <button onClick={handleLinkCommit} disabled={linkPairs.filter(p => p.status === 'valid').length === 0} className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold bg-primary text-primary-foreground shadow h-9 px-4 disabled:opacity-50 cursor-pointer">Commit Relationships ({linkPairs.filter(p => p.status === 'valid').length})</button>
               )}

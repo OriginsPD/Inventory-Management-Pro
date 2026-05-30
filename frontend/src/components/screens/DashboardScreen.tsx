@@ -36,6 +36,8 @@ interface StockAlert {
 }
 
 export const DashboardScreen = () => {
+  type TrendPeriod = '1d' | '3m' | '1y';
+
   const [stats, setStats] = useState<DashboardStats>({
     totalDevices: 0,
     activeDispatched: 0,
@@ -51,6 +53,7 @@ export const DashboardScreen = () => {
   const [trendData, setTrendData] = useState<DispatchTrend[]>([]);
   const [breakdown, setBreakdown] = useState<AssetBreakdown[]>([]);
   const [activeTab, setActiveTab] = useState<'dispatches' | 'ingestions'>('dispatches');
+  const [trendPeriod, setTrendPeriod] = useState<TrendPeriod>('1d');
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<unknown>(null);
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
@@ -106,7 +109,7 @@ export const DashboardScreen = () => {
 
   const fetchTrendData = async () => {
     try {
-      const trend = await apiClient.get<DispatchTrend[]>('/api/analytics/dispatches');
+      const trend = await apiClient.get<DispatchTrend[]>(`/api/analytics/dispatches?period=${trendPeriod}`);
       setTrendData(trend);
     } catch (e) {
       console.error(e);
@@ -143,7 +146,7 @@ export const DashboardScreen = () => {
     }
 
     setIsLoading(false);
-  }, []);
+  }, [trendPeriod]);
 
   useEffect(() => {
     loadAllData();
@@ -210,22 +213,69 @@ export const DashboardScreen = () => {
 
   const getIngestTrendData = () => {
     const result: { day: string, count: number }[] = [];
-    const baseline = [8, 12, 10, 18, 14, 22, 25];
-    for (let i = 6; i >= 0; i--) {
+    const periodCfg: Record<TrendPeriod, { days: number; bucket: 'hour' | 'day' | 'week' }> = {
+      '1d': { days: 1, bucket: 'hour' },
+      '3m': { days: 90, bucket: 'week' },
+      '1y': { days: 365, bucket: 'week' },
+    };
+    const selected = periodCfg[trendPeriod];
+
+    const getWeekKey = (date: Date) => {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      d.setDate(diff);
+      d.setHours(0, 0, 0, 0);
+      return d.toISOString().split('T')[0] || '';
+    };
+
+    const getHourKey = (date: Date) => {
+      const d = new Date(date);
+      d.setMinutes(0, 0, 0);
+      return d.toISOString();
+    };
+
+    const ingestCounts = new Map<string, number>();
+    for (const log of recentLogs) {
+      if (log.actionType !== 'INGEST') continue;
+      const created = new Date(log.createdAt);
+      const key = selected.bucket === 'hour'
+        ? getHourKey(created)
+        : selected.bucket === 'day'
+          ? (created.toISOString().split('T')[0] || '')
+          : getWeekKey(created);
+      if (!key) continue;
+      ingestCounts.set(key, (ingestCounts.get(key) || 0) + 1);
+    }
+
+    const steps =
+      selected.bucket === 'hour'
+        ? 24
+        : selected.bucket === 'day'
+          ? selected.days
+          : Math.ceil(selected.days / 7);
+    for (let i = steps - 1; i >= 0; i--) {
       const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toLocaleDateString("en-US", { weekday: "short" });
-      const dateKey = date.toISOString().split("T")[0];
-      
-      const realCount = recentLogs.filter(log => {
-        if (log.actionType !== 'INGEST') return false;
-        const logDate = new Date(log.createdAt).toISOString().split("T")[0];
-        return logDate === dateKey;
-      }).length;
+      if (selected.bucket === 'hour') {
+        date.setHours(date.getHours() - i);
+      } else if (selected.bucket === 'day') {
+        date.setDate(date.getDate() - i);
+      } else {
+        date.setDate(date.getDate() - i * 7);
+      }
+
+      const dateKey = selected.bucket === 'hour'
+        ? getHourKey(date)
+        : selected.bucket === 'day'
+          ? (date.toISOString().split('T')[0] || '')
+          : getWeekKey(date);
+      const count = dateKey ? (ingestCounts.get(dateKey) || 0) : 0;
 
       result.push({
-        day: dateStr,
-        count: baseline[6 - i] + realCount
+        day: selected.bucket === 'hour'
+          ? date.toLocaleTimeString('en-US', { hour: 'numeric' })
+          : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        count
       });
     }
     return result;
@@ -240,15 +290,20 @@ export const DashboardScreen = () => {
 
   const getChartPoints = () => {
     if (activeTrendData.length === 0) return [];
+    const divisor = Math.max(activeTrendData.length - 1, 1);
     return activeTrendData.map((d, index) => {
       const val = 'dispatches' in d ? (d as DispatchTrend).dispatches : (d as { count: number }).count;
-      const x = paddingX + (index * (chartWidth - paddingX * 2) / (activeTrendData.length - 1));
+      const x = paddingX + (index * (chartWidth - paddingX * 2) / divisor);
       const y = chartHeight - paddingY - (val * (chartHeight - paddingY * 2) / maxVal);
       return { x, y, day: d.day, value: val };
     });
   };
 
   const points = getChartPoints();
+  const xAxisLabelStep = useMemo(() => {
+    if (points.length <= 16) return 1;
+    return Math.ceil(points.length / 10);
+  }, [points.length]);
   const linePath = points.reduce((path, p, i) => {
     return i === 0 ? `M ${p.x} ${p.y}` : `${path} L ${p.x} ${p.y}`;
   }, '');
@@ -256,17 +311,6 @@ export const DashboardScreen = () => {
   const areaPath = points.length > 0 
     ? `${linePath} L ${points[points.length - 1].x} ${chartHeight - paddingY} L ${points[0].x} ${chartHeight - paddingY} Z`
     : '';
-
-  // Asset color index mapping
-  const getAssetColor = (type: string) => {
-    switch (type) {
-      case 'TRACKER': return 'bg-foreground border-foreground';
-      case 'SIM': return 'bg-muted-foreground/85 border-muted-foreground/85';
-      case 'SD_CARD': return 'bg-muted-foreground/50 border-muted-foreground/50';
-      case 'PANIC_BUTTON': return 'bg-muted border-muted';
-      default: return 'bg-muted/40 border-muted/40';
-    }
-  };
 
   const getAssetTextColor = (type: string) => {
     switch (type) {
@@ -278,7 +322,30 @@ export const DashboardScreen = () => {
     }
   };
 
-  const totalBreakdownCount = breakdown.reduce((sum, item) => sum + item.count, 0);
+  const normalizedBreakdown = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of breakdown) {
+      const key = String(item.type || '').toUpperCase();
+      const value = Number(item.count) || 0;
+      counts.set(key, (counts.get(key) || 0) + value);
+    }
+
+    return Array.from(counts.entries())
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => a.type.localeCompare(b.type));
+  }, [breakdown]);
+
+  const totalBreakdownCount = normalizedBreakdown.reduce((sum, item) => sum + item.count, 0);
+  const donutRadius = 54;
+  const donutStroke = 14;
+  const donutCircumference = 2 * Math.PI * donutRadius;
+  const donutPalette = [
+    'var(--primary)',
+    'var(--foreground)',
+    '#10b981',
+    '#3b82f6',
+    '#f59e0b',
+  ];
 
   const [now] = useState(() => Date.now());
 
@@ -412,8 +479,25 @@ export const DashboardScreen = () => {
                       Ingestions
                     </button>
                   </div>
+                  <div className="flex bg-primary/5 p-1 rounded-lg border border-primary/10">
+                    {(['1d', '3m', '1y'] as TrendPeriod[]).map((period) => (
+                      <button
+                        key={period}
+                        onClick={() => setTrendPeriod(period)}
+                        className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                          trendPeriod === period
+                            ? 'bg-primary/20 text-primary shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        {period === '1d' ? '1 Day' : period === '3m' ? '3 Months' : '1 Year'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Past 7 Days</span>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
+                  {trendPeriod === '1d' ? 'Past 1 Day' : trendPeriod === '3m' ? 'Past 3 Months' : 'Past Year'}
+                </span>
               </div>
               <p className="text-xs text-muted-foreground mb-6">
                 {activeTab === 'dispatches' 
@@ -487,14 +571,16 @@ export const DashboardScreen = () => {
                         r={hoveredPoint === idx ? "5" : "3"} 
                         className={`fill-[var(--background)] stroke-primary transition-all duration-100 ${hoveredPoint === idx ? 'stroke-2' : ''}`} 
                       />
-                      <text 
-                        x={p.x} 
-                        y={chartHeight - 4} 
-                        textAnchor="middle" 
-                        className="text-[9px] fill-muted-foreground font-semibold font-sans"
-                      >
-                        {p.day}
-                      </text>
+                      {(idx % xAxisLabelStep === 0 || idx === points.length - 1) && (
+                        <text 
+                          x={p.x} 
+                          y={chartHeight - 4} 
+                          textAnchor="middle" 
+                          className="text-[9px] fill-muted-foreground font-semibold font-sans"
+                        >
+                          {p.day}
+                        </text>
+                      )}
                     </g>
                   ))}
 
@@ -554,7 +640,7 @@ export const DashboardScreen = () => {
           </div>
 
           {/* Hardware Breakdown Donut equivalent */}
-          <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between">
+          <div className="glass-panel p-6 rounded-2xl flex flex-col">
             <div>
               <div className="flex justify-between items-center mb-2">
                 <h3 className="font-bold text-lg">Asset Class Breakdown</h3>
@@ -568,33 +654,63 @@ export const DashboardScreen = () => {
                 <div className="h-3 bg-primary/20 rounded w-full" />
                 <div className="h-20 bg-primary/20 rounded w-full" />
               </div>
-            ) : totalBreakdownCount > 0 ? (
-              <div className="space-y-6">
-                {/* Horizontal Segmented Bar chart */}
-                <div className="w-full h-3 rounded-md overflow-hidden flex bg-primary/5 border border-primary/10">
-                  {breakdown.map((item, idx) => {
-                    const widthPct = (item.count / totalBreakdownCount) * 100;
-                    if (widthPct === 0) return null;
-                    return (
-                      <div 
-                        key={idx}
-                        style={{ width: `${widthPct}%` }}
-                        className={`${getAssetColor(item.type)} h-full first:rounded-l-[4px] last:rounded-r-[4px]`}
-                        title={`${item.type}: ${item.count} items (${Math.round(widthPct)}%)`}
+            ) : normalizedBreakdown.length > 0 ? (
+              <div className="space-y-4">
+                {/* Donut chart */}
+                <div className="flex items-center justify-center">
+                  <div className="relative h-36 w-36">
+                    <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
+                      <circle
+                        cx="70"
+                        cy="70"
+                        r={donutRadius}
+                        fill="none"
+                        stroke="var(--border)"
+                        strokeWidth={donutStroke}
                       />
-                    );
-                  })}
+                      {totalBreakdownCount > 0 && (() => {
+                        let runningOffset = 0;
+                        return normalizedBreakdown.map((item, idx) => {
+                          if (item.count <= 0) return null;
+                          const segmentLength = (item.count / totalBreakdownCount) * donutCircumference;
+                          const node = (
+                            <circle
+                              key={`${item.type}-${idx}`}
+                              cx="70"
+                              cy="70"
+                              r={donutRadius}
+                              fill="none"
+                              stroke={donutPalette[idx % donutPalette.length]}
+                              strokeWidth={donutStroke}
+                              strokeLinecap="butt"
+                              strokeDasharray={`${segmentLength} ${donutCircumference - segmentLength}`}
+                              strokeDashoffset={-runningOffset}
+                            />
+                          );
+                          runningOffset += segmentLength;
+                          return node;
+                        });
+                      })()}
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-2xl font-bold leading-none">{totalBreakdownCount}</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Assets</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Detailed legends panel */}
-                <div className="grid grid-cols-1 gap-2.5">
-                  {breakdown.map((item, idx) => {
+                <div className="max-h-44 overflow-y-auto pr-1 space-y-2 scrollbar-custom">
+                  {normalizedBreakdown.map((item, idx) => {
                     const pct = totalBreakdownCount > 0 ? Math.round((item.count / totalBreakdownCount) * 100) : 0;
                     return (
-                      <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg border border-primary/5 bg-primary/5">
+                      <div key={idx} className="flex items-center justify-between p-2 rounded-lg border border-primary/5 bg-primary/5">
                         <div className="flex items-center gap-2">
-                          <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${getAssetColor(item.type)}`} />
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{item.type.replace('_', ' ')}</span>
+                          <span
+                            className="h-2.5 w-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: donutPalette[idx % donutPalette.length] }}
+                          />
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{item.type.replace(/_/g, ' ')}</span>
                         </div>
                         <span className="text-xs font-bold text-foreground">
                           {item.count} units <span className={`text-[10px] font-normal ${getAssetTextColor(item.type)}`}>({pct}%)</span>

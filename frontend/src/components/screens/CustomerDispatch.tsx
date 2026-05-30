@@ -352,7 +352,7 @@ export const CustomerDispatch = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
+    <div className="flex flex-col gap-6 w-full px-1 md:px-2">
         <div className="flex flex-col gap-2 md:flex-row md:justify-between md:items-start border-b border-primary/10 pb-4">
           <div>
             <h2 className="text-2xl font-extrabold tracking-tight text-foreground">Customer Dispatch</h2>
@@ -388,9 +388,9 @@ export const CustomerDispatch = () => {
 
         {/* Tab 1: Dispatch Console */}
         {activeTab === 'console' && (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 items-start">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
             {/* Console Left Panel: Dispatch Configuration */}
-            <div className="glass-panel p-5 rounded-2xl space-y-4 md:col-span-2">
+            <div className="glass-panel p-5 rounded-2xl space-y-4 xl:col-span-4">
               <div className="flex items-center gap-2 border-b border-primary/10 pb-3">
                 <span className="material-symbols-outlined text-[18px] text-primary">local_shipping</span>
                 <h3 className="font-extrabold text-sm text-foreground">Assign New Dispatch</h3>
@@ -449,7 +449,7 @@ export const CustomerDispatch = () => {
             </div>
 
             {/* Console Right Panel: Staging Queue */}
-            <div className="glass-panel p-5 rounded-2xl space-y-4 md:col-span-3">
+            <div className="glass-panel p-5 rounded-2xl space-y-4 xl:col-span-8 h-[560px] overflow-hidden flex flex-col">
               <div className="flex items-center justify-between border-b border-primary/10 pb-3">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[18px] text-muted-foreground">layers</span>
@@ -479,24 +479,17 @@ export const CustomerDispatch = () => {
               </div>
 
               {stagedDevices.length === 0 ? (
+                <div className="flex flex-1 min-h-0 items-center justify-center">
                 <EmptyState
                   icon="local_shipping"
                   title="No Devices Staged"
-                  description="There are currently no hardware tracking units staged for dispatch. Click Stage Devices to select units."
-                  action={
-                    <button
-                      type="button"
-                      onClick={handleOpenSelectModal}
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 h-8 px-3 gap-1 cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-sm">add</span> Stage Devices
-                    </button>
-                  }
+                  description="There are currently no hardware tracking units staged for dispatch."
                   className="py-12 bg-transparent border-dashed border-primary/10"
                 />
+                </div>
               ) : (
-                <ScrollArea className="max-h-80 pr-1">
-                  <div className="space-y-2">
+                <ScrollArea className="flex-1 min-h-0 pr-1">
+                  <div className="space-y-2 w-full">
                     {stagedDevices.map(d => {
                       const childLinks = relationships
                         .filter(r => r.primaryDeviceId === d.id)
@@ -507,7 +500,7 @@ export const CustomerDispatch = () => {
                       const parentDev = parentRel ? devices.find(dev => dev.id === parentRel.primaryDeviceId) : null;
 
                       return (
-                        <div key={d.id} className="text-xs border border-primary/10 bg-background/50 rounded-xl p-3 space-y-1.5 shadow-sm relative pr-10">
+                        <div key={d.id} className="w-full text-xs border border-primary/10 bg-background/50 rounded-xl p-3 space-y-1.5 shadow-sm relative pr-10">
                           <button
                             type="button"
                             onClick={() => onRemoveFromQueue(d.id || '')}
