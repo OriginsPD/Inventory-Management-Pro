@@ -49,7 +49,7 @@ export const IMSBrandLogo: React.FC<IMSBrandLogoProps> = ({
              V 66 
              Z"
           fill="currentColor"
-          className="text-[#00508a] dark:text-[#38bdf8]"
+          className="brand-logo-bottom text-[#00508a] dark:text-[#38bdf8]"
         />
 
         {/* Center Diagonal Slash - Brand Orange */}

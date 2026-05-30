@@ -65,7 +65,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
       )}
 
       {/* Sidebar Component */}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col border-r border-border bg-card transition-transform duration-200 lg:static lg:translate-x-0 shrink-0 ${
+      <aside className={`fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col sidebar-panel transition-transform duration-200 lg:static lg:translate-x-0 shrink-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="relative flex h-20 items-center justify-start px-6 border-b border-border shrink-0">
@@ -113,7 +113,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
         <div className="p-4 border-t border-border">
           <button 
             onClick={handleLogout} 
-            className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-muted/60 hover:bg-red-500/10 border border-border hover:border-red-500/20 text-muted-foreground hover:text-red-500 transition-all duration-200 group cursor-pointer"
+            className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-transparent hover:bg-red-500/10 border border-border/40 hover:border-red-500/30 text-muted-foreground hover:text-red-400 transition-all duration-200 group cursor-pointer"
           >
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Terminate Session</span>
             <span className="material-symbols-outlined text-[18px] group-hover:translate-x-0.5 transition-transform">logout</span>

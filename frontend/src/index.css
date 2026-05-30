@@ -222,6 +222,42 @@
   gap: 12px !important;
 }
 
+/* Sidebar Panel Custom Brand Styling */
+.sidebar-panel {
+  background-color: #07172c; /* Deep Premium Brand Navy */
+  --foreground: #ffffff;
+  --muted-foreground: #94a3b8;
+  --border: #132742;
+  --muted: rgba(255, 255, 255, 0.08);
+  --primary: #ff8c42; /* High-contrast orange for active sidebar indicators */
+  color: #ffffff;
+  border-right: 1px solid var(--border);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.sidebar-panel .brand-logo-bottom {
+  color: #38bdf8 !important; /* Bright blue for high-contrast visibility */
+}
+
+.sidebar-panel .text-foreground {
+  color: #ffffff !important;
+}
+
+.dark .sidebar-panel {
+  background-color: #111113;
+  --foreground: #fff6ed;
+  --muted-foreground: #d4d4d8;
+  --border: #27272a;
+  --muted: #18181b;
+  --primary: #ff7a1f;
+  color: var(--foreground);
+  border-right: 1px solid var(--border);
+}
+
+.dark .sidebar-panel .brand-logo-bottom {
+  color: #38bdf8 !important;
+}
+
 * {
   border-color: var(--border);
 }
