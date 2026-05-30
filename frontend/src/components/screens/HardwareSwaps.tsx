@@ -1,85 +1,227 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { apiClient } from '../../lib/api-client';
-import { useAuth } from '../ui/auth-context';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useFeedback } from '../ui/feedback-provider';
 import { Skeleton } from '../ui/skeleton';
 import { EmptyState } from '../ui/empty-state';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { useDevices, useRelationships } from '../../lib/hooks/useDomain';
 import { Device } from '../../lib/types/domain';
+import { playSuccessBeep, playErrorBuzz } from '../../lib/audio';
 
-const swapSchema = z.object({
-  oldDeviceId: z.string().min(1, 'Select the faulty active unit'),
-  newDeviceId: z.string().min(1, 'Select a stocked replacement unit')
-}).refine(data => data.oldDeviceId !== data.newDeviceId, {
-  message: 'Replacement unit must be different from faulty unit',
-  path: ['newDeviceId']
-});
+interface StagedSwap {
+  id: string;
+  oldDeviceId: string;
+  oldIdentifier: string;
+  oldModelName: string;
+  newDeviceId: string;
+  newIdentifier: string;
+  newModelName: string;
+  inheritedCount: number;
+  status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED';
+  error?: string;
+}
 
-type SwapFormValues = z.infer<typeof swapSchema>;
+interface SearchableSelectProps {
+  options: { value: string; label: string; subLabel?: string }[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  disabled?: boolean;
+  error?: boolean;
+}
+
+const SearchableSelect = ({
+  options,
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  error
+}: SearchableSelectProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const selectedOption = options.find(o => o.value === value);
+
+  useEffect(() => {
+    if (isOpen) {
+      setSearch('');
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (
+        triggerRef.current?.contains(e.target as Node) ||
+        dropdownRef.current?.contains(e.target as Node)
+      ) {
+        return;
+      }
+      setIsOpen(false);
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [isOpen]);
+
+  const filteredOptions = options.filter(o =>
+    o.label.toLowerCase().includes(search.toLowerCase()) ||
+    (o.subLabel && o.subLabel.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  return (
+    <div className="relative w-full">
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex h-9 w-full items-center justify-between rounded-lg border bg-primary/5 px-3 py-2 text-xs text-foreground shadow-sm transition-all focus:outline-hidden focus:ring-1 focus:ring-primary/20 focus:border-primary/40 disabled:opacity-50 disabled:pointer-events-none cursor-pointer ${
+          error ? 'border-red-500/50' : 'border-primary/10'
+        }`}
+      >
+        <span className="truncate">
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <span className="material-symbols-outlined text-xs text-muted-foreground select-none">
+          keyboard_arrow_down
+        </span>
+      </button>
+
+      {isOpen && triggerRef.current?.parentElement && createPortal(
+        <div
+          ref={dropdownRef}
+          className="pointer-events-auto absolute top-full left-0 w-full mt-1 z-50 glass-panel-elevated max-h-60 rounded-xl border border-primary/15 bg-card/95 shadow-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-1 duration-100"
+        >
+          {/* Search bar inside dropdown */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b border-primary/10 bg-primary/5 shrink-0">
+            <span className="material-symbols-outlined text-xs text-muted-foreground select-none">search</span>
+            <input
+              type="text"
+              autoFocus
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-transparent text-xs border-0 p-0 h-6 focus:outline-hidden text-foreground placeholder:text-muted-foreground/30 font-sans"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="text-[10px] text-muted-foreground hover:text-foreground font-mono"
+              >
+                clear
+              </button>
+            )}
+          </div>
+
+          {/* Options list */}
+          <div className="overflow-y-auto scrollbar-custom p-1 flex-1">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(o.value);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full text-left px-2 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors flex flex-col gap-0.5 ${
+                    o.value === value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-foreground hover:bg-primary/5 focus:bg-primary/5'
+                  }`}
+                >
+                  <span className="truncate">{o.label}</span>
+                  {o.subLabel && (
+                    <span className={`text-[9px] truncate ${
+                      o.value === value ? 'text-primary-foreground/75' : 'text-muted-foreground'
+                    }`}>
+                      {o.subLabel}
+                    </span>
+                  )}
+                </button>
+              ))
+            ) : (
+              <div className="text-center py-4 text-xs text-muted-foreground italic select-none">
+                No matching results
+              </div>
+            )}
+          </div>
+        </div>,
+        triggerRef.current.parentElement
+      )}
+    </div>
+  );
+};
 
 export const HardwareSwaps = () => {
-  const { toast } = useFeedback();
-  const { user } = useAuth();
   
   const { data: devices = [], isLoading: isLoadingDevices, refetch: fetchDevices } = useDevices();
   const { data: relationships = [], isLoading: isLoadingRels } = useRelationships();
   
   const isLoading = isLoadingDevices || isLoadingRels;
   const [search, setSearch] = useState('');
+  
+  // Staging Workbench state
+  const [isStagingModalOpen, setIsStagingModalOpen] = useState(false);
+  const [stagedSwaps, setStagedSwaps] = useState<StagedSwap[]>([]);
+  const [oldSelectVal, setOldSelectVal] = useState('');
+  const [newSelectVal, setNewSelectVal] = useState('');
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [barcodeScanInput, setBarcodeScanInput] = useState('');
+  const [scanFeedback, setScanFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  const { handleSubmit, control, formState: { errors }, reset, watch } = useForm<SwapFormValues>({
-    resolver: zodResolver(swapSchema),
-    defaultValues: {
-      oldDeviceId: '',
-      newDeviceId: ''
-    }
-  });
+  const executeBatchSwaps = async () => {
+    const itemsToExecute = stagedSwaps.filter(item => item.status === 'PENDING' || item.status === 'FAILED');
+    if (itemsToExecute.length === 0) return;
 
-  const oldDeviceId = watch("oldDeviceId");
-  const linkedRelationships = relationships.filter(r => r.primaryDeviceId === oldDeviceId);
-  const inheritedComponents = linkedRelationships
-    .map(r => devices.find(d => d.id === r.linkedDeviceId))
-    .filter(Boolean) as Device[];
+    setIsExecuting(true);
+    
+    for (const item of itemsToExecute) {
+      setStagedSwaps(prev => prev.map(s => s.id === item.id ? { ...s, status: 'PROCESSING', error: undefined } : s));
+      
+      try {
+        const responseData = await apiClient.post<any>('/api/devices/swap', {
+          oldDeviceId: item.oldDeviceId,
+          newDeviceId: item.newDeviceId
+        });
 
-  const onSubmit = async (values: SwapFormValues) => {
-    try {
-      const responseData = await apiClient.post<any>('/api/devices/swap', {
-        oldDeviceId: values.oldDeviceId,
-        newDeviceId: values.newDeviceId
-      });
-
-      if (responseData && !responseData.error) {
-        toast.success('Hardware replacement swap processed and logged successfully!');
-        reset();
-        await fetchDevices();
-      } else {
-        console.error("Swap endpoint returned error:", responseData?.error);
-        toast.error(responseData?.error || 'Failed to process hardware swap.');
+        if (responseData && !responseData.error) {
+          setStagedSwaps(prev => prev.map(s => s.id === item.id ? { ...s, status: 'SUCCESS' } : s));
+        } else {
+          setStagedSwaps(prev => prev.map(s => s.id === item.id ? { ...s, status: 'FAILED', error: responseData?.error || 'Swap failed' } : s));
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Internal server error occurred';
+        setStagedSwaps(prev => prev.map(s => s.id === item.id ? { ...s, status: 'FAILED', error: msg } : s));
       }
-    } catch (e) {
-      console.error(e);
-      toast.error('Internal server error occurred while processing hardware swap.');
     }
+    
+    setIsExecuting(false);
+    await fetchDevices();
   };
 
   // Lists
-  const dispatchedUnits = devices.filter((d: Device) => d.status === 'DISPATCHED');
-  const stockedUnits = devices.filter((d: Device) => d.status === 'IN_STOCK');
+  const dispatchedUnits = devices.filter((d: Device) => 
+    d.status === 'DISPATCHED' && 
+    !stagedSwaps.some(s => s.oldDeviceId === d.id)
+  );
+  const stockedUnits = devices.filter((d: Device) => 
+    d.status === 'IN_STOCK' && 
+    !stagedSwaps.some(s => s.newDeviceId === d.id)
+  );
   
   const damagedUnits = devices.filter((d: Device) => {
     const isDamaged = d.status === 'DAMAGED';
@@ -99,7 +241,7 @@ export const HardwareSwaps = () => {
   const totalPages = Math.ceil(damagedUnits.length / pageSize);
 
   return (
-    <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
+    <div className="flex flex-col gap-6 w-full animate-in fade-in duration-300">
         <div>
           <h2 className="text-2xl font-extrabold tracking-tight text-foreground">RMA Swaps & Replacements</h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -107,118 +249,56 @@ export const HardwareSwaps = () => {
           </p>
         </div>
 
+        {/* KPI Summary Dashboard */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="glass-panel p-5 rounded-xl space-y-2">
+            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Awaiting Swap</p>
+            <p className="text-2xl font-black text-foreground">
+              {devices.filter(d => d.status === 'DAMAGED' && !d.metadata?.replacedBy).length}
+            </p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Active RMA Queue</p>
+          </div>
+          <div className="glass-panel p-5 rounded-xl space-y-2">
+            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Swaps Processed</p>
+            <p className="text-2xl font-black text-[#eb5a00]">
+              {devices.filter(d => d.status === 'DAMAGED' && d.metadata?.replacedBy).length}
+            </p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Completed Replacements</p>
+          </div>
+          <div className="glass-panel p-5 rounded-xl space-y-2">
+            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Replacement Reserves</p>
+            <p className="text-2xl font-black text-[#00508a] dark:text-[#38bdf8]">
+              {devices.filter(d => d.status === 'IN_STOCK').length}
+            </p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Warehouse stocked units</p>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Column 1: Swap Form */}
+          {/* Column 1: Swap Sidebar Trigger Card */}
           <div className="md:col-span-1 glass-panel p-5 rounded-2xl space-y-4 h-fit">
             <div className="flex items-center gap-2 border-b border-primary/10 pb-3">
               <span className="material-symbols-outlined text-[18px] text-primary">sync</span>
-              <h3 className="font-extrabold text-sm text-foreground">Log Unit Replacement Swap</h3>
+              <h3 className="font-extrabold text-sm text-foreground">Hardware Swap Workbench</h3>
             </div>
+            
+            <p className="text-xs text-muted-foreground leading-normal">
+              To swap faulty field devices with stocked replacements, open the staging workbench. You can stage multiple swap transactions and process them in a single batch.
+            </p>
 
-            {isLoading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-9 w-full animate-pulse" />
-                <Skeleton className="h-9 w-full animate-pulse" />
-              </div>
-            ) : (
-              <>
-
-
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                      Faulty Field Unit (Dispatched)
-                    </label>
-                    <Controller
-                      control={control}
-                      name="oldDeviceId"
-                      render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger className={`w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20 ${errors.oldDeviceId ? 'border-red-500/50 focus:ring-red-500/20' : ''}`}>
-                            <SelectValue placeholder="Select active device..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {dispatchedUnits.map((d: Device) => (
-                              <SelectItem key={d.id || ''} value={d.id || ''}>
-                                {d.identifier} - {d.modelName} ({d.metadata?.customerName || 'Unknown Fleet'})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                    {errors.oldDeviceId && (
-                      <p className="text-[10px] text-red-400 mt-1 font-semibold">{errors.oldDeviceId.message}</p>
-                    )}
-                  </div>
-
-                  {inheritedComponents.length > 0 && (
-                    <div className="bg-primary/5 border border-primary/10 rounded-xl p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-                          Inherited Components ({inheritedComponents.length})
-                        </span>
-                        <span className="material-symbols-outlined text-sm text-primary animate-pulse">arrow_forward</span>
-                      </div>
-                      <div className="space-y-1.5">
-                        {inheritedComponents.map((comp) => (
-                          <div key={comp.id} className="flex items-center justify-between text-xs bg-background/50 border border-primary/10 px-2 py-1 rounded-lg">
-                            <div className="flex flex-col">
-                              <span className="font-bold text-foreground font-mono tracking-wider">{comp.identifier}</span>
-                              <span className="text-[9px] text-muted-foreground">{comp.modelName}</span>
-                            </div>
-                            <span className="text-[9px] font-mono uppercase bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded text-primary font-bold">
-                              {comp.type}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                      <p className="text-[9px] text-muted-foreground italic leading-normal">
-                        These child devices will be automatically transferred and linked to the replacement tracker.
-                      </p>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                      Replacement Warehouse Unit (In Stock)
-                    </label>
-                    <Controller
-                      control={control}
-                      name="newDeviceId"
-                      render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger className={`w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20 ${errors.newDeviceId ? 'border-red-500/50 focus:ring-red-500/20' : ''}`}>
-                            <SelectValue placeholder="Select replacement unit..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {stockedUnits.map((d: Device) => (
-                              <SelectItem key={d.id || ''} value={d.id || ''}>{d.identifier} - {d.modelName}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                    {errors.newDeviceId && (
-                      <p className="text-[10px] text-red-400 mt-1 font-semibold">{errors.newDeviceId.message}</p>
-                    )}
-                  </div>
-
-                  {user?.role !== 'REVIEWER' ? (
-                    <button 
-                      type="submit" 
-                      className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 h-9 px-4 cursor-pointer"
-                    >
-                      Perform Unit Replacement Swap
-                    </button>
-                  ) : (
-                    <div className="text-center text-xs text-muted-foreground p-3 border border-primary/10 rounded-xl bg-primary/5">
-                      Read-only access. Hardware swaps are disabled.
-                    </div>
-                  )}
-                </form>
-              </>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                setStagedSwaps([]);
+                setOldSelectVal('');
+                setNewSelectVal('');
+                setScanFeedback(null);
+                setIsStagingModalOpen(true);
+              }}
+              className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 h-9 px-4 gap-1.5 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-sm">construction</span> Open Swap Workbench
+            </button>
           </div>
 
           {/* Column 2 & 3: Damaged Registry */}
@@ -376,7 +456,351 @@ export const HardwareSwaps = () => {
             )}
           </div>
         </div>
-      </div>
+
+        {/* BATCH SWAP STAGING WORKBENCH DIALOG */}
+        <Dialog open={isStagingModalOpen} onOpenChange={(open) => { if (!open && !isExecuting) setIsStagingModalOpen(false); }}>
+          <DialogContent className="glass-panel-elevated p-6 rounded-2xl sm:max-w-6xl w-full h-[90vh] flex flex-col border-0 animate-in fade-in zoom-in-95 duration-150 overflow-hidden" showCloseButton={!isExecuting}>
+            <DialogHeader className="text-left space-y-0.5 shrink-0">
+              <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0 flex items-center gap-2 select-none">
+                <span className="material-symbols-outlined text-primary text-xl select-none">construction</span>
+                Hardware Swap Staging Workbench
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                Stage multiple faulty devices alongside compatible replacements, then execute the atomic replacements in one batch.
+              </DialogDescription>
+            </DialogHeader>
+
+            {/* Quick Barcode Scan resolver panel inside modal */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-primary/10 pb-4 mt-2 shrink-0">
+              <div className="md:col-span-1 space-y-1.5">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                  Quick Barcode Scan (Faulty or Replacement)
+                </label>
+                <div className="relative flex items-center">
+                  <span className="material-symbols-outlined absolute left-2.5 text-muted-foreground/60 text-xs select-none">qr_code_scanner</span>
+                  <input
+                    type="text"
+                    disabled={isExecuting}
+                    value={barcodeScanInput}
+                    onChange={(e) => setBarcodeScanInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const trimmed = barcodeScanInput.trim();
+                        if (!trimmed) return;
+                        const matched = devices.find(d => d.identifier.toLowerCase() === trimmed.toLowerCase());
+                        if (matched) {
+                          if (matched.status === 'DISPATCHED') {
+                            setOldSelectVal(matched.id || '');
+                            setBarcodeScanInput('');
+                            setScanFeedback({ type: 'success', message: `Faulty unit '${matched.identifier}' selected.` });
+                            playSuccessBeep();
+                          } else if (matched.status === 'IN_STOCK') {
+                            setNewSelectVal(matched.id || '');
+                            setBarcodeScanInput('');
+                            setScanFeedback({ type: 'success', message: `Replacement unit '${matched.identifier}' selected.` });
+                            playSuccessBeep();
+                          } else {
+                            setScanFeedback({ type: 'error', message: `Device '${matched.identifier}' status is '${matched.status}' (must be DISPATCHED/IN_STOCK).` });
+                            playErrorBuzz();
+                          }
+                        } else {
+                          setScanFeedback({ type: 'error', message: `Identifier '${trimmed}' not found.` });
+                          playErrorBuzz();
+                        }
+                      }
+                    }}
+                    placeholder="Scan Serial/IMEI..."
+                    className="w-full bg-background border border-primary/10 text-xs h-8 pl-8 pr-2 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden text-foreground placeholder:text-muted-foreground/40 transition-colors font-mono"
+                  />
+                </div>
+                {scanFeedback && (
+                  <p className={`text-[9px] font-semibold flex items-center gap-1 ${
+                    scanFeedback.type === 'success' ? 'text-emerald-500 font-sans' : 'text-red-400 font-sans'
+                  }`}>
+                    <span className="material-symbols-outlined text-[10px]">
+                      {scanFeedback.type === 'success' ? 'check_circle' : 'error'}
+                    </span>
+                    {scanFeedback.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Searchable Select Inputs */}
+              <div className="md:col-span-1 space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                  Faulty Field Unit (Dispatched)
+                </label>
+                <SearchableSelect
+                  disabled={isExecuting}
+                  options={dispatchedUnits.map(d => ({
+                    value: d.id || '',
+                    label: d.identifier,
+                    subLabel: `${d.modelName} (${d.metadata?.customerName || 'No Client'})`
+                  }))}
+                  value={oldSelectVal}
+                  onChange={(val) => { setOldSelectVal(val); setScanFeedback(null); }}
+                  placeholder="Select faulty device..."
+                />
+              </div>
+
+              <div className="md:col-span-1 space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                  Replacement Warehouse Unit (In Stock)
+                </label>
+                <SearchableSelect
+                  disabled={isExecuting}
+                  options={stockedUnits.map(d => ({
+                    value: d.id || '',
+                    label: d.identifier,
+                    subLabel: d.modelName
+                  }))}
+                  value={newSelectVal}
+                  onChange={(val) => { setNewSelectVal(val); setScanFeedback(null); }}
+                  placeholder="Select replacement unit..."
+                />
+              </div>
+            </div>
+
+            {/* Middle Section: Staging Preview Flow Card & Staging Action */}
+            {oldSelectVal && newSelectVal && (
+              <div className="py-3 px-4 mt-2 border border-primary/10 rounded-xl bg-primary/5 shrink-0 flex items-center justify-between gap-6 animate-in fade-in duration-150">
+                <div className="flex items-center gap-6 flex-1 justify-around">
+                  <div className="flex flex-col min-w-0 max-w-[40%] text-left">
+                    <span className="text-[8px] font-mono text-red-400 uppercase tracking-widest font-black leading-none">Faulty Field Unit</span>
+                    <span className="text-xs font-bold text-foreground font-mono truncate mt-0.5">
+                      {devices.find(d => d.id === oldSelectVal)?.identifier}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground truncate">
+                      {devices.find(d => d.id === oldSelectVal)?.modelName}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-center shrink-0 gap-1.5 text-muted-foreground">
+                    <span className="w-8 h-px border-t border-dashed border-border/80" />
+                    <span className="material-symbols-outlined text-primary text-sm animate-pulse">arrow_forward</span>
+                    <span className="w-8 h-px border-t border-dashed border-border/80" />
+                  </div>
+
+                  <div className="flex flex-col min-w-0 max-w-[40%] text-right items-end">
+                    <span className="text-[8px] font-mono text-emerald-500 uppercase tracking-widest font-black leading-none">Replacement</span>
+                    <span className="text-xs font-bold text-foreground font-mono truncate mt-0.5">
+                      {devices.find(d => d.id === newSelectVal)?.identifier}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground truncate">
+                      {devices.find(d => d.id === newSelectVal)?.modelName}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0 pl-4 border-l border-primary/10">
+                  {/* Compatibility Check */}
+                  {(() => {
+                    const oDev = devices.find(d => d.id === oldSelectVal);
+                    const nDev = devices.find(d => d.id === newSelectVal);
+                    const isMatch = oDev?.modelName === nDev?.modelName;
+                    return (
+                      <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                        isMatch ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-500' : 'bg-amber-500/10 border border-amber-500/20 text-amber-500'
+                      }`}>
+                        <span className="material-symbols-outlined text-[10px]">{isMatch ? 'check_circle' : 'warning'}</span>
+                        {isMatch ? 'Match' : 'Diff Model'}
+                      </span>
+                    );
+                  })()}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const oDev = devices.find(d => d.id === oldSelectVal);
+                      const nDev = devices.find(d => d.id === newSelectVal);
+                      if (!oDev || !nDev) return;
+
+                      // Prevent duplicate staging of same devices
+                      if (stagedSwaps.some(s => s.oldDeviceId === oDev.id || s.newDeviceId === nDev.id)) {
+                        setScanFeedback({ type: 'error', message: 'One of the devices is already staged in the queue.' });
+                        playErrorBuzz();
+                        return;
+                      }
+
+                      const count = relationships.filter(r => r.primaryDeviceId === oDev.id).length;
+
+                      const newStaged: StagedSwap = {
+                        id: crypto.randomUUID(),
+                        oldDeviceId: oDev.id || '',
+                        oldIdentifier: oDev.identifier,
+                        oldModelName: oDev.modelName,
+                        newDeviceId: nDev.id || '',
+                        newIdentifier: nDev.identifier,
+                        newModelName: nDev.modelName,
+                        inheritedCount: count,
+                        status: 'PENDING'
+                      };
+
+                      setStagedSwaps([...stagedSwaps, newStaged]);
+                      setOldSelectVal('');
+                      setNewSelectVal('');
+                      setScanFeedback(null);
+                      playSuccessBeep();
+                    }}
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 h-8 px-3.5 cursor-pointer"
+                  >
+                    Stage Swap Pair
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Bottom Section: Staging Queue List (Scrollable) */}
+            <div className="flex-1 overflow-y-auto mt-4 border border-primary/10 rounded-xl bg-card/40 min-h-[180px]">
+              <Table>
+                <TableHeader className="sticky top-0 bg-card/95 backdrop-blur-md z-10 border-b border-primary/10">
+                  <TableRow>
+                    <TableHead className="text-[10px] uppercase font-bold py-2">Staged Faulty Device</TableHead>
+                    <TableHead className="text-[10px] uppercase font-bold py-2">Replacement Device</TableHead>
+                    <TableHead className="text-[10px] uppercase font-bold py-2">Compatibility / Links</TableHead>
+                    <TableHead className="text-[10px] uppercase font-bold py-2">Execution Status</TableHead>
+                    <TableHead className="text-[10px] uppercase font-bold py-2 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stagedSwaps.length > 0 ? (
+                    stagedSwaps.map((item) => (
+                      <TableRow key={item.id} className="hover:bg-primary/5 transition-colors border-b border-primary/5 py-1">
+                        <TableCell className="py-2.5">
+                          <div className="flex flex-col font-mono">
+                            <span className="font-bold text-foreground text-xs">{item.oldIdentifier}</span>
+                            <span className="text-[9px] text-muted-foreground font-sans">{item.oldModelName}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-2.5">
+                          <div className="flex flex-col font-mono">
+                            <span className="font-bold text-foreground text-xs">{item.newIdentifier}</span>
+                            <span className="text-[9px] text-muted-foreground font-sans">{item.newModelName}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-2.5 select-none">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {item.oldModelName === item.newModelName ? (
+                              <span className="inline-flex items-center text-[9px] font-bold text-emerald-500 bg-emerald-500/5 px-1.5 py-0.5 rounded border border-emerald-500/10">
+                                Match
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center text-[9px] font-bold text-amber-500 bg-amber-500/5 px-1.5 py-0.5 rounded border border-amber-500/10" title="Verify backend capability compatibility">
+                                Diff Model
+                              </span>
+                            )}
+                            {item.inheritedCount > 0 && (
+                              <span className="inline-flex items-center text-[9px] font-bold text-[#00508a] bg-[#00508a]/5 px-1.5 py-0.5 rounded border border-[#00508a]/10 dark:text-[#38bdf8] dark:bg-[#38bdf8]/5 dark:border-[#38bdf8]/10 font-mono">
+                                +{item.inheritedCount} links
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-2.5">
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-1 text-[10px] font-bold">
+                              {item.status === 'PENDING' && (
+                                <span className="text-muted-foreground flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-[13px]">hourglass_empty</span>
+                                  Pending
+                                </span>
+                              )}
+                              {item.status === 'PROCESSING' && (
+                                <span className="text-primary flex items-center gap-1 animate-pulse">
+                                  <span className="material-symbols-outlined text-[13px] animate-spin">sync</span>
+                                  Processing
+                                </span>
+                              )}
+                              {item.status === 'SUCCESS' && (
+                                <span className="text-emerald-500 flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                                  Completed
+                                </span>
+                              )}
+                              {item.status === 'FAILED' && (
+                                <span className="text-red-400 flex items-center gap-1 animate-in fade-in duration-100">
+                                  <span className="material-symbols-outlined text-[13px]">cancel</span>
+                                  Failed
+                                </span>
+                              )}
+                            </div>
+                            {item.error && (
+                              <span className="text-[8px] font-mono text-red-400 max-w-[200px] break-words">
+                                {item.error}
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-2.5 text-right">
+                          <button
+                            type="button"
+                            disabled={isExecuting || item.status === 'SUCCESS' || item.status === 'PROCESSING'}
+                            onClick={() => {
+                              setStagedSwaps(stagedSwaps.filter(s => s.id !== item.id));
+                            }}
+                            className="text-muted-foreground hover:text-red-400 disabled:opacity-30 disabled:pointer-events-none p-1 hover:bg-red-500/5 rounded-lg transition-colors cursor-pointer"
+                            title="Remove from staging queue"
+                          >
+                            <span className="material-symbols-outlined text-sm">close</span>
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-10 text-xs text-muted-foreground italic select-none">
+                        No hardware swaps staged. Select faulty and replacement units above to begin.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Footer: Execution controls */}
+            <div className="mt-4 pt-4 border-t border-primary/10 flex items-center justify-between shrink-0 select-none">
+              <div className="text-xs text-muted-foreground">
+                Total Staged: <span className="font-bold text-foreground">{stagedSwaps.length}</span>
+                {stagedSwaps.some(s => s.status === 'SUCCESS') && (
+                  <span className="ml-3 text-emerald-500 font-semibold">
+                    ({stagedSwaps.filter(s => s.status === 'SUCCESS').length} Succeeded)
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={isExecuting}
+                  onClick={() => setIsStagingModalOpen(false)}
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
+                >
+                  {stagedSwaps.some(s => s.status === 'SUCCESS') ? 'Close Staging' : 'Cancel'}
+                </button>
+                {stagedSwaps.some(s => s.status === 'PENDING' || s.status === 'FAILED') && (
+                  <button
+                    type="button"
+                    disabled={isExecuting}
+                    onClick={executeBatchSwaps}
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 h-9 px-5 gap-1.5 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    {isExecuting ? (
+                      <>
+                        <span className="material-symbols-outlined text-sm animate-spin">sync</span>
+                        Processing Swaps...
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-sm">bolt</span>
+                        Execute Staged Swaps
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+    </div>
   );
 };
-
