@@ -598,7 +598,10 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
           const updatedOldMetadata = {
             ...(oldDevice.metadata as Record<string, any> || {}),
             replacedBy: newDevice.identifier,
-            swappedAt: new Date().toISOString()
+            swappedAt: new Date().toISOString(),
+            defectReason: body.defectReason || undefined,
+            notes: body.notes || undefined,
+            swappedBy: user?.name || user?.email || user?.id || "System"
           };
 
           await tx
@@ -617,7 +620,10 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
             customerName,
             replacesUnit: oldDevice.identifier,
             dispatchedAt: new Date().toISOString(),
-            swappedAt: new Date().toISOString()
+            swappedAt: new Date().toISOString(),
+            defectReason: body.defectReason || undefined,
+            notes: body.notes || undefined,
+            swappedBy: user?.name || user?.email || user?.id || "System"
           };
 
           await tx
@@ -636,7 +642,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
           // Audit logs
           await tx.insert(schema.deviceAuditLogs).values({
             actionType: "SWAP",
-            details: `Hardware Swap: Unit replaced by '${newDevice.identifier}' (Status updated to DAMAGED)`,
+            details: `Hardware Swap: Unit replaced by '${newDevice.identifier}' (Status updated to DAMAGED).${body.defectReason ? ` Reason: ${body.defectReason}.` : ''}${body.notes ? ` Notes: ${body.notes}` : ''}`,
             deviceId: oldDevice.id,
             deviceIdentifier: oldDevice.identifier,
             userId: user?.id
@@ -731,7 +737,10 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
     const updatedOldMetadata = {
       ...(oldDevice.metadata || {}),
       replacedBy: newDevice.identifier,
-      swappedAt: new Date().toISOString()
+      swappedAt: new Date().toISOString(),
+      defectReason: body.defectReason || undefined,
+      notes: body.notes || undefined,
+      swappedBy: user?.name || user?.email || user?.id || "System"
     };
     const updatedOldDevice: Device = {
       ...oldDevice,
@@ -748,7 +757,10 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
       customerName,
       replacesUnit: oldDevice.identifier,
       dispatchedAt: new Date().toISOString(),
-      swappedAt: new Date().toISOString()
+      swappedAt: new Date().toISOString(),
+      defectReason: body.defectReason || undefined,
+      notes: body.notes || undefined,
+      swappedBy: user?.name || user?.email || user?.id || "System"
     };
     const updatedNewDevice: Device = {
       ...newDevice,
@@ -766,7 +778,7 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
     mockDeviceAuditLogs.unshift({
       id: randomUUID(),
       actionType: "SWAP",
-      details: `Hardware Swap: Unit replaced by '${newDevice.identifier}' (Status updated to DAMAGED)`,
+      details: `Hardware Swap: Unit replaced by '${newDevice.identifier}' (Status updated to DAMAGED).${body.defectReason ? ` Reason: ${body.defectReason}.` : ''}${body.notes ? ` Notes: ${body.notes}` : ''}`,
       deviceId: oldDevice.id,
       deviceIdentifier: oldDevice.identifier,
       userId: user?.id,
@@ -815,7 +827,9 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
   }, {
     body: t.Object({
       oldDeviceId: t.String(),
-      newDeviceId: t.String()
+      newDeviceId: t.String(),
+      defectReason: t.Optional(t.String()),
+      notes: t.Optional(t.String())
     })
   })
 
