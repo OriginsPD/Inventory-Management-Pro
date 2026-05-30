@@ -5,6 +5,7 @@ import { useAuth } from '../ui/auth-context';
 import { useFeedback } from '../ui/feedback-provider';
 import { Link, useNavigate } from 'react-router-dom';
 import { StockAlert } from '../../lib/types/domain';
+import { IMSBrandLogo } from '../ui/IMSBrandLogo';
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => {
   const { user, logout } = useAuth();
@@ -67,10 +68,10 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
       <aside className={`fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col border-r border-border bg-card transition-transform duration-200 lg:static lg:translate-x-0 shrink-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        <div className="relative flex h-20 items-center justify-center px-6 border-b border-border shrink-0">
-          <div className="flex items-center justify-center">
-            <img src="/logo.svg" alt="Amber Connect" className="h-14 w-auto max-w-[210px] object-contain" />
-          </div>
+        <div className="relative flex h-20 items-center justify-start px-6 border-b border-border shrink-0">
+          <Link to="/dashboard" className="flex items-center justify-start hover:opacity-90 transition-opacity">
+            <IMSBrandLogo size={36} showText={true} />
+          </Link>
           <button 
             className="absolute right-4 top-1/2 -translate-y-1/2 lg:hidden p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
             onClick={() => setSidebarOpen(false)}

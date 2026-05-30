@@ -12,7 +12,7 @@ export const SettingsScreen = () => {
   });
 
   const [accentColor, setAccentColor] = useState(() => {
-    return localStorage.getItem('ims_theme_accent') || 'amber';
+    return localStorage.getItem('ims_theme_accent') || 'brand';
   });
 
   const [density, setDensity] = useState(() => {
@@ -46,7 +46,7 @@ export const SettingsScreen = () => {
   const handleSelectAccent = (color: string) => {
     setAccentColor(color);
     localStorage.setItem('ims_theme_accent', color);
-    if (color !== 'amber') {
+    if (color !== 'brand') {
       document.documentElement.setAttribute('data-accent', color);
     } else {
       document.documentElement.removeAttribute('data-accent');
@@ -126,6 +126,7 @@ export const SettingsScreen = () => {
         .sound-bar {
           animation: soundwave 1.2s ease-in-out infinite;
         }
+        .accent-glow-brand { box-shadow: 0 0 15px rgba(235, 90, 0, 0.4); }
         .accent-glow-orange { box-shadow: 0 0 15px rgba(255, 105, 0, 0.4); }
         .accent-glow-amber { box-shadow: 0 0 15px rgba(255, 138, 31, 0.4); }
         .accent-glow-emerald { box-shadow: 0 0 15px rgb(16, 185, 129, 0.4); }
@@ -340,8 +341,9 @@ export const SettingsScreen = () => {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 pt-2">
                   {[
+                    { name: 'IMS Brand', value: 'brand', bg: 'bg-orange-600', glow: 'accent-glow-brand' },
                     { name: 'Orange Alert', value: 'orange', bg: 'bg-orange-500', glow: 'accent-glow-orange' },
                     { name: 'Amber Core', value: 'amber', bg: 'bg-amber-500', glow: 'accent-glow-amber' },
                     { name: 'Emerald Pass', value: 'emerald', bg: 'bg-emerald-500', glow: 'accent-glow-emerald' },

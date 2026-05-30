@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import heroImage from '../../assets/hero.png';
 import { FaviconBg } from '../ui/FaviconBg';
+import { IMSBrandLogo } from '../ui/IMSBrandLogo';
 
 const featureCards = [
   {
@@ -41,11 +42,7 @@ export const LandingScreen = () => {
 
         <header className="relative z-10 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <img src="/logo.svg" alt="Amber Connect" className="h-16 sm:h-20 w-auto object-contain" />
-            <p className="hidden text-base sm:text-lg text-foreground font-sans tracking-tight border-l border-border/80 pl-4 ml-2 sm:flex items-center gap-1.5">
-              <span className="font-black text-foreground">Inventory</span>
-              <span className="font-light text-muted-foreground">management system</span>
-            </p>
+            <IMSBrandLogo size={48} showText={true} />
           </div>
           <Link
             to="/login"

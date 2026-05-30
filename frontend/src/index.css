@@ -42,40 +42,40 @@
 }
 
 :root {
-  /* Neutral workspace with Amber as the default accent */
-  --background: #f8fafc;
-  --foreground: #17120d;
+  /* Pristine white workspace with Brand Orange & Navy as default */
+  --background: #ffffff;
+  --foreground: #09090b;
   
   --card: #ffffff;
-  --card-foreground: #17120d;
+  --card-foreground: #09090b;
 
   --popover: #ffffff;
-  --popover-foreground: #17120d;
+  --popover-foreground: #09090b;
 
-  --primary: #ff8a1f;
-  --color-primary-rgb: 255, 138, 31;
-  --primary-foreground: #17120d;
+  --primary: #eb5a00;
+  --color-primary-rgb: 235, 90, 0;
+  --primary-foreground: #ffffff;
   
   --secondary: #f4f4f5;
-  --secondary-foreground: #17120d;
+  --secondary-foreground: #09090b;
   
   --muted: #f4f4f5;
-  --muted-foreground: #5f5650;
+  --muted-foreground: #71717a;
   
-  --accent: #ff8a1f;
-  --accent-foreground: #17120d;
+  --accent: #00508a;
+  --accent-foreground: #ffffff;
 
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
 
   --border: #e4e4e7;
   --input: #d4d4d8;
-  --ring: #ff8a1f;
+  --ring: #eb5a00;
   --radius: 6px;
 }
 
 .dark {
-  /* Neutral dark workspace with Amber as the default accent */
+  /* Neutral dark workspace with Brand Orange & Navy as default */
   --background: #09090b;
   --foreground: #fff6ed;
   
@@ -85,8 +85,8 @@
   --popover: #111113;
   --popover-foreground: #fff6ed;
 
-  --primary: #ff8a1f;
-  --color-primary-rgb: 255, 138, 31;
+  --primary: #ff7a1f;
+  --color-primary-rgb: 255, 122, 31;
   --primary-foreground: #160a00;
 
   --secondary: #18181b;
@@ -95,15 +95,15 @@
   --muted: #18181b;
   --muted-foreground: #d4d4d8;
 
-  --accent: #ff8a1f;
-  --accent-foreground: #160a00;
+  --accent: #0066b3;
+  --accent-foreground: #ffffff;
 
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
 
   --border: #27272a;
   --input: #3f3f46;
-  --ring: #ff8a1f;
+  --ring: #ff7a1f;
 }
 
 /* Glassmorphism Primitives */
@@ -137,6 +137,11 @@
 
 /* Custom Accent Themes */
 /* Light Mode Accents */
+:root[data-accent="brand"] {
+  --primary: #eb5a00;
+  --color-primary-rgb: 235, 90, 0;
+  --ring: #eb5a00;
+}
 :root[data-accent="orange"] {
   --primary: #ff6900;
   --color-primary-rgb: 255, 105, 0;
@@ -159,6 +164,12 @@
 }
 
 /* Dark Mode Accents */
+.dark[data-accent="brand"] {
+  --primary: #ff7a1f;
+  --color-primary-rgb: 255, 122, 31;
+  --ring: #ff7a1f;
+  --primary-foreground: #160a00;
+}
 .dark[data-accent="orange"] {
   --primary: #ff6900;
   --color-primary-rgb: 255, 105, 0;

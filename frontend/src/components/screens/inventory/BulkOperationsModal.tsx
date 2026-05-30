@@ -9,7 +9,6 @@ import {
 import { ScrollArea } from '../../ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import {
-  Table,
   TableHeader,
   TableBody,
   TableHead,

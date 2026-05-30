@@ -8,6 +8,7 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Link } from 'react-router-dom';
 import { FaviconBg } from '../ui/FaviconBg';
+import { IMSBrandLogo } from '../ui/IMSBrandLogo';
 
 export const LoginScreen = () => {
   const { login } = useAuth();
@@ -47,9 +48,9 @@ export const LoginScreen = () => {
       <FaviconBg className="-top-48 -right-48 w-[800px] h-[800px] sm:-top-80 sm:-right-80 sm:w-[1200px] sm:h-[1200px] opacity-[0.08] dark:opacity-[0.02] rotate-[-15deg] text-foreground" />
       <div className="w-full max-w-[400px] z-10 space-y-8">
         {/* Brand Header */}
-        <div className="text-center">
+        <div className="text-center flex justify-center">
           <Link to="/" className="inline-block hover:opacity-90 transition-opacity">
-            <img src="/logo.svg" alt="Amber Connect" className="mx-auto h-16 w-auto max-w-[280px] object-contain" />
+            <IMSBrandLogo size={48} className="justify-center" showText={true} />
           </Link>
         </div>
 
@@ -76,7 +77,7 @@ export const LoginScreen = () => {
               </label>
               <Input
                 type="email"
-                placeholder="operator@amberconnect.com"
+                placeholder="operator@imspro.com"
                 className={`bg-background border-border text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-foreground placeholder:text-muted-foreground/60 transition-colors ${
                   errors.email ? 'border-red-500/50' : ''
                 }`}

@@ -11,8 +11,8 @@ import './index.css';
 // Initialize Theme and Layout Settings globally before render
 (function initTheme() {
   try {
-    const savedAccent = localStorage.getItem('ims_theme_accent') || 'amber';
-    if (savedAccent && savedAccent !== 'amber') {
+    const savedAccent = localStorage.getItem('ims_theme_accent') || 'brand';
+    if (savedAccent && savedAccent !== 'brand') {
       document.documentElement.setAttribute('data-accent', savedAccent);
     } else {
       document.documentElement.removeAttribute('data-accent');
