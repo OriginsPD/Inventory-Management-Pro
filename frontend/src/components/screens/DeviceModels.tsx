@@ -68,6 +68,9 @@ export const DeviceModels = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
+  // Stock Alerts Data State
+  const [stockAlerts, setStockAlerts] = useState<any[]>([]);
+
   // Load polymorphic options from localStorage
   const [polymorphicOptions, setPolymorphicOptions] = useState<string[]>([]);
 
@@ -116,8 +119,12 @@ export const DeviceModels = () => {
   const fetchModels = async () => {
     setIsLoading(true);
     try {
-      const data = await apiClient.get<DeviceModel[]>('/api/device-models');
-      setModels(data);
+      const [modelsData, stockData] = await Promise.all([
+        apiClient.get<DeviceModel[]>('/api/device-models'),
+        apiClient.get<any[]>('/api/stock-alerts').catch(() => [])
+      ]);
+      setModels(modelsData);
+      setStockAlerts(stockData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -152,7 +159,8 @@ export const DeviceModels = () => {
       fetchModels();
     } catch (err) {
       console.error(err);
-      toast.error('Internal server error occurred while saving the model template.');
+      const errorMsg = err instanceof Error ? err.message : 'Internal server error occurred while saving the model template.';
+      toast.error(errorMsg);
     }
   };
 
@@ -191,6 +199,126 @@ export const DeviceModels = () => {
     }
   };
 
+  const getAssetIcon = (type: string) => {
+    switch (type) {
+      case 'TRACKER': return 'layers';
+      case 'SIM': return 'sim_card';
+      case 'SD_CARD': return 'sd_card';
+      case 'PANIC_BUTTON': return 'radio_button_checked';
+      case 'KEYFOB': return 'vpn_key';
+      case 'DASH_CAM': return 'videocam';
+      default: return 'devices';
+    }
+  };
+
+  const renderTopologyTree = (model: DeviceModel) => {
+    const parentIcon = getAssetIcon(model.assetType);
+    const hasChildren = model.allowedChildren.length > 0;
+    
+    // Group children names for a collective tooltip
+    const tooltipText = hasChildren 
+      ? `Allowed accessories: ${model.allowedChildren.join(', ')}`
+      : 'Standalone profile (No linked accessories allowed)';
+
+    return (
+      <div className="flex items-center gap-1.5 py-1" title={tooltipText}>
+        {/* Parent Node */}
+        <div 
+          className="flex items-center justify-center h-6 w-6 rounded-md bg-[#00508a]/10 border border-[#00508a]/20 text-[#00508a] dark:text-[#38bdf8] dark:bg-[#38bdf8]/10 dark:border-[#38bdf8]/20" 
+          title={`Parent Class: ${model.assetType}`}
+        >
+          <span className="material-symbols-outlined text-[15px]">{parentIcon}</span>
+        </div>
+        
+        {/* Branch line & Child Nodes */}
+        {hasChildren ? (
+          <div className="flex items-center">
+            {/* Horizontal connection line */}
+            <div className="w-3.5 h-px border-t border-dashed border-border/80" />
+            
+            {/* Overlapping Stack */}
+            <div className="flex -space-x-1.5 items-center pl-0.5">
+              {model.allowedChildren.slice(0, 3).map((child) => {
+                const childIcon = getAssetIcon(child);
+                return (
+                  <div 
+                    key={child}
+                    className="flex items-center justify-center h-5.5 w-5.5 rounded-full bg-primary/10 border-2 border-background text-primary"
+                    title={child}
+                  >
+                    <span className="material-symbols-outlined text-[11px] font-black">{childIcon}</span>
+                  </div>
+                );
+              })}
+              
+              {model.allowedChildren.length > 3 && (
+                <div 
+                  className="flex items-center justify-center h-5.5 w-5.5 rounded-full bg-muted border-2 border-background text-[9px] font-black text-muted-foreground font-mono select-none"
+                  title={`+${model.allowedChildren.length - 3} more accessories`}
+                >
+                  +{model.allowedChildren.length - 3}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center">
+            <div className="w-3.5 h-px border-t border-dashed border-border/80" />
+            <span className="text-[9px] text-muted-foreground/60 font-mono font-bold bg-muted/20 px-1.5 py-0.5 border border-primary/5 rounded-md uppercase tracking-wider select-none">
+              Standalone
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderStockProgress = (model: DeviceModel) => {
+    const alert = stockAlerts.find(a => a.modelId === model.id);
+    const maxStock = model.maxStock || 0;
+    
+    if (maxStock === 0) {
+      return (
+        <div className="flex flex-col gap-1 w-28 text-left select-none">
+          <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest leading-none">No Target Set</span>
+          <div className="h-1.5 w-full bg-muted/40 rounded-full overflow-hidden border border-transparent" />
+        </div>
+      );
+    }
+
+    const inStock = alert ? alert.inStock : 0;
+    const ratio = Math.min(inStock / maxStock, 1);
+    const percentage = Math.round(ratio * 100);
+    const level = alert ? alert.level : 'HEALTHY';
+
+    const barColor = level === 'LOW' 
+      ? 'bg-red-500' 
+      : level === 'WARNING' 
+      ? 'bg-amber-500' 
+      : 'bg-emerald-500';
+
+    const textClass = level === 'LOW'
+      ? 'text-red-500'
+      : level === 'WARNING'
+      ? 'text-amber-500'
+      : 'text-emerald-500';
+
+    return (
+      <div className="flex flex-col gap-1 w-32 text-left select-none">
+        <div className="flex justify-between items-baseline text-[9px] font-mono leading-none">
+          <span className={`${textClass} font-bold uppercase tracking-tight`}>{percentage}% Stocked</span>
+          <span className="text-muted-foreground font-semibold">{inStock}/{maxStock}</span>
+        </div>
+        <div className="h-1.5 w-full bg-muted/50 rounded-full overflow-hidden border border-transparent relative">
+          <div 
+            className={`h-full ${barColor} transition-all duration-300 rounded-full`}
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
         <div className="flex justify-between items-center">
@@ -208,182 +336,195 @@ export const DeviceModels = () => {
           )}
         </div>
 
-        {/* DATA REGION: Data Table View */}
-        <div className="glass-panel rounded-xl overflow-visible">
-          <div className="w-full overflow-visible">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="px-4">Template Name</TableHead>
-                  <TableHead className="px-4">Brand / Manufacturer</TableHead>
-                  <TableHead className="px-4">Classification</TableHead>
-                  <TableHead className="px-4">Allowed Secondary Components</TableHead>
-                  <TableHead className="px-4 text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 4 }).map((_, index) => (
-                    <TableRow key={index} className="animate-pulse">
-                      <TableCell className="p-4 align-middle"><Skeleton className="h-4 w-36" /></TableCell>
-                      <TableCell className="p-4 align-middle"><Skeleton className="h-4 w-28" /></TableCell>
-                      <TableCell className="p-4 align-middle"><Skeleton className="h-5 w-16 rounded" /></TableCell>
-                      <TableCell className="p-4 align-middle"><Skeleton className="h-4 w-44" /></TableCell>
-                      <TableCell className="p-4 align-middle text-right"><Skeleton className="h-4 w-4 ml-auto" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : paginatedModels.length > 0 ? (
-                  paginatedModels.map((model) => (
-                    <TableRow key={model.id} className="group hover:bg-primary/5 transition-colors">
-                      <TableCell className="p-4 align-middle font-semibold text-foreground">
-                        <div>{model.name}</div>
-                        {model.identifierPattern && (
-                          <div className="text-[10px] text-amber-500 font-mono mt-0.5 font-normal">
-                            Pattern: {model.identifierPattern}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="p-4 align-middle text-muted-foreground">{model.brand}</TableCell>
-                      <TableCell className="p-4 align-middle">
-                        <span className="inline-flex items-center rounded-md border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary font-mono tracking-wider">
-                          {model.assetType}
-                        </span>
-                      </TableCell>
-                      <TableCell className="p-4 align-middle">
-                        <div className="flex flex-wrap gap-1">
-                          {model.allowedChildren.length > 0 ? (
-                            model.allowedChildren.map((child) => (
-                              <span
-                                key={child}
-                                className="bg-primary/5 px-2 py-0.5 rounded text-[10px] text-primary font-bold border border-primary/10 uppercase tracking-wider"
-                              >
-                                {child}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-xs text-muted-foreground/60 italic">None (Stand-alone)</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="p-4 align-middle text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button 
-                              className="text-muted-foreground hover:text-foreground p-1 hover:bg-primary/5 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <span className="material-symbols-outlined text-[18px]">more_horiz</span>
-                            </button>
-                          </DropdownMenuTrigger>
-                           <DropdownMenuContent align="end" className="w-32 bg-card/95 backdrop-blur-2xl border border-primary/15 text-foreground rounded-xl p-1 shadow-xl">
-                            <DropdownMenuItem
-                              onClick={() => setViewModalModel(model)}
-                              className="text-xs font-semibold cursor-pointer flex items-center px-2.5 py-2 hover:bg-primary/5 focus:bg-primary/5 rounded-lg transition-colors"
-                            >
-                              <span className="material-symbols-outlined text-sm mr-2 text-primary">visibility</span> View
-                            </DropdownMenuItem>
-                            {user?.role === 'SUPER_USER' && (
-                              <>
-                                <DropdownMenuItem
-                                  onClick={() => handleOpenEditModal(model)}
-                                  className="text-xs font-semibold cursor-pointer flex items-center px-2.5 py-2 hover:bg-primary/5 focus:bg-primary/5 rounded-lg transition-colors"
-                                >
-                                  <span className="material-symbols-outlined text-sm mr-2 text-muted-foreground">edit</span> Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-primary/10 my-1" />
-                                <DropdownMenuItem
-                                  onClick={() => handleDelete(model.id)}
-                                  className="text-xs font-semibold text-red-400 focus:text-red-400 cursor-pointer flex items-center px-2.5 py-2 hover:bg-red-500/5 focus:bg-red-500/5 rounded-lg transition-colors"
-                                >
-                                  <span className="material-symbols-outlined text-sm mr-2 text-red-400">delete</span> Delete
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center p-8 text-sm text-muted-foreground">
-                      No hardware templates registered.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+        {/* KPI Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="glass-panel p-5 rounded-xl space-y-2">
+            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Total Templates</p>
+            <p className="text-2xl font-black text-foreground">{models.length}</p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Active hardware profiles</p>
           </div>
-
-          {/* Pagination Controls */}
-          {models.length > 0 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-primary/10 bg-transparent">
-              <div className="text-xs text-muted-foreground">
-                Showing <span className="font-semibold text-foreground">{startIndex + 1}</span> to{' '}
-                <span className="font-semibold text-foreground">{Math.min(endIndex, models.length)}</span> of{' '}
-                <span className="font-semibold text-foreground">{models.length}</span> templates
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentPage(prev => Math.max(prev - 1, 1));
-                  }}
-                  disabled={currentPage === 1}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
-                >
-                  Previous
-                </button>
-                
-                {Array.from({ length: totalPages }).map((_, i) => {
-                  const pageNum = i + 1;
-                  if (
-                    pageNum === 1 ||
-                    pageNum === totalPages ||
-                    Math.abs(pageNum - currentPage) <= 1
-                  ) {
-                    return (
-                      <button
-                        key={pageNum}
-                        type="button"
-                        onClick={() => {
-                          setCurrentPage(pageNum);
-                        }}
-                        className={`inline-flex items-center justify-center rounded-lg text-xs font-bold h-8 w-8 transition-colors cursor-pointer ${
-                          currentPage === pageNum
-                            ? 'bg-primary text-primary-foreground'
-                            : 'border border-primary/10 bg-primary/5 text-foreground hover:bg-primary/15'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  }
-                  if (
-                    pageNum === 2 ||
-                    pageNum === totalPages - 1
-                  ) {
-                    return <span key={pageNum} className="text-muted-foreground px-1 text-xs">...</span>;
-                  }
-                  return null;
-                }).filter((el, idx, arr) => {
-                  if (el?.type === 'span' && arr[idx - 1]?.type === 'span') return false;
-                  return true;
-                })}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentPage(prev => Math.min(prev + 1, totalPages));
-                  }}
-                  disabled={currentPage === totalPages || totalPages === 0}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
+          <div className="glass-panel p-5 rounded-xl space-y-2">
+            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Polymorphic Rules</p>
+            <p className="text-2xl font-black text-[#eb5a00]">{models.filter(m => m.allowedChildren.length > 0).length}</p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Profiles with linked accessory rules</p>
+          </div>
+          <div className="glass-panel p-5 rounded-xl space-y-2">
+            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Max Stock Capacity</p>
+            <p className="text-2xl font-black text-[#00508a] dark:text-[#38bdf8]">
+              {models.reduce((sum, m) => sum + (m.maxStock || 0), 0).toLocaleString()}
+            </p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Combined target storage cap</p>
+          </div>
         </div>
+
+        {/* Data Table View */}
+        <div className="glass-panel rounded-xl overflow-visible">
+            <div className="w-full overflow-visible">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="px-4">Template Name</TableHead>
+                    <TableHead className="px-4">Brand / Manufacturer</TableHead>
+                    <TableHead className="px-4">Classification</TableHead>
+                    <TableHead className="px-4">Allowed Secondary Components</TableHead>
+                    <TableHead className="px-4">Stock Health</TableHead>
+                    <TableHead className="px-4 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    Array.from({ length: 4 }).map((_, index) => (
+                      <TableRow key={index} className="animate-pulse">
+                        <TableCell className="p-4 align-middle"><Skeleton className="h-4 w-36" /></TableCell>
+                        <TableCell className="p-4 align-middle"><Skeleton className="h-4 w-28" /></TableCell>
+                        <TableCell className="p-4 align-middle"><Skeleton className="h-5 w-16 rounded" /></TableCell>
+                        <TableCell className="p-4 align-middle"><Skeleton className="h-4 w-44" /></TableCell>
+                        <TableCell className="p-4 align-middle"><Skeleton className="h-4 w-28" /></TableCell>
+                        <TableCell className="p-4 align-middle text-right"><Skeleton className="h-4 w-4 ml-auto" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : paginatedModels.length > 0 ? (
+                    paginatedModels.map((model) => (
+                      <TableRow key={model.id} className="group hover:bg-primary/5 transition-colors">
+                        <TableCell className="p-4 align-middle font-semibold text-foreground">
+                          <div>{model.name}</div>
+                          {model.identifierPattern && (
+                            <div className="text-[10px] text-amber-500 font-mono mt-0.5 font-normal">
+                              Pattern: {model.identifierPattern}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="p-4 align-middle text-muted-foreground">{model.brand}</TableCell>
+                        <TableCell className="p-4 align-middle">
+                          <span className="inline-flex items-center rounded-md border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary font-mono tracking-wider">
+                            {model.assetType}
+                          </span>
+                        </TableCell>
+                        <TableCell className="p-4 align-middle">
+                          {renderTopologyTree(model)}
+                        </TableCell>
+                        <TableCell className="p-4 align-middle">
+                          {renderStockProgress(model)}
+                        </TableCell>
+                        <TableCell className="p-4 align-middle text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button 
+                                className="text-muted-foreground hover:text-foreground p-1 hover:bg-primary/5 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">more_horiz</span>
+                              </button>
+                            </DropdownMenuTrigger>
+                             <DropdownMenuContent align="end" className="w-32 bg-card/95 backdrop-blur-2xl border border-primary/15 text-foreground rounded-xl p-1 shadow-xl">
+                              <DropdownMenuItem
+                                onClick={() => setViewModalModel(model)}
+                                className="text-xs font-semibold cursor-pointer flex items-center px-2.5 py-2 hover:bg-primary/5 focus:bg-primary/5 rounded-lg transition-colors"
+                              >
+                                <span className="material-symbols-outlined text-sm mr-2 text-primary">visibility</span> View
+                              </DropdownMenuItem>
+                              {user?.role === 'SUPER_USER' && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => handleOpenEditModal(model)}
+                                    className="text-xs font-semibold cursor-pointer flex items-center px-2.5 py-2 hover:bg-primary/5 focus:bg-primary/5 rounded-lg transition-colors"
+                                  >
+                                    <span className="material-symbols-outlined text-sm mr-2 text-muted-foreground">edit</span> Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator className="bg-primary/10 my-1" />
+                                  <DropdownMenuItem
+                                    onClick={() => handleDelete(model.id)}
+                                    className="text-xs font-semibold text-red-400 focus:text-red-400 cursor-pointer flex items-center px-2.5 py-2 hover:bg-red-500/5 focus:bg-red-500/5 rounded-lg transition-colors"
+                                  >
+                                    <span className="material-symbols-outlined text-sm mr-2 text-red-400">delete</span> Delete
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center p-8 text-sm text-muted-foreground">
+                        No hardware templates registered.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination Controls */}
+            {models.length > 0 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-primary/10 bg-transparent">
+                <div className="text-xs text-muted-foreground">
+                  Showing <span className="font-semibold text-foreground">{startIndex + 1}</span> to{' '}
+                  <span className="font-semibold text-foreground">{Math.min(endIndex, models.length)}</span> of{' '}
+                  <span className="font-semibold text-foreground">{models.length}</span> templates
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentPage(prev => Math.max(prev - 1, 1));
+                    }}
+                    disabled={currentPage === 1}
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                  >
+                    Previous
+                  </button>
+                  
+                  {Array.from({ length: totalPages }).map((_, i) => {
+                    const pageNum = i + 1;
+                    if (
+                      pageNum === 1 ||
+                      pageNum === totalPages ||
+                      Math.abs(pageNum - currentPage) <= 1
+                    ) {
+                      return (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => {
+                            setCurrentPage(pageNum);
+                          }}
+                          className={`inline-flex items-center justify-center rounded-lg text-xs font-bold h-8 w-8 transition-colors cursor-pointer ${
+                            currentPage === pageNum
+                              ? 'bg-primary text-primary-foreground'
+                              : 'border border-primary/10 bg-primary/5 text-foreground hover:bg-primary/15'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    }
+                    if (
+                      pageNum === 2 ||
+                      pageNum === totalPages - 1
+                    ) {
+                      return <span key={pageNum} className="text-muted-foreground px-1 text-xs">...</span>;
+                    }
+                    return null;
+                  }).filter((el, idx, arr) => {
+                    if (el?.type === 'span' && arr[idx - 1]?.type === 'span') return false;
+                    return true;
+                  })}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentPage(prev => Math.min(prev + 1, totalPages));
+                    }}
+                    disabled={currentPage === totalPages || totalPages === 0}
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
         {/* DIALOG MODAL: Create & Edit Form */}
         <Dialog open={isAdding} onOpenChange={(open) => { if (!open) { setIsAdding(false); setEditingModelId(null); } }}>
