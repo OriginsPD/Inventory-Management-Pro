@@ -133,6 +133,7 @@ export const userRoutes = new Elysia({ prefix: '/api/users' })
   // Management routes (Super User Only)
   .group("/admin", app => app
     .onBeforeHandle(({ user, set }: any) => {
+      console.log("[DEBUG] /admin onBeforeHandle user:", user ? { id: user.id, email: user.email, role: user.role } : null);
       if (!user || user.role !== "SUPER_USER") {
         set.status = 403;
         return { error: "Forbidden: Super User access required" };

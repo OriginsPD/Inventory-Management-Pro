@@ -23,7 +23,7 @@ const trustedOrigins = configuredOrigins.length > 0
   ? configuredOrigins
   : process.env.NODE_ENV === "production"
     ? []
-    : ["http://localhost:5173"];
+    : ["http://localhost:5173", "http://127.0.0.1:5173"];
 
 const baseApp = new Elysia()
   .onRequest(({ request }) => {

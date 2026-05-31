@@ -13,8 +13,8 @@ const QCBench = lazy(() => import('./components/screens/QCBench').then(m => ({ d
 const HardwareSwaps = lazy(() => import('./components/screens/HardwareSwaps').then(m => ({ default: m.HardwareSwaps })));
 const Customers = lazy(() => import('./components/screens/Customers').then(m => ({ default: m.Customers })));
 const SettingsScreen = lazy(() => import('./components/screens/SettingsScreen').then(m => ({ default: m.SettingsScreen })));
+const SuperUserHubScreen = lazy(() => import('./components/screens/SuperUserHubScreen').then(m => ({ default: m.SuperUserHubScreen })));
 const ReportsScreen = lazy(() => import('./components/screens/Reports').then(m => ({ default: m.ReportsScreen })));
-const UserManagementScreen = lazy(() => import('./components/screens/UserManagementScreen').then(m => ({ default: m.UserManagementScreen })));
 const UserProfileScreen = lazy(() => import('./components/screens/UserProfileScreen').then(m => ({ default: m.UserProfileScreen })));
 const NotFoundScreen = lazy(() => import('./components/screens/errors/NotFoundScreen').then(m => ({ default: m.NotFoundScreen })));
 const ForbiddenScreen = lazy(() => import('./components/screens/errors/ForbiddenScreen').then(m => ({ default: m.ForbiddenScreen })));
@@ -149,10 +149,18 @@ const App = () => {
             </ProtectedRoute>
           } />
 
+          <Route path="/superuser" element={
+            <ProtectedRoute>
+              <AuthorizedRoute roles={['SUPER_USER']}>
+                <SuperUserHubScreen />
+              </AuthorizedRoute>
+            </ProtectedRoute>
+          } />
+
           <Route path="/users" element={
             <ProtectedRoute>
               <AuthorizedRoute roles={['SUPER_USER']}>
-                <UserManagementScreen />
+                <Navigate to="/superuser?tab=users" replace />
               </AuthorizedRoute>
             </ProtectedRoute>
           } />

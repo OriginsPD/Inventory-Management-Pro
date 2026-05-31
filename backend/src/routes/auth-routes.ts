@@ -136,7 +136,7 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
   .get("/get-session", async ({ request, set }) => {
     const cookies = request.headers.get("cookie") || "";
     let token = "";
-    const match = cookies.match(/(?:^|; )better-auth\.session-token=([^;]*)/);
+    const match = cookies.match(/(?:^|; )better-auth\.session[-_]token=([^;]*)/);
     if (match && match[1]) {
       token = decodeURIComponent(match[1]);
     }
@@ -239,7 +239,7 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
 
     const cookies = request.headers.get("cookie") || "";
     let token = "";
-    const match = cookies.match(/(?:^|; )better-auth\.session-token=([^;]*)/);
+    const match = cookies.match(/(?:^|; )better-auth\.session[-_]token=([^;]*)/);
     if (match && match[1]) {
       token = decodeURIComponent(match[1]);
     }

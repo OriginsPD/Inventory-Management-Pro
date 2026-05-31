@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router-dom';
 import { apiClient } from '../../lib/api-client';
 import { Skeleton } from '../ui/skeleton';
 import { EmptyState } from '../ui/empty-state';
@@ -261,7 +262,23 @@ export const HardwareSwaps = () => {
   const { data: relationships = [], isLoading: isLoadingRels } = useRelationships();
   
   const isLoading = isLoadingDevices || isLoadingRels;
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const swapOldDeviceId = searchParams.get('swapOldDevice');
+    if (swapOldDeviceId && devices.length > 0) {
+      const dev = devices.find(d => d.id === swapOldDeviceId);
+      if (dev) {
+        setOldSelectVal(dev.id || '');
+        setStagedSwaps([]);
+        setIsStagingModalOpen(true);
+        // Clear param
+        searchParams.delete('swapOldDevice');
+        setSearchParams(searchParams);
+      }
+    }
+  }, [searchParams, devices]);
   
   // Staging Workbench state
   const [isStagingModalOpen, setIsStagingModalOpen] = useState(false);

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useFeedback } from '../ui/feedback-provider';
 import { apiClient } from '../../lib/api-client';
 import { useAuth } from '../ui/auth-context';
@@ -17,8 +18,22 @@ export const QCBench = () => {
   const { toast } = useFeedback();
   const { user } = useAuth();
   const { data: devices = [], isLoading, refetch: fetchDevices } = useDevices();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    const qcDeviceId = searchParams.get('qcDevice');
+    if (qcDeviceId && devices.length > 0) {
+      const dev = devices.find(d => d.id === qcDeviceId);
+      if (dev) {
+        handleSelectDevice(dev);
+        // Clear param
+        searchParams.delete('qcDevice');
+        setSearchParams(searchParams);
+      }
+    }
+  }, [searchParams, devices]);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const pageSize = 10;
@@ -452,7 +467,7 @@ export const QCBench = () => {
             </p>
           </div>
           <div className="relative w-full md:w-80">
-            <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-sm">search</span>
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">search</span>
             <input
               placeholder="Search serial or model..."
               className="w-full bg-primary/5 border border-primary/10 rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-1 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground/35"

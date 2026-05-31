@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { apiClient } from '../../lib/api-client';
 import { useFeedback } from '../ui/feedback-provider';
 import { useAuth } from '../ui/auth-context';
@@ -48,6 +49,7 @@ export const CustomerDispatch = () => {
   const { data: relationships = [], isLoading: isLoadingRels } = useRelationships();
   
   const isLoading = isLoadingDevices || isLoadingCustomers || isLoadingRels;
+  const [searchParams, setSearchParams] = useSearchParams();
   
   // Tabs State
   const [activeTab, setActiveTab] = useState<'console' | 'registry'>('console');
@@ -87,6 +89,19 @@ export const CustomerDispatch = () => {
       customerId: ''
     }
   });
+
+  useEffect(() => {
+    const customerId = searchParams.get('customer');
+    if (customerId && customers.length > 0) {
+      const match = customers.find(c => c.id === customerId);
+      if (match) {
+        reset({ customerId: match.id || '' });
+        // Clear query parameters
+        searchParams.delete('customer');
+        setSearchParams(searchParams);
+      }
+    }
+  }, [searchParams, customers]);
 
   const handleOpenSelectModal = () => {
     setModalSelectedIds(new Set(stagedDeviceIds));
@@ -553,7 +568,7 @@ export const CustomerDispatch = () => {
             {/* Registry Toolbar filters */}
             <div className="flex flex-col md:flex-row gap-3 border border-primary/10 p-3.5 rounded-xl bg-card/60 justify-between items-center">
               <div className="relative w-full md:flex-1">
-                <span className="material-symbols-outlined text-[18px] text-muted-foreground absolute left-3 top-2.5 pointer-events-none">search</span>
+                <span className="material-symbols-outlined text-[18px] text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
                 <input 
                   placeholder="Search serial, client fleet, model name..." 
                   value={search}
@@ -775,7 +790,7 @@ export const CustomerDispatch = () => {
               {/* Filters */}
               <div className="p-4 border-b border-primary/10 bg-primary/5 flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
-                  <span className="material-symbols-outlined text-sm text-muted-foreground absolute left-3 top-2.5 pointer-events-none">search</span>
+                  <span className="material-symbols-outlined text-sm text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
                   <input
                     placeholder="Search serial or model name..."
                     value={modalSearch}

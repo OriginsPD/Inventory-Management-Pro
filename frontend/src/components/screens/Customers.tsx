@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../lib/api-client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Skeleton } from '../ui/skeleton';
@@ -22,7 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu"
-import { useCustomers } from '../../lib/hooks/useDomain';
+import { useCustomers, useDevices, useRelationships } from '../../lib/hooks/useDomain';
 import { Customer, Device } from '../../lib/types/domain';
 import { useQuery } from '@tanstack/react-query';
 import { InlineErrorState } from '../ui/inline-error-state';
@@ -36,8 +37,105 @@ interface CustomerFormValues {
   taxId?: string;
 }
 
+const DeviceAuditTimelineModal = ({
+  deviceId,
+  deviceIdentifier,
+  isOpen,
+  onClose
+}: {
+  deviceId: string;
+  deviceIdentifier: string;
+  isOpen: boolean;
+  onClose: () => void;
+}) => {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && deviceId) {
+      setIsLoading(true);
+      apiClient.get<any[]>(`/api/devices/${deviceId}/audit-logs`)
+        .then(res => {
+          setLogs(res || []);
+        })
+        .catch(err => {
+          console.error("Failed to load audit logs", err);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+  }, [isOpen, deviceId]);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-xl w-full max-h-[80vh] flex flex-col border-0 animate-in fade-in zoom-in-95 duration-150 overflow-hidden" showCloseButton={true}>
+        <DialogHeader className="text-left space-y-0.5 shrink-0">
+          <DialogTitle className="text-sm font-extrabold tracking-tight text-foreground p-0 flex items-center gap-2 select-none">
+            <span className="material-symbols-outlined text-primary text-base select-none">history</span>
+            Audit Log Timeline: {deviceIdentifier}
+          </DialogTitle>
+          <DialogDescription className="text-[11px] text-muted-foreground mt-0.5">
+            Historical trace records captured in the device lifecycle audit log.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto mt-4 pr-1 scrollbar-custom space-y-3 min-h-[200px]">
+          {isLoading ? (
+            <div className="space-y-3 animate-pulse">
+              <div className="h-10 bg-primary/5 rounded-lg" />
+              <div className="h-10 bg-primary/5 rounded-lg" />
+              <div className="h-10 bg-primary/5 rounded-lg" />
+            </div>
+          ) : logs.length > 0 ? (
+            <div className="relative border-l border-primary/10 ml-2.5 pl-4 space-y-4 py-1">
+              {logs.map((log) => (
+                <div key={log.id} className="relative flex flex-col gap-1 text-xs">
+                  <span className="absolute -left-[21.5px] top-1 h-2.5 w-2.5 rounded-full border border-primary/20 bg-card flex items-center justify-center">
+                    <span className="h-1 w-1 bg-primary rounded-full" />
+                  </span>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="font-bold text-foreground inline-flex items-center gap-1">
+                      <span className="px-1 py-0.5 rounded bg-primary/10 border border-primary/10 text-[9px] font-mono tracking-wider text-primary uppercase">{log.actionType}</span>
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {new Date(log.createdAt).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground text-[11px] leading-relaxed">{log.details}</p>
+                  {log.userId && (
+                    <span className="text-[9px] text-muted-foreground/60 italic inline-flex items-center gap-0.5">
+                      <span className="material-symbols-outlined text-[10px]">person</span>
+                      Operator ID: {log.userId}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-10 text-xs text-muted-foreground italic select-none">
+              No audit logs found for this device.
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export const Customers = () => {
   const { toast, confirm } = useFeedback();
+  const navigate = useNavigate();
+  const [activeHistoryTab, setActiveHistoryTab] = useState<'dispatched' | 'returned'>('dispatched');
+  const [selectedAuditDevice, setSelectedAuditDevice] = useState<{ id: string; identifier: string } | null>(null);
+
+  const { data: devices = [] } = useDevices();
+  const { data: relationships = [] } = useRelationships();
   const {
     data: customers = [],
     isLoading,
@@ -46,6 +144,8 @@ export const Customers = () => {
     refetch: fetchCustomers
   } = useCustomers();
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -93,6 +193,36 @@ export const Customers = () => {
     }
   };
 
+  const handleReturnDevice = async (dev: Device) => {
+    const isConfirmed = await confirm({
+      title: 'Return Device to Stock?',
+      message: `Are you sure you want to return device '${dev.identifier}' to warehouse stock? This will clear its customer assignment.`
+    });
+    if (!isConfirmed) return;
+
+    try {
+      const cleanMetadata = { ...(dev.metadata || {}) };
+      delete cleanMetadata.customerName;
+      delete cleanMetadata.dispatchedAt;
+
+      await apiClient.put(`/api/devices/${dev.id}`, {
+        identifier: dev.identifier,
+        modelId: dev.modelId,
+        status: 'IN_STOCK',
+        customerId: null,
+        metadata: cleanMetadata
+      });
+
+      toast.success(`Device '${dev.identifier}' successfully returned to stock.`);
+      refetchHistory();
+      fetchCustomers();
+    } catch (e: unknown) {
+      const error = e as Error;
+      console.error(error);
+      toast.error(error.message || 'An unexpected error occurred while returning the device.');
+    }
+  };
+
   const filteredCustomers = useMemo(() => {
     return customers.filter(c => 
       c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -100,6 +230,17 @@ export const Customers = () => {
       c.taxId?.toLowerCase().includes(search.toLowerCase())
     );
   }, [customers, search]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const totalPages = Math.ceil(filteredCustomers.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedCustomers = useMemo(() => {
+    return filteredCustomers.slice(startIndex, endIndex);
+  }, [filteredCustomers, startIndex, endIndex]);
 
   const handleOpenModal = (customer?: Customer) => {
     if (customer) {
@@ -172,12 +313,20 @@ export const Customers = () => {
                 </div>
               </div>
             </div>
-            <button 
-              onClick={() => handleOpenModal(selectedCustomer)}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 h-9 px-4 cursor-pointer"
-            >
-              Edit Profile
-            </button>
+            <div className="flex items-center gap-3 shrink-0">
+              <button 
+                onClick={() => navigate(`/dispatch?customer=${selectedCustomer.id}`)}
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground h-9 px-4 gap-1.5 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm">local_shipping</span> Allocate Devices
+              </button>
+              <button 
+                onClick={() => handleOpenModal(selectedCustomer)}
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 h-9 px-4 cursor-pointer"
+              >
+                Edit Profile
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -224,10 +373,24 @@ export const Customers = () => {
                 
                 <div className="p-0">
                   <div className="flex border-b border-primary/10 px-4">
-                    <button className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 border-primary text-primary cursor-pointer">
+                    <button
+                      onClick={() => setActiveHistoryTab('dispatched')}
+                      className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 cursor-pointer transition-all ${
+                        activeHistoryTab === 'dispatched'
+                          ? 'border-primary text-primary'
+                          : 'border-transparent text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
                       Currently Dispatched ({history.dispatched.length})
                     </button>
-                    <button className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-muted-foreground hover:text-foreground cursor-pointer">
+                    <button
+                      onClick={() => setActiveHistoryTab('returned')}
+                      className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 cursor-pointer transition-all ${
+                        activeHistoryTab === 'returned'
+                          ? 'border-primary text-primary'
+                          : 'border-transparent text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
                       Return History ({history.returned.length})
                     </button>
                   </div>
@@ -246,38 +409,154 @@ export const Customers = () => {
                           onRetry={() => refetchHistory()}
                         />
                       </div>
-                    ) : history.dispatched.length > 0 ? (
-                      history.dispatched.map((dev: Device) => (
-                        <div key={dev.id} className="p-4 flex items-center justify-between hover:bg-primary/5 transition-colors">
-                          <div className="flex items-center gap-4">
-                            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                              <span className="material-symbols-outlined text-sm text-primary">inventory_2</span>
+                    ) : activeHistoryTab === 'dispatched' ? (
+                      history.dispatched.length > 0 ? (
+                        history.dispatched.map((dev: Device) => {
+                          const childRels = relationships.filter(r => r.primaryDeviceId === dev.id);
+                          return (
+                            <div key={dev.id} className="p-4 flex flex-col gap-3 hover:bg-primary/5 transition-colors">
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-4">
+                                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                    <span className="material-symbols-outlined text-sm text-primary">inventory_2</span>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-mono font-bold text-foreground">{dev.identifier}</p>
+                                    <p className="text-[10px] text-primary uppercase font-extrabold">{dev.modelName}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <button
+                                    onClick={() => setSelectedAuditDevice({ id: dev.id || '', identifier: dev.identifier })}
+                                    className="inline-flex items-center justify-center text-muted-foreground hover:text-primary transition-colors h-7 w-7 rounded-lg hover:bg-primary/5 cursor-pointer"
+                                    title="View audit timeline"
+                                  >
+                                    <span className="material-symbols-outlined text-xs">history</span>
+                                  </button>
+                                  <button
+                                    onClick={() => navigate(`/qc?qcDevice=${dev.id}`)}
+                                    className="inline-flex items-center justify-center text-muted-foreground hover:text-amber-500 transition-colors h-7 w-7 rounded-lg hover:bg-amber-500/5 cursor-pointer"
+                                    title="Run QC diagnostics test"
+                                  >
+                                    <span className="material-symbols-outlined text-xs">construction</span>
+                                  </button>
+                                  <button
+                                    onClick={() => navigate(`/swaps?swapOldDevice=${dev.id}`)}
+                                    className="inline-flex items-center justify-center text-muted-foreground hover:text-primary transition-colors h-7 w-7 rounded-lg hover:bg-primary/5 cursor-pointer"
+                                    title="Swap / Replace device"
+                                  >
+                                    <span className="material-symbols-outlined text-xs">sync</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleReturnDevice(dev)}
+                                    className="inline-flex items-center justify-center text-muted-foreground hover:text-red-400 transition-colors h-7 w-7 rounded-lg hover:bg-red-500/5 cursor-pointer"
+                                    title="Return device to warehouse stock"
+                                  >
+                                    <span className="material-symbols-outlined text-xs">keyboard_return</span>
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Detailed inline child accessories list */}
+                              {childRels.length > 0 && (
+                                <div className="pl-13 flex flex-col gap-1.5 max-w-xl">
+                                  <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Linked Component Bundle</p>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {childRels.map(rel => {
+                                      const childDev = devices.find(d => d.id === rel.linkedDeviceId);
+                                      if (!childDev) return null;
+                                      let detailStr = '';
+                                      if (childDev.type === 'SIM') {
+                                        detailStr = `${childDev.metadata?.carrier || 'SIM'}${childDev.metadata?.phoneNumber ? ` (${childDev.metadata.phoneNumber})` : ''}`;
+                                      } else if (childDev.type === 'SD_CARD') {
+                                        detailStr = `SD: ${childDev.metadata?.capacity || 'SD Card'}`;
+                                      } else {
+                                        detailStr = `${childDev.type || 'Accessory'}`;
+                                      }
+                                      return (
+                                        <div key={rel.id} className="text-[9px] font-medium text-muted-foreground bg-primary/5 border border-primary/10 rounded-lg p-2 flex flex-col gap-0.5">
+                                          <div className="flex items-center justify-between">
+                                            <span className="font-mono text-foreground font-bold">{childDev.identifier}</span>
+                                            <span className="text-[8px] font-semibold text-primary uppercase">{childDev.type}</span>
+                                          </div>
+                                          <div className="text-[8px] text-muted-foreground font-sans flex justify-between">
+                                            <span>{childDev.modelName}</span>
+                                            {detailStr && <span className="text-muted-foreground/80">{detailStr}</span>}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <div>
-                              <p className="text-sm font-mono font-bold text-foreground">{dev.identifier}</p>
-                              <p className="text-[10px] text-primary uppercase font-extrabold">{dev.modelName}</p>
-                            </div>
-                          </div>
-                          <div className="text-right space-y-1">
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground justify-end">
-                              <span className="material-symbols-outlined text-xs text-muted-foreground">calendar_today</span>
-                              <span>{dev.metadata?.dispatchedAt ? new Date(dev.metadata.dispatchedAt as string).toLocaleDateString() : 'Unknown Date'}</span>
-                            </div>
-                            <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20 uppercase tracking-wider font-mono">
-                              Active Dispatch
-                            </span>
-                          </div>
+                          );
+                        })
+                      ) : (
+                        <div className="p-4">
+                          <EmptyState
+                            icon="inventory_2"
+                            title="No Active Dispatches"
+                            description="There are currently no active hardware devices assigned to this customer fleet."
+                            className="border-0 bg-transparent py-8"
+                          />
                         </div>
-                      ))
+                      )
                     ) : (
-                      <div className="p-4">
-                        <EmptyState
-                          icon="inventory_2"
-                          title="No Active Dispatches"
-                          description="There are currently no active hardware devices assigned to this customer fleet."
-                          className="border-0 bg-transparent py-8"
-                        />
-                      </div>
+                      history.returned.length > 0 ? (
+                        history.returned.map((dev: Device) => (
+                          <div key={dev.id} className="p-4 flex items-center justify-between hover:bg-primary/5 transition-colors border-b border-primary/5 last:border-0">
+                            <div className="flex items-center gap-4">
+                              <div className="h-9 w-9 rounded-lg bg-primary/5 border border-primary/10 flex items-center justify-center shrink-0 text-muted-foreground">
+                                <span className="material-symbols-outlined text-sm">assignment_return</span>
+                              </div>
+                              <div className="space-y-0.5">
+                                <p className="text-sm font-mono font-bold text-foreground">{dev.identifier}</p>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-[9px] text-primary uppercase font-extrabold">{dev.modelName}</span>
+                                  {dev.metadata?.defectReason && (
+                                    <span className="inline-flex items-center text-[9px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-1 py-0.25 rounded">
+                                      {dev.metadata.defectReason}
+                                    </span>
+                                  )}
+                                  {dev.metadata?.notes && (
+                                    <span className="text-[9px] text-muted-foreground italic truncate max-w-[200px]">
+                                      Notes: {dev.metadata.notes}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right space-y-1 flex items-center gap-2 shrink-0">
+                              <div className="text-right space-y-0.5">
+                                <div className="flex items-center gap-1 text-[10px] text-muted-foreground justify-end">
+                                  <span className="material-symbols-outlined text-[10px]">calendar_today</span>
+                                  <span>Returned: {dev.metadata?.swappedAt ? new Date(dev.metadata.swappedAt as any).toLocaleDateString() : dev.updatedAt ? new Date(dev.updatedAt as any).toLocaleDateString() : 'Unknown'}</span>
+                                </div>
+                                {dev.metadata?.swappedBy && (
+                                  <p className="text-[9px] text-muted-foreground italic font-sans">Tech: {dev.metadata.swappedBy}</p>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => setSelectedAuditDevice({ id: dev.id || '', identifier: dev.identifier })}
+                                className="inline-flex items-center justify-center text-muted-foreground hover:text-primary transition-colors h-7 w-7 rounded-lg hover:bg-primary/5 cursor-pointer"
+                                title="View audit timeline"
+                              >
+                                <span className="material-symbols-outlined text-xs">history</span>
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-4">
+                          <EmptyState
+                            icon="assignment_return"
+                            title="No Return History"
+                            description="There are no registered returns or swaps recorded in this fleet's historical registry."
+                            className="border-0 bg-transparent py-8"
+                          />
+                        </div>
+                      )
                     )}
                   </div>
                 </div>
@@ -291,7 +570,7 @@ export const Customers = () => {
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
+          <div className="text-left">
             <h2 className="text-2xl font-extrabold tracking-tight text-foreground">Customer Management</h2>
             <p className="text-sm text-muted-foreground mt-1">
               Maintain a registry of corporate fleets and individual operators for hardware distribution.
@@ -299,7 +578,7 @@ export const Customers = () => {
           </div>
           <div className="flex items-center gap-3">
             <div className="relative w-full md:w-64">
-              <span className="material-symbols-outlined text-sm text-muted-foreground absolute left-3 top-2.5 pointer-events-none">search</span>
+              <span className="material-symbols-outlined text-sm text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
               <input
                 placeholder="Search customers..."
                 className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground"
@@ -313,6 +592,37 @@ export const Customers = () => {
             >
               <span className="material-symbols-outlined text-sm">add</span> Add Customer
             </button>
+          </div>
+        </div>
+
+        {/* KPI Summary Dashboard */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 select-none">
+          <div className="glass-panel p-5 rounded-xl space-y-2 text-left">
+            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Fleet Accounts</p>
+            <p className="text-2xl font-black text-foreground">
+              {customers.length}
+            </p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">
+              {customers.filter(c => c.type === 'COMPANY').length} Companies / {customers.filter(c => c.type === 'PERSON').length} Operators
+            </p>
+          </div>
+          <div className="glass-panel p-5 rounded-xl space-y-2 text-left">
+            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Active Deployed Assets</p>
+            <p className="text-2xl font-black text-[#00508a] dark:text-[#38bdf8]">
+              {devices.filter(d => d.status === 'DISPATCHED').length}
+            </p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Units Deployed in Field</p>
+          </div>
+          <div className="glass-panel p-5 rounded-xl space-y-2 text-left">
+            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Fleet RMA Rate</p>
+            <p className="text-2xl font-black text-red-400">
+              {devices.filter(d => d.status === 'DISPATCHED').length > 0
+                ? ((devices.filter(d => d.status === 'DAMAGED').length / devices.filter(d => d.status === 'DISPATCHED').length) * 100).toFixed(1)
+                : '0.0'}%
+            </p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">
+              {devices.filter(d => d.status === 'DAMAGED').length} Active Damaged Units
+            </p>
           </div>
         </div>
 
@@ -350,7 +660,7 @@ export const Customers = () => {
                   </TableCell>
                 </TableRow>
               ) : filteredCustomers.length > 0 ? (
-                filteredCustomers.map((customer) => (
+                paginatedCustomers.map((customer) => (
                   <TableRow key={customer.id} className="group hover:bg-primary/5 transition-colors">
                     <TableCell className="truncate">
                       <button 
@@ -446,6 +756,65 @@ export const Customers = () => {
               )}
             </TableBody>
           </Table>
+          {filteredCustomers.length > 0 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-primary/10 bg-transparent">
+              <div className="text-xs text-muted-foreground">
+                Showing <span className="font-semibold text-foreground">{startIndex + 1}</span> to{' '}
+                <span className="font-semibold text-foreground">{Math.min(endIndex, filteredCustomers.length)}</span> of{' '}
+                <span className="font-semibold text-foreground">{filteredCustomers.length}</span> customers
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                >
+                  Previous
+                </button>
+                
+                {Array.from({ length: totalPages }).map((_, i) => {
+                  const pageNum = i + 1;
+                  if (
+                    pageNum === 1 ||
+                    pageNum === totalPages ||
+                    Math.abs(pageNum - currentPage) <= 1
+                  ) {
+                    return (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`inline-flex items-center justify-center rounded-lg text-xs font-bold h-8 w-8 transition-colors cursor-pointer ${
+                          currentPage === pageNum
+                            ? 'bg-primary text-primary-foreground'
+                            : 'border border-primary/10 bg-primary/5 text-foreground hover:bg-primary/15'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  }
+                  if (pageNum === 2 || pageNum === totalPages - 1) {
+                    return <span key={pageNum} className="text-muted-foreground px-1 text-xs">...</span>;
+                  }
+                  return null;
+                }).filter((el, idx, arr) => {
+                  if (el?.type === 'span' && arr[idx - 1]?.type === 'span') return false;
+                  return true;
+                })}
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -548,6 +917,15 @@ export const Customers = () => {
             </form>
         </DialogContent>
       </Dialog>
+
+      {selectedAuditDevice && (
+        <DeviceAuditTimelineModal
+          deviceId={selectedAuditDevice.id}
+          deviceIdentifier={selectedAuditDevice.identifier}
+          isOpen={!!selectedAuditDevice}
+          onClose={() => setSelectedAuditDevice(null)}
+        />
+      )}
     </div>
   );
 };

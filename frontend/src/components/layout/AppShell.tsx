@@ -44,7 +44,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
     {
       label: 'Management',
       items: [
-        ...(user?.role === 'SUPER_USER' ? [{ name: 'Users', path: '/users', icon: 'manage_accounts' }] : []),
+        ...(user?.role === 'SUPER_USER' ? [{ name: 'Super User Hub', path: '/superuser', icon: 'shield_person' }] : []),
         { name: 'Model Templates', path: '/models', icon: 'layers' },
         { name: 'RMA Swaps', path: '/swaps', icon: 'swap_horiz' },
         { name: 'Customers', path: '/customers', icon: 'groups' },

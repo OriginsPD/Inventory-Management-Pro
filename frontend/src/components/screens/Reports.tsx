@@ -248,17 +248,31 @@ export const ReportsScreen = () => {
       let jsonSheetData: any[] = [];
 
       if (reportType === 'inventory') {
-        jsonSheetData = dataToExport.map((d: any) => ({
-          "Device ID": d.id,
-          "Serial / IMEI / ISN": d.identifier,
-          "Brand": d.brand || d.modelName?.split(' ')[0] || 'Generic',
-          "Model Template": d.modelName,
-          "Asset Classification": d.type,
-          "Inventory Status": d.status,
-          "Company / Operator": d.customerName || 'In Stock',
-          "Relationships count": d.linked || 0,
-          "Date Added": new Date(d.createdAt).toLocaleDateString()
-        }));
+        jsonSheetData = dataToExport.map((d: any) => {
+          const rowData: any = {
+            "Device ID": d.id,
+            "Serial / IMEI / ISN": d.identifier,
+            "Brand": d.brand || d.modelName?.split(' ')[0] || 'Generic',
+            "Model Template": d.modelName,
+            "Asset Classification": d.type,
+            "Inventory Status": d.status,
+            "Company / Operator": d.customerName || 'In Stock',
+            "Relationships count": d.linked || 0,
+            "Date Added": new Date(d.createdAt).toLocaleDateString()
+          };
+          if (d.metadata && typeof d.metadata === 'object') {
+            Object.entries(d.metadata).forEach(([key, value]) => {
+              if (value !== undefined && value !== null) {
+                const label = key
+                  .replace(/([A-Z])/g, ' $1')
+                  .replace(/^./, str => str.toUpperCase())
+                  .trim();
+                rowData[label] = typeof value === 'object' ? JSON.stringify(value) : value;
+              }
+            });
+          }
+          return rowData;
+        });
       } else if (reportType === 'stock') {
         jsonSheetData = dataToExport.map((s: any) => ({
           "Manufacturer": s.brand,
@@ -293,7 +307,7 @@ export const ReportsScreen = () => {
       workbook.creator = 'Amber Connect';
       workbook.created = new Date();
       const worksheet = workbook.addWorksheet('IMS Report');
-      const headers = Object.keys(jsonSheetData[0] || {});
+      const headers = Array.from(new Set(jsonSheetData.flatMap(row => Object.keys(row))));
       const isTextIdentifier = (header: string) => {
         const lowerHeader = header.toLowerCase();
         return lowerHeader === 'id' ||
@@ -368,15 +382,29 @@ export const ReportsScreen = () => {
       let exportRows: any[] = [];
 
       if (reportType === 'inventory') {
-        exportRows = dataToExport.map((d: any) => ({
-          "Device_ID": d.id,
-          "Identifier": d.identifier,
-          "Model": d.modelName,
-          "Classification": d.type,
-          "Status": d.status,
-          "Customer_Name": d.customerName || 'IN_STOCK',
-          "Date_Added": new Date(d.createdAt).toISOString()
-        }));
+        exportRows = dataToExport.map((d: any) => {
+          const rowData: any = {
+            "Device_ID": d.id,
+            "Identifier": d.identifier,
+            "Model": d.modelName,
+            "Classification": d.type,
+            "Status": d.status,
+            "Customer_Name": d.customerName || 'IN_STOCK',
+            "Date_Added": new Date(d.createdAt).toISOString()
+          };
+          if (d.metadata && typeof d.metadata === 'object') {
+            Object.entries(d.metadata).forEach(([key, value]) => {
+              if (value !== undefined && value !== null) {
+                const label = key
+                  .replace(/([A-Z])/g, '_$1')
+                  .toUpperCase()
+                  .trim();
+                rowData[label] = typeof value === 'object' ? JSON.stringify(value) : value;
+              }
+            });
+          }
+          return rowData;
+        });
       } else if (reportType === 'stock') {
         exportRows = dataToExport.map((s: any) => ({
           "Brand": s.brand,
@@ -405,7 +433,7 @@ export const ReportsScreen = () => {
         }));
       }
 
-      const headers = Object.keys(exportRows[0]);
+      const headers = Array.from(new Set(exportRows.flatMap(row => Object.keys(row))));
       const csvContent = [
         headers.join(','),
         ...exportRows.map(row => 

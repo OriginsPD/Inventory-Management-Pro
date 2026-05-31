@@ -340,11 +340,16 @@ export const DashboardScreen = () => {
   const donutStroke = 14;
   const donutCircumference = 2 * Math.PI * donutRadius;
   const donutPalette = [
-    'var(--primary)',
-    'var(--foreground)',
-    '#10b981',
-    '#3b82f6',
-    '#f59e0b',
+    'var(--primary)',      // Active Orange
+    '#6366f1',             // Indigo
+    '#0d9488',             // Teal
+    '#ec4899',             // Pink
+    '#f59e0b',             // Amber
+    '#8b5cf6',             // Purple
+    '#10b981',             // Emerald
+    '#3b82f6',             // Blue
+    '#84cc16',             // Lime
+    '#a1a1aa',             // Zinc / Slate Gray
   ];
 
   const [now] = useState(() => Date.now());
