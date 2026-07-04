@@ -7,7 +7,7 @@ export const DeviceSchema = z.object({
   modelId: z.string().uuid('Invalid model reference'),
   status: DeviceStatus.default('IN_STOCK'),
   customerId: z.string().uuid().nullish(),
-  metadata: z.record(z.any()).default({}).optional(),
+  metadata: z.record(z.string(), z.unknown()).default({}).optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
 });

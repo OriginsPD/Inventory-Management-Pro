@@ -1,4 +1,4 @@
-import { DeviceModel } from './deviceModel.js';
+import type { DeviceModel } from './deviceModel.js';
 import { AssetType } from './enums.js';
 
 /**

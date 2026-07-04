@@ -11,7 +11,7 @@ export const CustomerSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   taxId: z.string().optional(), // For companies
-  metadata: z.record(z.any()).default({}).optional(),
+  metadata: z.record(z.string(), z.unknown()).default({}).optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
 });

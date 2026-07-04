@@ -4,30 +4,34 @@ This document describes the application architecture in the repository's current
 
 ## System Context
 
-IMS Pro is a Bun workspace application for inventory, device lifecycle, customer dispatch, quality control, hardware swaps, and audit history. The system is split into three workspace packages:
+IMS Pro is a Bun workspace monorepo (Better-T-Stack layout) for inventory, device lifecycle, customer dispatch, quality control, hardware swaps, and audit history.
 
-- `frontend`: React and Vite single page application.
-- `backend`: Bun and Elysia HTTP API.
-- `packages/shared`: shared domain enums, Zod schemas, validation helpers, and business logic used by the app packages.
+- `apps/web`: TanStack Start SSR frontend (:3001)
+- `apps/server`: Bun + Elysia API (:3002)
+- `packages/db`: Drizzle schema, migrations, Docker Postgres helpers
+- `packages/auth`: Better Auth configuration
+- `packages/env`: Typed server/web environment
+- `packages/ui`: Shared shadcn/ui primitives
+- `packages/shared`: Domain enums, Zod schemas, business logic
 
-The runtime deployment shape is a browser-based frontend calling a JSON API. The API persists to PostgreSQL through Drizzle ORM when `DATABASE_URL` is configured. In non-production development without a database, selected flows can fall back to in-memory mock data when explicitly enabled.
+The browser calls the JSON API with cookie auth (`credentials: include`). PostgreSQL via Drizzle when `DATABASE_URL` is configured. Dev in-memory fallback when DB unavailable and `IMS_ENABLE_DEV_AUTH=true`.
 
 ## High-Level Runtime Flow
 
 ```text
-Browser
+Browser (TanStack Start SSR)
   |
-  | React routes, auth context, apiClient with credentials: include
+  | File routes, auth client, apiClient credentials: include
   v
-Frontend Vite SPA (:5173)
+apps/web (:3001)
   |
-  | JSON HTTP requests to VITE_API_URL
+  | JSON HTTP to VITE_SERVER_URL
   v
-Backend Elysia API (:3002)
+apps/server Elysia API (:3002)
   |
-  | auth middleware, route modules, Drizzle queries
+  | evlog, auth middleware, route modules, Drizzle
   v
-PostgreSQL / Neon
+PostgreSQL (Docker :5433 or Neon)
 ```
 
 In Docker Compose, the same frontend/backend split is used, with a local PostgreSQL service on the internal `ims-net` network. In local non-Docker development, the backend can also connect to Neon or a local Postgres instance depending on `DATABASE_URL`.
@@ -35,27 +39,16 @@ In Docker Compose, the same frontend/backend split is used, with a local Postgre
 ## Repository Layout
 
 ```text
-backend/
-  drizzle/                 Drizzle SQL migration files and metadata
-  src/
-    db/                    Drizzle client and schema
-    lib/                   DB init, middleware, mock data, utility logic
-    routes/                Elysia route modules by domain
-    auth-service.ts        Better Auth configuration and dev mock auth state
-    index.ts               API bootstrap and route composition
-    update-db.ts           Idempotent schema repair/update helper
-
-frontend/
-  src/
-    components/
-      layout/              App shell and navigation
-      routing/             Role-aware route guard components
-      screens/             Route-level screens
-      ui/                  Shared UI and auth context
-    lib/                   API client, audio, small utilities
-
-packages/shared/
-  src/domain/              Shared enums, Zod contracts, and domain logic
+apps/
+  server/src/              Elysia API, routes, middleware, db-init
+  web/src/                 TanStack Start routes, screens, components
+packages/
+  db/src/schema/           Drizzle schema (ims.ts) + migrations
+  auth/                    Better Auth factory
+  env/                     Typed env (server + web)
+  ui/                      shadcn primitives
+  shared/src/domain/       Shared Zod contracts and logic
+docker-compose.yml         db + server + web dev stack
 ```
 
 ## Backend Architecture

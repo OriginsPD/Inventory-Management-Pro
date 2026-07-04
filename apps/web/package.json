@@ -1,0 +1,53 @@
+{
+  "name": "web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "serve": "vite preview",
+    "dev": "bunx vite dev --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "@ims_pro/env": "workspace:*",
+    "@ims_pro/shared": "workspace:*",
+    "@ims_pro/ui": "workspace:*",
+    "@tailwindcss/vite": "^4.3.2",
+    "@tanstack/react-form": "^1.33.0",
+    "@tanstack/react-query": "^5.101.2",
+    "@tanstack/react-router": "^1.170.17",
+    "@tanstack/react-start": "^1.168.27",
+    "better-auth": "catalog:",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.3.0",
+    "dotenv": "catalog:",
+    "evlog": "catalog:",
+    "exceljs": "^4.4.0",
+    "lucide-react": "catalog:",
+    "next-themes": "catalog:",
+    "nitro": "^3.0.260610-beta",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-hook-form": "^7.76.0",
+    "react-toastify": "^11.0.3",
+    "sonner": "catalog:",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "catalog:",
+    "tailwindcss-animate": "^1.0.7",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@ims_pro/config": "workspace:*",
+    "@tanstack/react-router-devtools": "^1.167.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "^6.0.3",
+    "jsdom": "^29.1.1",
+    "typescript": "catalog:",
+    "vite": "^8.1.3",
+    "web-vitals": "^5.3.0"
+  }
+}

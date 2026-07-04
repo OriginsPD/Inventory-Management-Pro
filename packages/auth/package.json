@@ -1,0 +1,24 @@
+{
+  "name": "@ims_pro/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@ims_pro/db": "workspace:*",
+    "@ims_pro/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@ims_pro/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
