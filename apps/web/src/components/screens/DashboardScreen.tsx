@@ -62,17 +62,25 @@ export const DashboardScreen = () => {
 
   const fetchStats = async () => {
     try {
+      const summary = await apiClient.get<{
+        totalDevices: number;
+        activeDispatched: number;
+        inStock: number;
+        inTesting: number;
+        lowStockAlerts: number;
+        qcPassRate: number;
+      }>('/api/dashboard/summary');
+
+      setStats({
+        totalDevices: summary.totalDevices,
+        activeDispatched: summary.activeDispatched,
+        inStock: summary.inStock,
+        inTesting: summary.inTesting,
+        lowStockAlerts: summary.lowStockAlerts,
+      });
+
       const data = await apiClient.get<Device[]>('/api/devices');
       setDevices(data);
-      
-      const statsObj = {
-        totalDevices: data.length,
-        activeDispatched: data.filter((d: Device) => d.status === 'DISPATCHED').length,
-        inStock: data.filter((d: Device) => d.status === 'IN_STOCK').length,
-        inTesting: data.filter((d: Device) => d.status === 'TESTING').length,
-        lowStockAlerts: 3,
-      };
-      setStats(statsObj);
     } catch (e) {
       console.error(e);
       throw e;

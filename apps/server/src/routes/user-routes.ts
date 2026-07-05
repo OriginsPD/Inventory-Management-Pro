@@ -7,6 +7,7 @@ import { getBetterAuth, mockUsers, type InMemoryUser } from "../lib/mock-auth.js
 import { useDb } from "../lib/db-init.js";
 import { authMiddleware } from "../lib/middleware.js";
 import { mockDeviceAuditLogs } from "../lib/mock-data.js";
+import { getMockUserPreferences, setMockUserPreferences } from "../lib/mock-preferences.js";
 
 const userRoleSchema = t.Union([
   t.Literal("SUPER_USER"),
@@ -39,6 +40,60 @@ export const userRoutes = new Elysia({ prefix: '/api/users' })
     return mockDeviceAuditLogs
       .filter(log => log.userId === user.id)
       .slice(0, 50);
+  })
+
+  .get("/me/preferences", async ({ user, set }: any) => {
+    if (!user) {
+      set.status = 401;
+      return { error: "Unauthorized" };
+    }
+
+    if (useDb) {
+      try {
+        const row = await db
+          .select()
+          .from(schema.userPreferences)
+          .where(eq(schema.userPreferences.userId, user.id))
+          .limit(1);
+        return row[0]?.preferences ?? {};
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    return getMockUserPreferences(user.id);
+  })
+
+  .put("/me/preferences", async ({ user, body, set }: any) => {
+    if (!user) {
+      set.status = 401;
+      return { error: "Unauthorized" };
+    }
+
+    const preferences = body.preferences ?? body;
+
+    if (useDb) {
+      try {
+        await db
+          .insert(schema.userPreferences)
+          .values({ userId: user.id, preferences, updatedAt: new Date() })
+          .onConflictDoUpdate({
+            target: schema.userPreferences.userId,
+            set: { preferences, updatedAt: new Date() },
+          });
+        return { success: true, preferences };
+      } catch (e: any) {
+        set.status = 400;
+        return { error: e.message || "Failed to save preferences" };
+      }
+    }
+
+    setMockUserPreferences(user.id, preferences);
+    return { success: true, preferences };
+  }, {
+    body: t.Object({
+      preferences: t.Optional(t.Record(t.String(), t.Any())),
+    }),
   })
 
   .put("/me/profile", async ({ user, body, set }: any) => {

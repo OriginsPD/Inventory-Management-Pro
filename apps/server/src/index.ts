@@ -10,7 +10,9 @@ import { initDbConnection, useDb } from "./lib/db-init";
 import { authMiddleware } from "./lib/middleware";
 import { analyticsRoutes } from "./routes/analytics-routes";
 import { authRoutes } from "./routes/auth-routes";
+import { configRoutes } from "./routes/config-routes";
 import { customerRoutes } from "./routes/customer-routes";
+import { dashboardRoutes, qcRoutes } from "./routes/dashboard-routes";
 import { deviceRoutes } from "./routes/device-routes";
 import { linkRoutes } from "./routes/link-routes";
 import { modelRoutes } from "./routes/model-routes";
@@ -83,6 +85,9 @@ const app = (
   .use(linkRoutes)
   .use(customerRoutes)
   .use(analyticsRoutes)
+  .use(dashboardRoutes)
+  .use(qcRoutes)
+  .use(configRoutes)
   .use(systemRoutes)
   .listen({
     port: env.PORT,

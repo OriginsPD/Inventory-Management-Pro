@@ -1,6 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { useAuth } from '@/components/ui/auth-context';
 import { useFeedback } from '@/components/ui/feedback-provider';
+import { PortalPageShell } from '@/components/layout/PortalPageShell';
+import { PortalButton } from '@/components/ui/portal';
+import { useGlobalScanHandler } from '@/components/layout/GlobalScannerProvider';
 import { useInventory } from './inventory/useInventory';
 import { InventoryToolbar } from './inventory/InventoryToolbar';
 import { InventoryTable } from './inventory/InventoryTable';
@@ -10,14 +14,16 @@ import { BulkOperationsModal } from './inventory/BulkOperationsModal';
 import { DeviceDetailModal } from './inventory/DeviceDetailModal';
 import { ManageLinksModal } from './inventory/ManageLinksModal';
 import { Device } from '@/lib/types/domain';
-import { useHotScanner } from '@/lib/hooks/useHotScanner';
 import { playSuccessBeep, playChirp, playErrorBuzz } from '@/lib/audio';
 import { InlineErrorState } from '@/components/ui/inline-error-state';
-import { ScreenLayout, ScreenHeader, StaggerItem, MotionPresenceBanner } from '@/components/ui/motion';
+import { MotionPresenceBanner } from '@/components/ui/motion';
 import { readLocalStorage, removeLocalStorage, writeLocalStorage } from '@/lib/client-storage';
+import { useCanWrite } from '@/lib/hooks/useCanWrite';
 
 export const DeviceInventory = () => {
   const { user } = useAuth();
+  const canWrite = useCanWrite();
+  const navigate = useNavigate();
   const { toast, confirm } = useFeedback();
   
   // State for filters
@@ -143,14 +149,17 @@ export const DeviceInventory = () => {
     playChirp();
   };
 
-  // Hot Scanner listener
-  useHotScanner((barcode) => {
-    if (activeModal === 'none') {
-      setPendingScannerBarcode(barcode);
-      playChirp();
-      setActiveModal('bulk');
+  useGlobalScanHandler(useCallback((barcode) => {
+    if (activeModal !== 'none') return false;
+    const match = devices.find((d) => d.identifier.toLowerCase() === barcode.toLowerCase());
+    if (match?.id) {
+      navigate({ to: '/devices/$deviceId', params: { deviceId: match.id } });
+      return true;
     }
-  });
+    setPendingScannerBarcode(barcode);
+    setActiveModal('bulk');
+    return true;
+  }, [activeModal, devices, navigate]), canWrite);
 
   // Sorting & Pagination
   const sortedDevices = useMemo(() => {
@@ -205,7 +214,24 @@ export const DeviceInventory = () => {
   };
 
   return (
-    <ScreenLayout>
+    <PortalPageShell
+      eyebrow="Field Ops"
+      title="Device"
+      accentWord="Inventory"
+      subtitle="Manage tracking hardware, SIMs, and peripherals"
+      actions={canWrite ? (
+        <>
+          <PortalButton variant="outline" onClick={() => setActiveModal('bulk')}>
+            <span className="material-symbols-outlined text-sm mr-1">upload</span>
+            Bulk Ops
+          </PortalButton>
+          <PortalButton onClick={() => { setEditingDevice(null); setActiveModal('single'); }}>
+            <span className="material-symbols-outlined text-sm mr-1">add</span>
+            Single Entry
+          </PortalButton>
+        </>
+      ) : undefined}
+    >
       <MotionPresenceBanner show={!isOnline}>
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg p-3 px-4 flex items-center gap-2 text-xs font-medium">
           <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
@@ -220,22 +246,6 @@ export const DeviceInventory = () => {
         </div>
       </MotionPresenceBanner>
       
-      <ScreenHeader
-        title="Device Inventory"
-        description="Manage tracking hardware, SIMs, and peripherals."
-        actions={user?.role !== 'REVIEWER' ? (
-          <>
-            <button onClick={() => setActiveModal('bulk')} className="inline-flex items-center justify-center rounded-lg text-xs font-bold border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground h-9 px-4 gap-1.5 cursor-pointer">
-              <span className="material-symbols-outlined text-sm">upload</span> Bulk Operations
-            </button>
-            <button onClick={() => { setEditingDevice(null); setActiveModal('single'); }} className="inline-flex items-center justify-center rounded-lg text-xs font-bold bg-primary text-primary-foreground shadow hover:brightness-110 h-9 px-4 gap-1.5 cursor-pointer">
-              <span className="material-symbols-outlined text-sm">add</span> Single Entry
-            </button>
-          </>
-        ) : undefined}
-      />
-
-      <StaggerItem>
       <InventoryToolbar 
         search={search} setSearch={setSearch}
         statusFilter={statusFilter} setStatusFilter={setStatusFilter}
@@ -243,11 +253,9 @@ export const DeviceInventory = () => {
         models={models}
         visibleColumns={visibleColumns} setVisibleColumns={setVisibleColumns}
       />
-      </StaggerItem>
 
       {hasInventoryError && (
-        <StaggerItem>
-        <div className="glass-panel rounded-xl overflow-hidden">
+        <div className="glass-panel rounded-xl overflow-hidden mb-4">
           <InlineErrorState
             title="Inventory data failed to load"
             description="Some inventory data could not be loaded. Retry the request before editing devices or managing links."
@@ -255,11 +263,9 @@ export const DeviceInventory = () => {
             onRetry={retryInventoryQueries}
           />
         </div>
-        </StaggerItem>
       )}
 
-      <StaggerItem>
-      <div className="space-y-4">
+      <div className="space-y-4 mt-4">
         <SelectionBanner 
           devices={devices} paginatedDevices={paginatedDevices}
           selectedDeviceIds={selectedDeviceIds} setSelectedDeviceIds={setSelectedDeviceIds}
@@ -285,7 +291,6 @@ export const DeviceInventory = () => {
           totalPages={totalPages}
         />
       </div>
-      </StaggerItem>
 
       <SingleEntryModal 
         isOpen={activeModal === 'single'} 
@@ -317,7 +322,7 @@ export const DeviceInventory = () => {
         relationships={relationships}
         onSuccess={() => { refetchRelationships(); refetchDevices(); }}
       />
-    </ScreenLayout>
+    </PortalPageShell>
   );
 };
 

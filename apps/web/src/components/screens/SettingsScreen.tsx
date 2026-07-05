@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useFeedback } from '@/components/ui/feedback-provider';
 import { useSearchParams } from "@/lib/hooks/useSearchParams";
-import { readLocalStorage, writeLocalStorage } from '@/lib/client-storage';
 import { PortalSectionShell } from '@/components/layout/PortalSectionShell';
 import { SettingsVisualPanel } from '@/components/screens/settings/SettingsVisualPanel';
 import { SettingsDensityPanel } from '@/components/screens/settings/SettingsDensityPanel';
 import { SettingsSoundPanel } from '@/components/screens/settings/SettingsSoundPanel';
+import { useUserPreferences } from '@/lib/hooks/useUserPreferences';
 
 type SettingsTab = 'visual' | 'density' | 'sound';
 
@@ -17,6 +17,7 @@ const SETTINGS_TABS = [
 
 export const SettingsScreen = () => {
   const { toast } = useFeedback();
+  const { preferences, savePreferences } = useUserPreferences();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const initialTab = searchParams.get('tab') || 'visual';
@@ -38,43 +39,23 @@ export const SettingsScreen = () => {
     setSearchParams(searchParams);
   };
 
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [accentColor, setAccentColor] = useState('brand');
-  const [density, setDensity] = useState('default');
+  const accentColor = preferences.accent ?? 'brand';
+  const density = preferences.density ?? 'default';
+  const soundEnabled = preferences.soundEnabled ?? true;
 
-  useEffect(() => {
-    const storedSound = readLocalStorage('ims_sound_enabled');
-    setSoundEnabled(storedSound !== null ? storedSound === 'true' : true);
-    setAccentColor(readLocalStorage('ims_theme_accent') || 'brand');
-    setDensity(readLocalStorage('ims_layout_density') || 'default');
-  }, []);
-
-  const handleSelectAccent = (color: string) => {
-    setAccentColor(color);
-    writeLocalStorage('ims_theme_accent', color);
-    if (color !== 'brand') {
-      document.documentElement.setAttribute('data-accent', color);
-    } else {
-      document.documentElement.removeAttribute('data-accent');
-    }
+  const handleSelectAccent = async (color: string) => {
+    await savePreferences({ accent: color });
     toast.success(`Terminal highlight updated to: ${color.toUpperCase()}`);
   };
 
-  const handleSelectDensity = (mode: string) => {
-    setDensity(mode);
-    writeLocalStorage('ims_layout_density', mode);
-    if (mode === 'compact') {
-      document.documentElement.classList.add('density-compact');
-    } else {
-      document.documentElement.classList.remove('density-compact');
-    }
+  const handleSelectDensity = async (mode: string) => {
+    await savePreferences({ density: mode });
     toast.success(`Density spacing set to: ${mode.toUpperCase()}`);
   };
 
-  const handleToggleSound = () => {
+  const handleToggleSound = async () => {
     const nextVal = !soundEnabled;
-    setSoundEnabled(nextVal);
-    writeLocalStorage('ims_sound_enabled', String(nextVal));
+    await savePreferences({ soundEnabled: nextVal });
     toast.success(`Audio notifications ${nextVal ? 'enabled' : 'disabled'}`);
   };
 

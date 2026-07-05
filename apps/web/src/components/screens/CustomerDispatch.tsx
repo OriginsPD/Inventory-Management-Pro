@@ -11,7 +11,8 @@ import { Checkbox } from '@ims_pro/ui/components/checkbox';
 import { ScrollArea } from '@ims_pro/ui/components/scroll-area';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@ims_pro/ui/components/dialog';
-import { ScreenLayout, ScreenHeader, StaggerItem, MotionPresenceBanner } from '@/components/ui/motion';
+import { PortalPageShell } from '@/components/layout/PortalPageShell';
+import { StaggerItem, MotionPresenceBanner } from '@/components/ui/motion';
 import {
   Select,
   SelectContent,
@@ -368,35 +369,19 @@ export const CustomerDispatch = () => {
   };
 
   return (
-    <ScreenLayout className="px-1 md:px-2">
-        <ScreenHeader
-          title="Customer Dispatch"
-          description="Select, stage, and dispatch hardware batches to client fleets, and trace registry distribution history."
-          actions={
-          <div className="flex bg-card/60 p-1 rounded-lg border border-primary/10 shrink-0 h-fit">
-            <button
-              onClick={() => setActiveTab('console')}
-              className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all cursor-pointer ${
-                activeTab === 'console'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Dispatch Console
-            </button>
-            <button
-              onClick={() => setActiveTab('registry')}
-              className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all cursor-pointer ${
-                activeTab === 'registry'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Dispatch Registry
-            </button>
-          </div>
-          }
-        />
+    <PortalPageShell
+      eyebrow="Field Ops"
+      title="Customer"
+      accentWord="Dispatch"
+      subtitle="Stage and dispatch hardware batches to client fleets"
+      tabs={[
+        { id: 'console', label: 'Dispatch Console', icon: 'local_shipping' },
+        { id: 'registry', label: 'Dispatch Registry', icon: 'groups' },
+      ]}
+      activeTab={activeTab}
+      onTabChange={(tab) => setActiveTab(tab as 'console' | 'registry')}
+      className="px-1 md:px-2"
+    >
 
         {activeTab === 'console' && (
           <StaggerItem>
@@ -1005,7 +990,7 @@ export const CustomerDispatch = () => {
             </DialogContent>
           )}
         </Dialog>
-      </ScreenLayout>
+      </PortalPageShell>
   );
 };
 

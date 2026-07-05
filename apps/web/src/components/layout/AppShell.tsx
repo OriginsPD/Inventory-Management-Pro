@@ -7,6 +7,11 @@ import { useFeedback } from '@/components/ui/feedback-provider';
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { StockAlert } from '@/lib/types/domain';
 import { IMSBrandLogo } from '@/components/ui/IMSBrandLogo';
+import { GlobalScannerProvider } from '@/components/layout/GlobalScannerProvider';
+import { GlobalScannerBar } from '@/components/layout/GlobalScannerBar';
+import { ShortcutHelpOverlay } from '@/components/layout/ShortcutHelpOverlay';
+import { OnboardingTour } from '@/components/layout/OnboardingTour';
+import { StockAlertPill } from '@/components/portal';
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -20,6 +25,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/profile': 'Operator Profile',
   '/settings': 'System Settings',
   '/superuser': 'Super User Hub',
+  '/alerts': 'Stock Alerts',
 };
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => {
@@ -31,7 +37,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
   const shouldReduceMotion = useReducedMotion();
 
   const currentPath = useRouterState({ select: (s) => s.location.pathname });
-  const pageTitle = PAGE_TITLES[currentPath] ?? 'Portal';
+  const pageTitle = PAGE_TITLES[currentPath] ?? (currentPath.startsWith('/devices/') ? 'Device Detail' : 'Portal');
 
   useEffect(() => {
     apiClient.get<StockAlert[]>('/api/stock-alerts')
@@ -76,6 +82,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
       label: 'Intelligence',
       items: [
         { name: 'Reports', path: '/reports', icon: 'analytics' },
+        { name: 'Stock Alerts', path: '/alerts', icon: 'warning' },
       ],
     },
     {
@@ -91,6 +98,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
   ];
 
   return (
+    <GlobalScannerProvider>
     <div className="h-screen w-screen overflow-hidden flex bg-background text-foreground font-sans antialiased selection:bg-primary/30 relative">
       <AnimatePresence>
         {sidebarOpen && (
@@ -184,22 +192,19 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
               const warnCount = withTarget.filter(a => a.level === 'WARNING').length;
               if (withTarget.length === 0) return null;
               if (lowCount > 0) return (
-                <div className="hidden sm:flex items-center gap-1.5 text-[9px] text-red-500 bg-red-500/5 px-2 py-1 border border-red-500/20 font-bold font-mono uppercase tracking-tighter">
-                  <span className="material-symbols-outlined text-[14px]">warning</span>
-                  <span>{lowCount} Critical Alerts</span>
-                </div>
+                <Link to="/alerts" className="hidden sm:block">
+                  <StockAlertPill level="LOW" label="Critical Alerts" count={lowCount} />
+                </Link>
               );
               if (warnCount > 0) return (
-                <div className="hidden sm:flex items-center gap-1.5 text-[9px] text-amber-500 bg-amber-500/5 px-2 py-1 border border-amber-500/20 font-bold font-mono uppercase tracking-tighter">
-                  <span className="material-symbols-outlined text-[14px]">warning</span>
-                  <span>{warnCount} Stock Warnings</span>
-                </div>
+                <Link to="/alerts" className="hidden sm:block">
+                  <StockAlertPill level="WARNING" label="Stock Warnings" count={warnCount} />
+                </Link>
               );
               return (
-                <div className="hidden sm:flex items-center gap-1.5 text-[9px] text-emerald-500 bg-emerald-500/5 px-2 py-1 border border-emerald-500/20 font-bold font-mono uppercase tracking-tighter">
-                  <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                  <span>System Nominal</span>
-                </div>
+                <Link to="/alerts" className="hidden sm:block">
+                  <StockAlertPill level="HEALTHY" label="System Nominal" />
+                </Link>
               );
             })()}
 
@@ -225,14 +230,40 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
 
         <main
           data-portal-main
-          className="flex-1 overflow-y-auto overflow-x-hidden p-6 lg:p-8 custom-scrollbar"
+          className="flex-1 overflow-y-auto overflow-x-hidden p-6 lg:p-8 pb-24 lg:pb-8 scrollbar-custom"
         >
           <div className="max-w-[1400px] w-full mx-auto">
             {children}
           </div>
         </main>
+
+        <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur-md">
+          <div className="grid grid-cols-4 gap-1 p-2">
+            {[
+              { to: '/dashboard', icon: 'dashboard', label: 'Home' },
+              { to: '/inventory', icon: 'inventory_2', label: 'Stock' },
+              { to: '/dispatch', icon: 'local_shipping', label: 'Dispatch' },
+              { to: '/qc', icon: 'biotech', label: 'QC' },
+            ].map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl min-h-[52px] text-[8px] font-bold uppercase tracking-wider ${
+                  currentPath === item.to ? 'text-primary bg-primary/10' : 'text-muted-foreground'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </nav>
       </div>
+      <GlobalScannerBar />
+      <ShortcutHelpOverlay />
+      <OnboardingTour />
       <CommandMenu />
     </div>
+    </GlobalScannerProvider>
   );
 };

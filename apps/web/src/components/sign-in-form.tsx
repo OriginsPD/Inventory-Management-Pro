@@ -3,16 +3,17 @@ import { Input } from "@ims_pro/ui/components/input";
 import { Label } from "@ims_pro/ui/components/label";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
-import { toast } from "sonner";
 import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
 import { FormSkeleton } from "@/components/ui/loading";
+import { useFeedback } from "@/components/ui/feedback-provider";
 
 export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) {
   const navigate = useNavigate({
     from: "/",
   });
+  const { toast } = useFeedback();
   const { isPending } = authClient.useSession();
 
   const form = useForm({

@@ -219,3 +219,17 @@ export const verifications = pgTable("verifications", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export const userPreferences = pgTable("user_preferences", {
+  userId: text("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .primaryKey(),
+  preferences: jsonb("preferences").default("{}").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const systemConfig = pgTable("system_config", {
+  key: varchar("key", { length: 100 }).primaryKey(),
+  value: jsonb("value").default("{}").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});

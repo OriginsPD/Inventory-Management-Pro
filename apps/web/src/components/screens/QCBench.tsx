@@ -13,7 +13,8 @@ import type { QCCheckItem } from '@ims_pro/shared';
 import { playSuccessBeep, playErrorBuzz, playChirp } from '@/lib/audio';
 import { useDevices } from '@/lib/hooks/useDomain';
 import { Device } from '@/lib/types/domain';
-import { ScreenLayout, ScreenHeader, StaggerItem } from '@/components/ui/motion';
+import { PortalPageShell } from '@/components/layout/PortalPageShell';
+import { PortalInput } from '@/components/ui/portal';
 
 export const QCBench = () => {
   const { toast } = useFeedback();
@@ -459,24 +460,24 @@ export const QCBench = () => {
   }
 
   return (
-    <ScreenLayout className="max-w-6xl mx-auto">
-        <ScreenHeader
-          title="QC Bench Testing"
-          description="Select a hardware unit from inventory to begin the manual diagnostic checklist."
-          actions={
-          <div className="relative w-full md:w-80">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">search</span>
-            <input
-              placeholder="Search serial or model..."
-              className="w-full bg-primary/5 border border-primary/10 rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-1 focus:ring-primary focus:outline-none text-foreground placeholder:text-muted-foreground/35"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          }
-        />
-
-        <StaggerItem>
+    <PortalPageShell
+      eyebrow="Field Ops"
+      title="QC Bench"
+      accentWord="Testing"
+      subtitle="Select hardware from inventory to run diagnostic checklist"
+      actions={
+        <div className="relative w-full md:w-80">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none z-10">search</span>
+          <PortalInput
+            placeholder="Search serial or model..."
+            className="pl-10"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      }
+      className="max-w-6xl mx-auto"
+    >
         <div className="glass-panel rounded-2xl overflow-hidden">
           <Table>
             <TableHeader className="bg-card/40 border-b border-primary/10">
@@ -594,8 +595,7 @@ export const QCBench = () => {
             </div>
           )}
         </div>
-        </StaggerItem>
-      </ScreenLayout>
+    </PortalPageShell>
   );
 };
 

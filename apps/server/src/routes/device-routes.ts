@@ -860,6 +860,36 @@ export const deviceRoutes = new Elysia({ prefix: '/api/devices' })
     return { success: true };
   })
 
+  .get("/:id", async ({ params, set }) => {
+    if (useDb) {
+      try {
+        const rows = await db.select().from(schema.devices).where(eq(schema.devices.id, params.id)).limit(1);
+        if (!rows[0]) {
+          set.status = 404;
+          return { error: 'Not Found' };
+        }
+        const d = rows[0];
+        const modelRows = await db.select().from(schema.deviceModels).where(eq(schema.deviceModels.id, d.modelId)).limit(1);
+        const model = modelRows[0];
+        return {
+          ...d,
+          modelName: model?.name ?? 'Unknown',
+          type: model?.assetType ?? 'TRACKER',
+        };
+      } catch (e: any) {
+        set.status = 500;
+        return { error: e.message || 'Failed to fetch device' };
+      }
+    }
+
+    const dev = mockDevices.find((d) => d.id === params.id);
+    if (!dev) {
+      set.status = 404;
+      return { error: 'Not Found' };
+    }
+    return dev;
+  })
+
   .get("/:id/audit-logs", async ({ params }) => {
     if (useDb) {
       try {

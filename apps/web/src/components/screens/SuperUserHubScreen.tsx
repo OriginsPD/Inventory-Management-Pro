@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { apiClient } from '@/lib/api-client';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@ims_pro/ui/components/dialog';
+import { PortalPageShell } from '@/components/layout/PortalPageShell';
 import { ScreenLayout, StaggerItem, FadeUp, MotionDialogBody } from '@/components/ui/motion';
 import { ScreenLoadingShell, TableSkeleton } from '@/components/ui/loading';
 import {
@@ -316,49 +317,27 @@ export const SuperUserHubScreen = () => {
     return <ScreenLoadingShell variant="tabs" />;
   }
 
+  const superUserTabs = [
+    { id: 'users', label: 'User Registry', icon: 'manage_accounts' },
+    { id: 'links', label: 'Link Templates', icon: 'hub' },
+    { id: 'system', label: 'System Diagnostics', icon: 'terminal' },
+    { id: 'audit', label: 'Security Audit Logs', icon: 'security' },
+  ] as const;
+
   return (
     <>
-      <ScreenLayout className="max-w-6xl mx-auto">
-        <FadeUp>
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-foreground uppercase italic flex items-center gap-2">
-            Super User <span className="text-primary">Hub</span>
-          </h1>
-          <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mt-1">
-            System administration workbench, templates control, operations audit registry
-          </p>
-        </div>
-        </FadeUp>
-
-        <StaggerItem>
-        <div className="flex border-b border-primary/10 select-none">
-          {[
-            { id: 'users', name: 'User Registry', icon: 'manage_accounts' },
-            { id: 'links', name: 'Link Templates', icon: 'hub' },
-            { id: 'system', name: 'System Diagnostics', icon: 'terminal' },
-            { id: 'audit', name: 'Security Audit Logs', icon: 'security' },
-          ].map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id as any)}
-                className={`px-5 py-3 text-[10px] font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all flex items-center gap-2 ${
-                  isActive
-                    ? 'border-primary text-primary bg-primary/5'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30'
-                }`}
-              >
-                <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
-                <span>{tab.name}</span>
-              </button>
-            );
-          })}
-        </div>
-        </StaggerItem>
-
-        <StaggerItem>
-        <div className="w-full mt-2">
+      <PortalPageShell
+        eyebrow="Console"
+        title="Super User"
+        accentWord="Hub"
+        subtitle="System administration, templates control, operations audit registry"
+        variant="console"
+        tabs={[...superUserTabs]}
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab as typeof activeTab)}
+        className="max-w-6xl mx-auto"
+      >
+        <div className="w-full">
           {activeTab === 'users' && (
             <div className="space-y-6">
               <div className="glass-panel p-6 space-y-5">
@@ -724,8 +703,7 @@ export const SuperUserHubScreen = () => {
             </div>
           )}
         </div>
-        </StaggerItem>
-      </ScreenLayout>
+      </PortalPageShell>
 
       {/* User Creation / Editing Modal */}
       <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>

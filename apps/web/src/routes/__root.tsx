@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@ims_pro/ui/components/sonner";
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { createMiddleware } from "@tanstack/react-start";
@@ -99,7 +98,6 @@ function RootDocument() {
         <AppProviders>
           <Outlet />
         </AppProviders>
-        <Toaster richColors />
         <TanStackRouterDevtools position="bottom-left" />
         <Scripts />
       </body>

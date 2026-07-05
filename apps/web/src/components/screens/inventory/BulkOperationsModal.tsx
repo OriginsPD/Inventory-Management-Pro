@@ -762,7 +762,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                         {bulkIngestList.length > 0 && <button onClick={() => setBulkIngestList([])} className="text-[10px] text-red-400 hover:underline font-semibold cursor-pointer">Clear List</button>}
                       </div>
                       <div
-                        className="h-[360px] max-h-[42vh] min-h-[220px] overflow-y-scroll overflow-x-auto overscroll-contain custom-scrollbar"
+                        className="h-[360px] max-h-[42vh] min-h-[220px] overflow-y-scroll overflow-x-auto overscroll-contain scrollbar-custom"
                         tabIndex={0}
                         onWheel={(event) => event.stopPropagation()}
                         onTouchMove={(event) => event.stopPropagation()}
