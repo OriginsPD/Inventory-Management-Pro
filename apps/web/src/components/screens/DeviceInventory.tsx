@@ -14,6 +14,7 @@ import { useHotScanner } from '@/lib/hooks/useHotScanner';
 import { playSuccessBeep, playChirp, playErrorBuzz } from '@/lib/audio';
 import { InlineErrorState } from '@/components/ui/inline-error-state';
 import { ScreenLayout, ScreenHeader, StaggerItem, MotionPresenceBanner } from '@/components/ui/motion';
+import { readLocalStorage, removeLocalStorage, writeLocalStorage } from '@/lib/client-storage';
 
 export const DeviceInventory = () => {
   const { user } = useAuth();
@@ -49,12 +50,21 @@ export const DeviceInventory = () => {
   const [linkModalDevice, setLinkModalDevice] = useState<Device | null>(null);
   const [pendingScannerBarcode, setPendingScannerBarcode] = useState<string | null>(null);
 
-  // Offline buffer state
-  const [pendingSyncItems, setPendingSyncItems] = useState<Partial<Device>[]>(() => {
-    const stored = localStorage.getItem('ims_pending_sync');
-    return stored ? JSON.parse(stored) : [];
-  });
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  // Offline buffer state (hydrate client-side — SSR has no localStorage)
+  const [pendingSyncItems, setPendingSyncItems] = useState<Partial<Device>[]>([]);
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    const stored = readLocalStorage('ims_pending_sync');
+    if (stored) {
+      try {
+        setPendingSyncItems(JSON.parse(stored));
+      } catch {
+        removeLocalStorage('ims_pending_sync');
+      }
+    }
+    setIsOnline(navigator.onLine);
+  }, []);
 
   // Hook for data
   const { 
@@ -87,7 +97,7 @@ export const DeviceInventory = () => {
     if (items.length === 0) return;
     try {
       await syncDevices(items);
-      localStorage.removeItem('ims_pending_sync');
+      removeLocalStorage('ims_pending_sync');
       setPendingSyncItems([]);
       playSuccessBeep();
       toast.success('Offline queue synced successfully.');
@@ -106,7 +116,7 @@ export const DeviceInventory = () => {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      const latest = localStorage.getItem('ims_pending_sync');
+      const latest = readLocalStorage('ims_pending_sync');
       if (latest) {
         const items = JSON.parse(latest);
         if (items.length > 0) syncPendingItems(items);
@@ -123,12 +133,12 @@ export const DeviceInventory = () => {
   }, [syncPendingItems]);
 
   const bufferPendingSync = (payload: Partial<Device>[]) => {
-    const stored = localStorage.getItem('ims_pending_sync');
+    const stored = readLocalStorage('ims_pending_sync');
     const existing = stored ? JSON.parse(stored) : [];
     const merged = [...existing, ...payload].filter((item, idx, self) =>
       self.findIndex(t => t.identifier === item.identifier) === idx
     );
-    localStorage.setItem('ims_pending_sync', JSON.stringify(merged));
+    writeLocalStorage('ims_pending_sync', JSON.stringify(merged));
     setPendingSyncItems(merged);
     playChirp();
   };

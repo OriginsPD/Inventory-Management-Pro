@@ -32,6 +32,9 @@ import {
   DropdownMenuTrigger,
 } from "@ims_pro/ui/components/dropdown-menu";
 import { Input } from '@ims_pro/ui/components/input';
+import { readLocalStorage, writeLocalStorage } from '@/lib/client-storage';
+
+const DEFAULT_POLYMORPHIC_OPTIONS = ['SIM', 'SD_CARD', 'PANIC_BUTTON', 'KEYFOB'];
 
 const userFormSchema = z.object({
   name: z.string().min(1, 'Name is required').max(50),
@@ -209,26 +212,24 @@ export const SuperUserHubScreen = () => {
   }, [filteredUsers, userStartIndex, userPageSize]);
 
   // Link Templates CRUD States
-  const initDefaultOptions = () => {
-    const defaultOptions = ['SIM', 'SD_CARD', 'PANIC_BUTTON', 'KEYFOB'];
-    localStorage.setItem('ims_polymorphic_link_options', JSON.stringify(defaultOptions));
-    return defaultOptions;
-  };
-
-  const [polymorphicOptions, setPolymorphicOptions] = useState<string[]>(() => {
-    const stored = localStorage.getItem('ims_polymorphic_link_options');
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch {
-        return initDefaultOptions();
-      }
-    }
-    return initDefaultOptions();
-  });
+  const [polymorphicOptions, setPolymorphicOptions] = useState<string[]>(DEFAULT_POLYMORPHIC_OPTIONS);
   const [newOption, setNewOption] = useState('');
   const [editingOptionIdx, setEditingOptionIdx] = useState<number | null>(null);
   const [editingOptionVal, setEditingOptionVal] = useState('');
+
+  useEffect(() => {
+    const stored = readLocalStorage('ims_polymorphic_link_options');
+    if (stored) {
+      try {
+        setPolymorphicOptions(JSON.parse(stored));
+        return;
+      } catch {
+        /* fall through to defaults */
+      }
+    }
+    writeLocalStorage('ims_polymorphic_link_options', JSON.stringify(DEFAULT_POLYMORPHIC_OPTIONS));
+    setPolymorphicOptions(DEFAULT_POLYMORPHIC_OPTIONS);
+  }, []);
 
   const handleAddOption = () => {
     const trimmed = newOption.trim().toUpperCase().replace(/\s+/g, '_');
@@ -239,7 +240,7 @@ export const SuperUserHubScreen = () => {
     }
     const updated = [...polymorphicOptions, trimmed];
     setPolymorphicOptions(updated);
-    localStorage.setItem('ims_polymorphic_link_options', JSON.stringify(updated));
+    writeLocalStorage('ims_polymorphic_link_options', JSON.stringify(updated));
     setNewOption('');
     toast.success('Polymorphic link option added successfully');
   };
@@ -259,7 +260,7 @@ export const SuperUserHubScreen = () => {
     const updated = [...polymorphicOptions];
     updated[idx] = trimmed;
     setPolymorphicOptions(updated);
-    localStorage.setItem('ims_polymorphic_link_options', JSON.stringify(updated));
+    writeLocalStorage('ims_polymorphic_link_options', JSON.stringify(updated));
     setEditingOptionIdx(null);
     toast.success('Option updated successfully');
   };
@@ -272,7 +273,7 @@ export const SuperUserHubScreen = () => {
     if (!isConfirmed) return;
     const updated = polymorphicOptions.filter((_, i) => i !== idx);
     setPolymorphicOptions(updated);
-    localStorage.setItem('ims_polymorphic_link_options', JSON.stringify(updated));
+    writeLocalStorage('ims_polymorphic_link_options', JSON.stringify(updated));
     toast.success('Polymorphic link option deleted');
   };
 

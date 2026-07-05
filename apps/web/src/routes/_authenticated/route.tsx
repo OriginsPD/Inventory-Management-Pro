@@ -22,7 +22,7 @@ function AuthenticatedLayout() {
 
   return (
     <AppShell>
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="sync">
         <PageTransition key={pathname} className="w-full">
           <Outlet />
         </PageTransition>

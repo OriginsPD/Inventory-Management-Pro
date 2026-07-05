@@ -523,7 +523,6 @@ export const DeviceModels = () => {
               </div>
             )}
           </div>
-        </div>
         </StaggerItem>
 
         {/* DIALOG MODAL: Create & Edit Form */}

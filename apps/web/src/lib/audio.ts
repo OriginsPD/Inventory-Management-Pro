@@ -5,6 +5,7 @@
 export type AudioToneType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 
 const isSoundEnabled = () => {
+  if (typeof window === 'undefined') return true;
   return localStorage.getItem('ims_sound_enabled') !== 'false';
 };
 

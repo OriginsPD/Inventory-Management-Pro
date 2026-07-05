@@ -3,6 +3,7 @@ import { useTheme } from 'next-themes';
 import { useFeedback } from '@/components/ui/feedback-provider';
 import { useSearchParams } from "@/lib/hooks/useSearchParams";
 import { ScreenLayout, StaggerItem, FadeUp } from '@/components/ui/motion';
+import { readLocalStorage, writeLocalStorage } from '@/lib/client-storage';
 
 export const SettingsScreen = () => {
   const { toast } = useFeedback();
@@ -27,22 +28,20 @@ export const SettingsScreen = () => {
     setSearchParams(searchParams);
   };
 
-  const [soundEnabled, setSoundEnabled] = useState(() => {
-    const stored = localStorage.getItem('ims_sound_enabled');
-    return stored !== null ? stored === 'true' : true;
-  });
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [accentColor, setAccentColor] = useState('brand');
+  const [density, setDensity] = useState('default');
 
-  const [accentColor, setAccentColor] = useState(() => {
-    return localStorage.getItem('ims_theme_accent') || 'brand';
-  });
-
-  const [density, setDensity] = useState(() => {
-    return localStorage.getItem('ims_layout_density') || 'default';
-  });
+  useEffect(() => {
+    const storedSound = readLocalStorage('ims_sound_enabled');
+    setSoundEnabled(storedSound !== null ? storedSound === 'true' : true);
+    setAccentColor(readLocalStorage('ims_theme_accent') || 'brand');
+    setDensity(readLocalStorage('ims_layout_density') || 'default');
+  }, []);
 
   const handleSelectAccent = (color: string) => {
     setAccentColor(color);
-    localStorage.setItem('ims_theme_accent', color);
+    writeLocalStorage('ims_theme_accent', color);
     if (color !== 'brand') {
       document.documentElement.setAttribute('data-accent', color);
     } else {
@@ -53,7 +52,7 @@ export const SettingsScreen = () => {
 
   const handleSelectDensity = (mode: string) => {
     setDensity(mode);
-    localStorage.setItem('ims_layout_density', mode);
+    writeLocalStorage('ims_layout_density', mode);
     if (mode === 'compact') {
       document.documentElement.classList.add('density-compact');
     } else {
@@ -65,7 +64,7 @@ export const SettingsScreen = () => {
   const handleToggleSound = () => {
     const nextVal = !soundEnabled;
     setSoundEnabled(nextVal);
-    localStorage.setItem('ims_sound_enabled', String(nextVal));
+    writeLocalStorage('ims_sound_enabled', String(nextVal));
     toast.success(`Audio notifications ${nextVal ? 'enabled' : 'disabled'}`);
   };
 

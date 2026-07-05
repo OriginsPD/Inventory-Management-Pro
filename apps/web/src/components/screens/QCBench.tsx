@@ -14,7 +14,6 @@ import { playSuccessBeep, playErrorBuzz, playChirp } from '@/lib/audio';
 import { useDevices } from '@/lib/hooks/useDomain';
 import { Device } from '@/lib/types/domain';
 import { ScreenLayout, ScreenHeader, StaggerItem } from '@/components/ui/motion';
-import { ScreenLayout, ScreenHeader, StaggerItem } from '@/components/ui/motion';
 
 export const QCBench = () => {
   const { toast } = useFeedback();

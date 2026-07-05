@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DeviceModel, Device } from '../../../lib/types/domain';
 import { apiClient } from '../../../lib/api-client';
 import { MotionDialogBody } from '@/components/ui/motion';
+import { useFeedback } from '@/components/ui/feedback-provider';
 import { playSuccessBeep, playErrorBuzz } from '../../../lib/audio';
 
 interface SingleEntryModalProps {
