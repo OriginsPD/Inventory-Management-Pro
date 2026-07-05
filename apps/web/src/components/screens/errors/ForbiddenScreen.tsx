@@ -4,8 +4,9 @@ export const ForbiddenScreen = () => (
   <ErrorScreen
     status="403"
     title="Access Denied"
-    description="Your current operator role does not have permission to access this application area."
+    description="Your terminal operator role does not have permission to access this application area."
     icon="lock"
+    severity="warning"
     primaryLabel="Return Dashboard"
   />
 );

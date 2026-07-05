@@ -12,7 +12,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@ims_pro/ui/components/select';
 import { DeviceModel, Device } from '../../../lib/types/domain';
 import { apiClient } from '../../../lib/api-client';
-import { useFeedback } from '@/components/ui/feedback-provider';
+import { MotionDialogBody } from '@/components/ui/motion';
 import { playSuccessBeep, playErrorBuzz } from '../../../lib/audio';
 
 interface SingleEntryModalProps {
@@ -174,7 +174,8 @@ export const SingleEntryModal: React.FC<SingleEntryModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-md w-full space-y-4 border-0 animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
+      <DialogContent className="glass-panel-elevated rounded-2xl max-w-md w-full border-0" showCloseButton={true}>
+        <MotionDialogBody className="p-6 space-y-4">
         <DialogHeader className="text-left space-y-0.5">
           <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">{editingDevice ? 'Edit Device Properties' : 'Add Single Device'}</DialogTitle>
           <DialogDescription className="hidden">Single Device Entry Form</DialogDescription>
@@ -353,6 +354,7 @@ export const SingleEntryModal: React.FC<SingleEntryModalProps> = ({
               </button>
             </div>
           </form>
+        </MotionDialogBody>
         </DialogContent>
       </Dialog>
   );

@@ -5,6 +5,7 @@ import { Input } from '@ims_pro/ui/components/input';
 import { useAuth, type User } from '@/components/ui/auth-context';
 import { useFeedback } from '@/components/ui/feedback-provider';
 import { apiClient } from '@/lib/api-client';
+import { ScreenLayout, StaggerItem, FadeUp } from '@/components/ui/motion';
 
 interface AuditEntry {
   id: string;
@@ -114,8 +115,9 @@ export const UserProfileScreen = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto w-full animate-in fade-in duration-300">
-      <div className="mb-6 flex flex-col gap-2">
+    <ScreenLayout className="max-w-4xl mx-auto">
+      <FadeUp>
+      <div className="mb-2 flex flex-col gap-2">
         <h1 className="text-3xl font-black tracking-tight text-foreground uppercase italic">
           Operator <span className="text-primary">Profile</span>
         </h1>
@@ -123,9 +125,10 @@ export const UserProfileScreen = () => {
           Verify terminal node authorization logs and credential signatures
         </p>
       </div>
+      </FadeUp>
 
-      {/* Premium Access Badge Pass Mockup */}
-      <div className="glass-panel border-l-4 border-l-primary p-6 mb-8 rounded-xl shadow-lg shadow-primary/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative overflow-hidden">
+      <StaggerItem>
+      <div className="glass-panel border-l-4 border-l-primary p-6 mb-2 rounded-xl shadow-lg shadow-primary/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative overflow-hidden">
         {/* Background circuit aesthetics using css stripes/grid */}
         <div className="absolute right-0 top-0 bottom-0 w-44 bg-grid-white/[0.02] mask-gradient pointer-events-none select-none opacity-20" />
         
@@ -172,7 +175,9 @@ export const UserProfileScreen = () => {
           </span>
         </div>
       </div>
+      </StaggerItem>
 
+      <StaggerItem>
       <div className="glass-panel rounded-2xl overflow-hidden">
         {/* Navigation Tab Bar */}
         <div className="p-4 border-b border-border/60 bg-muted/30 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
@@ -413,6 +418,7 @@ export const UserProfileScreen = () => {
           </div>
         )}
       </div>
-    </div>
+      </StaggerItem>
+    </ScreenLayout>
   );
 };

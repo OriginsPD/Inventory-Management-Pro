@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { CommandMenu } from '@/components/ui/command-menu';
 import { apiClient } from '@/lib/api-client';
 import { useAuth } from '@/components/ui/auth-context';
@@ -6,6 +7,7 @@ import { useFeedback } from '@/components/ui/feedback-provider';
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { StockAlert } from '@/lib/types/domain';
 import { IMSBrandLogo } from '@/components/ui/IMSBrandLogo';
+import { Stagger, StaggerItem } from '@/components/ui/motion';
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => {
   const { user, logout } = useAuth();
@@ -13,6 +15,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [stockAlerts, setStockAlerts] = useState<StockAlert[]>([]);
+  const shouldReduceMotion = useReducedMotion();
 
   const currentPath = useRouterState({ select: (s) => s.location.pathname });
 
@@ -57,15 +60,19 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="h-screen w-screen overflow-hidden flex bg-background text-foreground font-sans antialiased selection:bg-primary/30 relative">
-      {/* Mobile Sidebar overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black/80 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <m.div
+            initial={shouldReduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={shouldReduceMotion ? undefined : { opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40 bg-black/80 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
-      {/* Sidebar Component */}
       <aside className={`fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col sidebar-panel transition-transform duration-200 lg:static lg:translate-x-0 shrink-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
@@ -82,35 +89,36 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-8">
-          {navGroups.map((group) => (
-            <div key={group.label} className="space-y-3">
-              <p className="px-3 text-[9px] font-bold uppercase tracking-[0.25em] text-muted-foreground">
-                {group.label}
-              </p>
-              <div className="space-y-0.5">
-                {group.items.map((item) => {
-                  const isActive = currentPath === item.path;
-                  return (
-                    <Link
-                      key={item.name}
-                      to={item.path}
-                      className={`flex items-center gap-3 px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-all duration-200 ${
-                        isActive 
-                          ? 'bg-primary/10 text-primary border-l-2 border-primary' 
-                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+          <Stagger stagger={0.04}>
+            {navGroups.map((group) => (
+              <StaggerItem key={group.label} className="space-y-3">
+                <p className="px-3 text-[9px] font-bold uppercase tracking-[0.25em] text-muted-foreground">
+                  {group.label}
+                </p>
+                <div className="space-y-0.5">
+                  {group.items.map((item) => {
+                    const isActive = currentPath === item.path;
+                    return (
+                      <Link
+                        key={item.name}
+                        to={item.path}
+                        className={`flex items-center gap-3 px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-all duration-200 ${
+                          isActive 
+                            ? 'bg-primary/10 text-primary border-l-2 border-primary' 
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </StaggerItem>
+            ))}
+          </Stagger>
         </nav>
 
-        {/* Logout Section */}
         <div className="p-4 border-t border-border">
           <button 
             onClick={handleLogout} 
@@ -120,10 +128,8 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
             <span className="material-symbols-outlined text-[18px] group-hover:translate-x-0.5 transition-transform">logout</span>
           </button>
         </div>
-
       </aside>
 
-      {/* Main Content Layout */}
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 bg-background">
         <header className="flex h-14 items-center justify-between border-b border-border bg-card px-6 shrink-0 z-10">
           <button 
@@ -134,7 +140,6 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
           </button>
           
           <div className="flex items-center gap-4 ml-auto">
-            {/* Dynamic Stock Alert Badge */}
             {(() => {
               const withTarget = stockAlerts.filter(a => (a.maxStock ?? 0) > 0);
               const lowCount = withTarget.filter(a => a.level === 'LOW').length;
@@ -160,7 +165,6 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
               );
             })()}
 
-            {/* Top-Right Profile Quick-Access */}
             <div className="h-8 w-px bg-border mx-2 hidden sm:block" />
             <button
               onClick={() => navigate({ to: "/profile" })}
@@ -178,12 +182,10 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
                 {user?.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'U'}
               </div>
             </button>
-
           </div>
         </header>
 
-        {/* Scrollable Main Area */}
-        <main className="flex-1 overflow-y-auto p-6 lg:p-10 custom-scrollbar">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 lg:p-10 custom-scrollbar">
           <div className="max-w-[1400px] w-full mx-auto">
             {children}
           </div>

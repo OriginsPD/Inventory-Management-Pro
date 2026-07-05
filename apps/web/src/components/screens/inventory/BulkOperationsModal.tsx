@@ -20,6 +20,7 @@ import { Device, DeviceModel, IngestItem, ParsedLink } from '../../../lib/types/
 import { apiClient } from '../../../lib/api-client';
 import { useFeedback } from '@/components/ui/feedback-provider';
 import { playSuccessBeep, playErrorBuzz, playChirp } from '../../../lib/audio';
+import { MotionDialogBody } from '@/components/ui/motion';
 import ExcelJS from 'exceljs';
 
 interface BulkOperationsModalProps {
@@ -607,7 +608,8 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="glass-panel-elevated rounded-2xl sm:max-w-6xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
+      <DialogContent className="glass-panel-elevated rounded-2xl sm:max-w-6xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden" showCloseButton={true}>
+        <MotionDialogBody className="flex flex-col flex-1 min-h-0 overflow-hidden">
         <DialogHeader className="hidden">
           <DialogTitle>Bulk Operations</DialogTitle>
           <DialogDescription>Stage Bulk Ingestions or Polymorphic Link pairings.</DialogDescription>
@@ -888,6 +890,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
               )}
             </div>
           )}
+        </MotionDialogBody>
         </DialogContent>
       </Dialog>
   );

@@ -28,6 +28,7 @@ export const InlineErrorState = ({
       title={title}
       description={description}
       icon="sync_problem"
+      severity="error"
       primaryLabel="Retry"
       secondaryLabel="Dashboard"
       onPrimary={onRetry}

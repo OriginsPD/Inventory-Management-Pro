@@ -8,6 +8,7 @@ import * as z from 'zod';
 import { apiClient } from '@/lib/api-client';
 import { Skeleton } from '@ims_pro/ui/components/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@ims_pro/ui/components/dialog';
+import { ScreenLayout, StaggerItem, FadeUp, MotionDialogBody } from '@/components/ui/motion';
 import {
   Select,
   SelectContent,
@@ -320,7 +321,8 @@ export const SuperUserHubScreen = () => {
 
   return (
     <>
-      <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full animate-in fade-in duration-300">
+      <ScreenLayout className="max-w-6xl mx-auto">
+        <FadeUp>
         <div>
           <h1 className="text-3xl font-black tracking-tight text-foreground uppercase italic flex items-center gap-2">
             Super User <span className="text-primary">Hub</span>
@@ -329,8 +331,9 @@ export const SuperUserHubScreen = () => {
             System administration workbench, templates control, operations audit registry
           </p>
         </div>
+        </FadeUp>
 
-        {/* Horizontal Navigation Tab Bar */}
+        <StaggerItem>
         <div className="flex border-b border-primary/10 select-none">
           {[
             { id: 'users', name: 'User Registry', icon: 'manage_accounts' },
@@ -355,8 +358,9 @@ export const SuperUserHubScreen = () => {
             );
           })}
         </div>
+        </StaggerItem>
 
-        {/* Content Panels */}
+        <StaggerItem>
         <div className="w-full mt-2">
           {activeTab === 'users' && (
             <div className="space-y-6">
@@ -717,11 +721,13 @@ export const SuperUserHubScreen = () => {
             </div>
           )}
         </div>
-      </div>
+        </StaggerItem>
+      </ScreenLayout>
 
       {/* User Creation / Editing Modal */}
       <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>
-        <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-md w-full space-y-4 border-0 animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
+        <DialogContent className="glass-panel-elevated rounded-2xl max-w-md w-full border-0" showCloseButton={true}>
+          <MotionDialogBody className="p-6 space-y-4">
           <DialogHeader className="text-left space-y-0.5">
             <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">
               {editingUser ? 'Edit User Profile' : 'New User Profile'}
@@ -801,6 +807,7 @@ export const SuperUserHubScreen = () => {
               {editingUser ? 'Save Updates' : 'Create User Account'}
             </button>
           </form>
+          </MotionDialogBody>
         </DialogContent>
       </Dialog>
     </>

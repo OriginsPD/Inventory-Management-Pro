@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router';
 import heroImage from "@/assets/hero.png";
 import { FaviconBg } from '@/components/ui/FaviconBg';
 import { IMSBrandLogo } from '@/components/ui/IMSBrandLogo';
+import { FadeUp, Stagger, StaggerItem, HoverLift } from '@/components/ui/motion';
 
 const featureCards = [
   {
@@ -53,7 +54,7 @@ export const LandingScreen = () => {
         </header>
 
         <div className="relative z-10 grid flex-1 items-center gap-10 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
-          <div className="max-w-3xl space-y-8">
+          <FadeUp className="max-w-3xl space-y-8">
             <div className="inline-flex items-center gap-2 border border-primary/25 bg-primary/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
               <span className="material-symbols-outlined text-sm">verified_user</span>
               Secure inventory operations
@@ -86,17 +87,17 @@ export const LandingScreen = () => {
               </a>
             </div>
 
-            <div className="grid max-w-xl grid-cols-3 border border-border bg-card/70">
+            <Stagger className="grid max-w-xl grid-cols-3 border border-border bg-card/70">
               {workflowStats.map((stat) => (
-                <div key={stat.label} className="border-r border-border p-4 last:border-r-0">
+                <StaggerItem key={stat.label} className="border-r border-border p-4 last:border-r-0">
                   <p className="text-2xl font-black text-foreground">{stat.value}</p>
                   <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.12em] text-muted-foreground">{stat.label}</p>
-                </div>
+                </StaggerItem>
               ))}
-            </div>
-          </div>
+            </Stagger>
+          </FadeUp>
 
-          <div className="relative min-h-[360px] lg:min-h-[520px]">
+          <FadeUp delay={0.1} className="relative min-h-[360px] lg:min-h-[520px]">
             <div className="absolute inset-0 rounded-[2rem] border border-border bg-card/60 shadow-2xl" />
             <div className="absolute inset-6 overflow-hidden border border-primary/20 bg-card">
               <img
@@ -126,7 +127,7 @@ export const LandingScreen = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </FadeUp>
         </div>
       </section>
 
@@ -136,15 +137,19 @@ export const LandingScreen = () => {
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-primary">What It Helps With</p>
             <h2 className="mt-3 text-2xl font-black text-foreground sm:text-3xl">A focused workspace for inventory teams.</h2>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {featureCards.map((feature) => (
-              <article key={feature.title} className="border border-border bg-card p-5">
+              <StaggerItem key={feature.title}>
+              <HoverLift>
+              <article className="border border-border bg-card p-5 h-full">
                 <span className="material-symbols-outlined text-2xl text-primary">{feature.icon}</span>
                 <h3 className="mt-5 text-sm font-black uppercase tracking-[0.08em] text-foreground">{feature.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">{feature.description}</p>
               </article>
+              </HoverLift>
+              </StaggerItem>
             ))}
-          </div>
+          </Stagger>
         </div>
       </section>
     </main>

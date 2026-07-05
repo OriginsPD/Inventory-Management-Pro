@@ -1,5 +1,6 @@
 import React from 'react';
 import { Device } from '../../../lib/types/domain';
+import { MotionPresenceBanner } from '@/components/ui/motion';
 
 interface SelectionBannerProps {
   devices: Device[];
@@ -22,11 +23,11 @@ export const SelectionBanner: React.FC<SelectionBannerProps> = ({
 }) => {
   const pageIds = paginatedDevices.map(d => d.id || '');
   const isAllPageSelected = pageIds.length > 0 && pageIds.every(id => selectedDeviceIds.includes(id));
-  
-  if (!isAllPageSelected && !isAllSelectedGlobally) return null;
+  const show = isAllPageSelected || isAllSelectedGlobally;
   
   return (
-    <div className="bg-primary/10 border-b border-primary/10 py-2.5 px-4 text-xs flex justify-between items-center text-foreground animate-in slide-in-from-top duration-200">
+    <MotionPresenceBanner show={show}>
+    <div className="bg-primary/10 border-b border-primary/10 py-2.5 px-4 text-xs flex justify-between items-center text-foreground">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="material-symbols-outlined text-[16px] text-primary shrink-0">info</span>
         <span>
@@ -71,6 +72,6 @@ export const SelectionBanner: React.FC<SelectionBannerProps> = ({
         </button>
       </div>
     </div>
+    </MotionPresenceBanner>
   );
 };
-

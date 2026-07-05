@@ -11,6 +11,7 @@ import { Checkbox } from '@ims_pro/ui/components/checkbox';
 import { ScrollArea } from '@ims_pro/ui/components/scroll-area';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@ims_pro/ui/components/dialog';
+import { ScreenLayout, ScreenHeader, StaggerItem, MotionPresenceBanner } from '@/components/ui/motion';
 import {
   Select,
   SelectContent,
@@ -367,17 +368,12 @@ export const CustomerDispatch = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full px-1 md:px-2">
-        <div className="flex flex-col gap-2 md:flex-row md:justify-between md:items-start border-b border-primary/10 pb-4">
-          <div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-foreground">Customer Dispatch</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Select, stage, and dispatch hardware batches to client fleets, and trace registry distribution history.
-            </p>
-          </div>
-          
-          {/* Tab Navigation Menu Bar */}
-          <div className="flex bg-card/60 p-1 rounded-lg border border-primary/10 shrink-0 h-fit mt-2 md:mt-0">
+    <ScreenLayout className="px-1 md:px-2">
+        <ScreenHeader
+          title="Customer Dispatch"
+          description="Select, stage, and dispatch hardware batches to client fleets, and trace registry distribution history."
+          actions={
+          <div className="flex bg-card/60 p-1 rounded-lg border border-primary/10 shrink-0 h-fit">
             <button
               onClick={() => setActiveTab('console')}
               className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all cursor-pointer ${
@@ -399,10 +395,11 @@ export const CustomerDispatch = () => {
               Dispatch Registry
             </button>
           </div>
-        </div>
+          }
+        />
 
-        {/* Tab 1: Dispatch Console */}
         {activeTab === 'console' && (
+          <StaggerItem>
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
             {/* Console Left Panel: Dispatch Configuration */}
             <div className="glass-panel p-5 rounded-2xl space-y-4 xl:col-span-4">
@@ -551,19 +548,22 @@ export const CustomerDispatch = () => {
 
               {/* Summary cue badge */}
               {stagedDeviceIds.length > 0 && (
-                <div className="bg-primary/10 text-foreground text-xs p-3 rounded-xl border border-primary/10 font-bold flex items-center gap-1.5 animate-in fade-in duration-200">
+                <MotionPresenceBanner show={stagedDeviceIds.length > 0}>
+                <div className="bg-primary/10 text-foreground text-xs p-3 rounded-xl border border-primary/10 font-bold flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-[18px] text-primary shrink-0">inventory_2</span>
                   <span>
                     Staging Summary: <strong>{totalStagedCount}</strong> units total ({stagedDeviceIds.length} direct, {stagedChildren.length} cascading components).
                   </span>
                 </div>
+                </MotionPresenceBanner>
               )}
             </div>
           </div>
+          </StaggerItem>
         )}
 
-        {/* Tab 2: Dispatch Registry (Batches view) */}
         {activeTab === 'registry' && (
+          <StaggerItem>
           <div className="space-y-4">
             {/* Registry Toolbar filters */}
             <div className="flex flex-col md:flex-row gap-3 border border-primary/10 p-3.5 rounded-xl bg-card/60 justify-between items-center">
@@ -777,11 +777,12 @@ export const CustomerDispatch = () => {
               )}
             </div>
           </div>
+          </StaggerItem>
         )}
 
         {/* MODAL 1: Stage Devices Selection */}
         <Dialog open={isSelectModalOpen} onOpenChange={setIsSelectModalOpen}>
-          <DialogContent className="glass-panel-elevated rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
+          <DialogContent className="glass-panel-elevated rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden" showCloseButton={true}>
             <DialogHeader className="p-6 border-b border-primary/10 text-left space-y-0.5">
               <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">Stage Available Devices</DialogTitle>
             <DialogDescription className="text-xs text-muted mt-0.5">Select and queue available units from warehouse stock to prepare dispatch.</DialogDescription>
@@ -933,7 +934,7 @@ export const CustomerDispatch = () => {
         {/* MODAL 2: Batch Detail Hierarchy Breakdown */}
         <Dialog open={!!viewBatch} onOpenChange={(open) => { if (!open) setViewBatch(null); }}>
           {viewBatch && (
-            <DialogContent className="glass-panel-elevated rounded-2xl max-w-xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
+            <DialogContent className="glass-panel-elevated rounded-2xl max-w-xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden" showCloseButton={true}>
               <DialogHeader className="p-6 border-b border-primary/10 text-left space-y-0.5">
                 <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">Dispatch Batch Details</DialogTitle>
             <DialogDescription className="flex items-center gap-1.5 text-xs text-muted mt-1">
@@ -1001,7 +1002,7 @@ export const CustomerDispatch = () => {
             </DialogContent>
           )}
         </Dialog>
-      </div>
+      </ScreenLayout>
   );
 };
 

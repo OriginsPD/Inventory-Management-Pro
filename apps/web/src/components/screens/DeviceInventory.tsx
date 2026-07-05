@@ -13,6 +13,7 @@ import { Device } from '@/lib/types/domain';
 import { useHotScanner } from '@/lib/hooks/useHotScanner';
 import { playSuccessBeep, playChirp, playErrorBuzz } from '@/lib/audio';
 import { InlineErrorState } from '@/components/ui/inline-error-state';
+import { ScreenLayout, ScreenHeader, StaggerItem, MotionPresenceBanner } from '@/components/ui/motion';
 
 export const DeviceInventory = () => {
   const { user } = useAuth();
@@ -194,40 +195,37 @@ export const DeviceInventory = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full animate-in fade-in duration-300">
-      {!isOnline && (
+    <ScreenLayout>
+      <MotionPresenceBanner show={!isOnline}>
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg p-3 px-4 flex items-center gap-2 text-xs font-medium">
           <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
           <span>Connection Offline: Operations will be cached locally.</span>
         </div>
-      )}
+      </MotionPresenceBanner>
 
-      {pendingSyncItems.length > 0 && (
+      <MotionPresenceBanner show={pendingSyncItems.length > 0}>
         <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg p-3 px-4 flex justify-between items-center text-xs font-medium">
           <span>You have <strong>{pendingSyncItems.length}</strong> pending items buffered.</span>
           <button onClick={() => syncPendingItems()} disabled={!isOnline} className="bg-amber-500 hover:bg-amber-600 text-white rounded px-3 py-1 font-bold disabled:opacity-50">Sync Queue</button>
         </div>
-      )}
+      </MotionPresenceBanner>
       
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Device Inventory</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage tracking hardware, SIMs, and peripherals.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {user?.role !== 'REVIEWER' && (
-            <>
-              <button onClick={() => setActiveModal('bulk')} className="inline-flex items-center justify-center rounded-lg text-xs font-bold border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground h-9 px-4 gap-1.5 cursor-pointer">
-                <span className="material-symbols-outlined text-sm">upload</span> Bulk Operations
-              </button>
-              <button onClick={() => { setEditingDevice(null); setActiveModal('single'); }} className="inline-flex items-center justify-center rounded-lg text-xs font-bold bg-primary text-primary-foreground shadow hover:brightness-110 h-9 px-4 gap-1.5 cursor-pointer">
-                <span className="material-symbols-outlined text-sm">add</span> Single Entry
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+      <ScreenHeader
+        title="Device Inventory"
+        description="Manage tracking hardware, SIMs, and peripherals."
+        actions={user?.role !== 'REVIEWER' ? (
+          <>
+            <button onClick={() => setActiveModal('bulk')} className="inline-flex items-center justify-center rounded-lg text-xs font-bold border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground h-9 px-4 gap-1.5 cursor-pointer">
+              <span className="material-symbols-outlined text-sm">upload</span> Bulk Operations
+            </button>
+            <button onClick={() => { setEditingDevice(null); setActiveModal('single'); }} className="inline-flex items-center justify-center rounded-lg text-xs font-bold bg-primary text-primary-foreground shadow hover:brightness-110 h-9 px-4 gap-1.5 cursor-pointer">
+              <span className="material-symbols-outlined text-sm">add</span> Single Entry
+            </button>
+          </>
+        ) : undefined}
+      />
 
+      <StaggerItem>
       <InventoryToolbar 
         search={search} setSearch={setSearch}
         statusFilter={statusFilter} setStatusFilter={setStatusFilter}
@@ -235,8 +233,10 @@ export const DeviceInventory = () => {
         models={models}
         visibleColumns={visibleColumns} setVisibleColumns={setVisibleColumns}
       />
+      </StaggerItem>
 
       {hasInventoryError && (
+        <StaggerItem>
         <div className="glass-panel rounded-xl overflow-hidden">
           <InlineErrorState
             title="Inventory data failed to load"
@@ -245,8 +245,10 @@ export const DeviceInventory = () => {
             onRetry={retryInventoryQueries}
           />
         </div>
+        </StaggerItem>
       )}
 
+      <StaggerItem>
       <div className="space-y-4">
         <SelectionBanner 
           devices={devices} paginatedDevices={paginatedDevices}
@@ -273,6 +275,7 @@ export const DeviceInventory = () => {
           totalPages={totalPages}
         />
       </div>
+      </StaggerItem>
 
       <SingleEntryModal 
         isOpen={activeModal === 'single'} 
@@ -304,7 +307,7 @@ export const DeviceInventory = () => {
         relationships={relationships}
         onSuccess={() => { refetchRelationships(); refetchDevices(); }}
       />
-    </div>
+    </ScreenLayout>
   );
 };
 

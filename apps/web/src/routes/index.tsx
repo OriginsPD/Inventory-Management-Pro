@@ -1,6 +1,8 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, useRouterState } from "@tanstack/react-router";
+import { AnimatePresence } from "motion/react";
 
 import { LandingScreen } from "@/components/screens/LandingScreen";
+import { PageTransition } from "@/components/ui/motion";
 import { getServerSession } from "@/lib/get-session";
 
 export const Route = createFileRoute("/")({
@@ -11,5 +13,17 @@ export const Route = createFileRoute("/")({
       throw redirect({ to: "/dashboard" });
     }
   },
-  component: LandingScreen,
+  component: LandingRoute,
 });
+
+function LandingRoute() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+
+  return (
+    <AnimatePresence mode="wait">
+      <PageTransition key={pathname}>
+        <LandingScreen />
+      </PageTransition>
+    </AnimatePresence>
+  );
+}

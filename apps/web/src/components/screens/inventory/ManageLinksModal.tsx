@@ -10,6 +10,7 @@ import { Device, DeviceModel } from '../../../lib/types/domain';
 import { apiClient } from '../../../lib/api-client';
 import { useFeedback } from '@/components/ui/feedback-provider';
 import { playSuccessBeep, playErrorBuzz } from '../../../lib/audio';
+import { MotionDialogBody } from '@/components/ui/motion';
 
 interface ManageLinksModalProps {
   device: Device | null;
@@ -104,7 +105,8 @@ export const ManageLinksModal: React.FC<ManageLinksModalProps> = ({
 
   return (
     <Dialog open={!!device} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto space-y-6 border-0 animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
+      <DialogContent className="glass-panel-elevated rounded-2xl max-w-lg w-full max-h-[90vh] border-0" showCloseButton={true}>
+        <MotionDialogBody className="p-6 overflow-y-auto space-y-6">
         <DialogHeader className="hidden"><DialogTitle>Manage Relationships</DialogTitle></DialogHeader>
         <div>
           <h3 className="text-lg font-extrabold tracking-tight text-foreground">Manage Hardware Links</h3>
@@ -184,6 +186,7 @@ export const ManageLinksModal: React.FC<ManageLinksModalProps> = ({
             {stagedLinks.length > 0 && <button onClick={handleCommitLinks} className="inline-flex items-center justify-center rounded-lg text-xs font-bold bg-primary text-primary-foreground h-9 px-4 flex-1 cursor-pointer">Commit ({stagedLinks.length}) Links</button>}
           </div>
         </div>
+        </MotionDialogBody>
       </DialogContent>
     </Dialog>
   );

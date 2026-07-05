@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ToastContainer, toast as rToast } from 'react-toastify';
 import "react-toastify/dist/ReactToastify.css";
 import { playSuccessBeep, playErrorBuzz, playChirp } from '@/lib/audio';
+import { MotionDialogBody } from '@/components/ui/motion';
 
 interface ConfirmOptions {
   title: string;
@@ -87,28 +88,30 @@ export const FeedbackProvider = ({ children }: { children: React.ReactNode }) =>
 
       {/* Confirm Dialog Overlay Modal */}
       <Dialog open={!!confirmData} onOpenChange={(open) => { if (!open && confirmData) confirmData.resolve(false); }}>
-        <DialogContent className="glass-panel p-6 rounded-2xl max-w-sm w-full space-y-4 glow-accent border-0" showCloseButton={false}>
-          <DialogHeader className="flex flex-row items-center gap-2 space-y-0 text-left">
-            <span className="material-symbols-outlined text-primary text-xl select-none">help_outline</span>
-            <DialogTitle className="text-sm font-bold text-foreground p-0">{confirmData?.title}</DialogTitle>
-          </DialogHeader>
-          <DialogDescription className="text-xs text-muted leading-relaxed break-words">
-            {confirmData?.message}
-          </DialogDescription>
-          <div className="flex items-center gap-3 justify-end pt-2">
-            <button
-              onClick={() => confirmData?.resolve(false)}
-              className="h-8.5 px-4 rounded-lg text-xs font-semibold border border-primary/10 bg-primary/5 text-foreground hover:bg-primary/10 transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => confirmData?.resolve(true)}
-              className="h-8.5 px-4 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:brightness-110 active:scale-95 transition-all cursor-pointer"
-            >
-              Confirm
-            </button>
-          </div>
+        <DialogContent className="glass-panel p-0 rounded-2xl max-w-sm w-full border-0 overflow-hidden" showCloseButton={false}>
+          <MotionDialogBody className="p-6 space-y-4 glow-accent">
+            <DialogHeader className="flex flex-row items-center gap-2 space-y-0 text-left">
+              <span className="material-symbols-outlined text-primary text-xl select-none">help_outline</span>
+              <DialogTitle className="text-sm font-bold text-foreground p-0">{confirmData?.title}</DialogTitle>
+            </DialogHeader>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed break-words">
+              {confirmData?.message}
+            </DialogDescription>
+            <div className="flex items-center gap-3 justify-end pt-2">
+              <button
+                onClick={() => confirmData?.resolve(false)}
+                className="h-8.5 px-4 rounded-lg text-xs font-semibold border border-primary/10 bg-primary/5 text-foreground hover:bg-primary/10 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => confirmData?.resolve(true)}
+                className="h-8.5 px-4 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+              >
+                Confirm
+              </button>
+            </div>
+          </MotionDialogBody>
         </DialogContent>
       </Dialog>
     </FeedbackContext.Provider>
@@ -122,4 +125,3 @@ export const useFeedback = () => {
   }
   return context;
 };
-

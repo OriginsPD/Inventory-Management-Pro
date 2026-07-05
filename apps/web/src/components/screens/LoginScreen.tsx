@@ -10,6 +10,7 @@ import { Button } from '@ims_pro/ui/components/button';
 import { Link } from '@tanstack/react-router';
 import { FaviconBg } from '@/components/ui/FaviconBg';
 import { IMSBrandLogo } from '@/components/ui/IMSBrandLogo';
+import { FadeUp, MotionPresenceBanner } from '@/components/ui/motion';
 
 export const LoginScreen = () => {
   const { login } = useAuth();
@@ -50,16 +51,13 @@ export const LoginScreen = () => {
     <div className="min-h-screen w-full flex items-center justify-center bg-background relative overflow-hidden select-none px-4 font-sans">
       <FaviconBg className="-top-48 -right-48 w-[800px] h-[800px] sm:-top-80 sm:-right-80 sm:w-[1200px] sm:h-[1200px] opacity-[0.08] dark:opacity-[0.02] rotate-[-15deg] text-foreground" />
       <div className="w-full max-w-[400px] z-10 space-y-8">
-        {/* Brand Header */}
-        <div className="text-center flex justify-center">
+        <FadeUp className="text-center flex justify-center">
           <Link to="/" className="inline-block hover:opacity-90 transition-opacity">
             <IMSBrandLogo size={48} className="justify-center" showText={true} />
           </Link>
-        </div>
+        </FadeUp>
 
-        {/* Login Card */}
-
-        {/* Login Card */}
+        <FadeUp delay={0.08}>
         <div className="bg-card p-8 border border-border shadow-2xl space-y-6">
           <div className="space-y-1">
             <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">Authentication Required</h2>
@@ -67,10 +65,19 @@ export const LoginScreen = () => {
           </div>
 
           {errorMsg && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] p-3 font-bold flex items-start gap-2 animate-in fade-in duration-200">
-              <span className="material-symbols-outlined text-[14px] mt-0.5">error</span>
-              <span className="leading-tight uppercase tracking-tight">{errorMsg}</span>
-            </div>
+            <MotionPresenceBanner show={!!errorMsg} className="w-full">
+              <div
+                role="alert"
+                className="grid grid-cols-[auto_1fr] items-center gap-x-2 bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-2 text-[10px] font-bold uppercase tracking-tight"
+              >
+                <span className="inline-flex size-4 shrink-0 items-center justify-center self-center">
+                  <span className="material-symbols-outlined text-[16px] leading-none [font-variation-settings:'FILL'_0,'wght'_400,'GRAD'_0,'opsz'_20]">
+                    error
+                  </span>
+                </span>
+                <span className="leading-none self-center">{errorMsg}</span>
+              </div>
+            </MotionPresenceBanner>
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -118,8 +125,7 @@ export const LoginScreen = () => {
           </form>
 
         </div>
-
-
+        </FadeUp>
       </div>
     </div>
   );

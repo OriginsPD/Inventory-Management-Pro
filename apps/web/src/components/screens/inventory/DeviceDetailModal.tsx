@@ -9,6 +9,7 @@ import {
 import { ScrollArea } from '@ims_pro/ui/components/scroll-area';
 import { Skeleton } from '@ims_pro/ui/components/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { MotionDialogBody } from '@/components/ui/motion';
 import { Device } from '../../../lib/types/domain';
 import { useDeviceAuditLogs } from './useInventory';
 
@@ -28,7 +29,8 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
 
   return (
     <Dialog open={!!device} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-lg w-full space-y-4 border-0 animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
+      <DialogContent className="glass-panel-elevated rounded-2xl max-w-lg w-full border-0" showCloseButton={true}>
+        <MotionDialogBody className="p-6 space-y-4">
         <DialogHeader className="text-left space-y-0.5">
           <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">Device Inventory Profile</DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground mt-0.5">Comprehensive view of inventory entry details.</DialogDescription>
@@ -186,6 +188,7 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
             Close Profile
           </button>
         </div>
+        </MotionDialogBody>
       </DialogContent>
     </Dialog>
   );

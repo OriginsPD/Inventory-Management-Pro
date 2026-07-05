@@ -1,6 +1,7 @@
 import * as React from "react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { FadeUp } from "@/components/ui/motion"
 
 interface EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
   icon?: LucideIcon | React.ComponentType<any> | string | React.ReactNode
@@ -18,9 +19,9 @@ export function EmptyState({
   ...props
 }: EmptyStateProps) {
   return (
-    <div
+    <FadeUp
       className={cn(
-        "flex flex-col items-center justify-center text-center p-8 rounded-xl border border-dashed border-primary/10 bg-primary/5 animate-in fade-in duration-200",
+        "flex flex-col items-center justify-center text-center p-8 rounded-xl border border-dashed border-primary/10 bg-primary/5",
         className
       )}
       {...props}
@@ -43,8 +44,6 @@ export function EmptyState({
         </p>
       )}
       {action && <div className="mt-3.5">{action}</div>}
-    </div>
+    </FadeUp>
   )
 }
-
-

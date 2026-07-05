@@ -6,7 +6,8 @@ export const OfflineScreen = () => (
     title="Network Unavailable"
     description="The terminal cannot reach the IMS API. Check connectivity, then retry the workflow."
     icon="wifi_off"
-    secondaryLabel="Reload"
+    severity="warning"
+    secondaryLabel="Reload Terminal"
     onSecondary={() => window.location.reload()}
   />
 );

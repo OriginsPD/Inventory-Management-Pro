@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useDevices, useRelationships } from '@/lib/hooks/useDomain';
 import { Device } from '@/lib/types/domain';
 import { playSuccessBeep, playErrorBuzz } from '@/lib/audio';
+import { ScreenLayout, ScreenHeader, Stagger, StaggerItem } from '@/components/ui/motion';
 
 interface StagedSwap {
   id: string;
@@ -197,7 +198,7 @@ const DeviceAuditTimelineModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-xl w-full max-h-[80vh] flex flex-col border-0 animate-in fade-in zoom-in-95 duration-150 overflow-hidden" showCloseButton={true}>
+      <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-xl w-full max-h-[80vh] flex flex-col border-0 overflow-hidden" showCloseButton={true}>
         <DialogHeader className="text-left space-y-0.5 shrink-0">
           <DialogTitle className="text-sm font-extrabold tracking-tight text-foreground p-0 flex items-center gap-2 select-none">
             <span className="material-symbols-outlined text-primary text-base select-none">history</span>
@@ -356,40 +357,37 @@ export const HardwareSwaps = () => {
   const totalPages = Math.ceil(damagedUnits.length / pageSize);
 
   return (
-    <div className="flex flex-col gap-6 w-full animate-in fade-in duration-300">
-        <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-foreground">RMA Swaps & Replacements</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Swap out faulty field hardware tracking units with certified warehouse stock to maintain uptime.
-          </p>
-        </div>
+    <ScreenLayout>
+        <ScreenHeader
+          title="RMA Swaps & Replacements"
+          description="Swap out faulty field hardware tracking units with certified warehouse stock to maintain uptime."
+        />
 
-        {/* KPI Summary Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="glass-panel p-5 rounded-xl space-y-2">
+        <Stagger className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Awaiting Swap</p>
             <p className="text-2xl font-black text-foreground">
               {devices.filter(d => d.status === 'DAMAGED' && !d.metadata?.replacedBy).length}
             </p>
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Active RMA Queue</p>
-          </div>
-          <div className="glass-panel p-5 rounded-xl space-y-2">
+          </StaggerItem>
+          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Swaps Processed</p>
             <p className="text-2xl font-black text-[#eb5a00]">
               {devices.filter(d => d.status === 'DAMAGED' && d.metadata?.replacedBy).length}
             </p>
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Completed Replacements</p>
-          </div>
-          <div className="glass-panel p-5 rounded-xl space-y-2">
+          </StaggerItem>
+          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Replacement Reserves</p>
             <p className="text-2xl font-black text-[#00508a] dark:text-[#38bdf8]">
               {devices.filter(d => d.status === 'IN_STOCK').length}
             </p>
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Warehouse stocked units</p>
-          </div>
-        </div>
+          </StaggerItem>
+        </Stagger>
 
-        {/* Full-width Swap Workbench Banner / Trigger Card */}
+        <StaggerItem>
         <div className="glass-panel p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="space-y-1 text-left">
             <div className="flex items-center gap-2">
@@ -414,8 +412,9 @@ export const HardwareSwaps = () => {
             <span className="material-symbols-outlined text-sm">construction</span> Open Swap Workbench
           </button>
         </div>
+        </StaggerItem>
 
-        {/* Full-width Damaged Registry */}
+        <StaggerItem>
         <div className="space-y-4 w-full">
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 border border-primary/10 p-2 rounded-xl bg-card/60">
             <div className="flex items-center gap-2 flex-1 px-2">
@@ -611,10 +610,11 @@ export const HardwareSwaps = () => {
             </div>
           )}
         </div>
+        </StaggerItem>
 
         {/* BATCH SWAP STAGING WORKBENCH DIALOG */}
         <Dialog open={isStagingModalOpen} onOpenChange={(open) => { if (!open && !isExecuting) setIsStagingModalOpen(false); }}>
-          <DialogContent className="glass-panel-elevated p-6 rounded-2xl sm:max-w-6xl w-full h-[90vh] flex flex-col border-0 animate-in fade-in zoom-in-95 duration-150 overflow-hidden" showCloseButton={!isExecuting}>
+          <DialogContent className="glass-panel-elevated p-6 rounded-2xl sm:max-w-6xl w-full h-[90vh] flex flex-col border-0 overflow-hidden" showCloseButton={!isExecuting}>
             <DialogHeader className="text-left space-y-0.5 shrink-0">
               <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0 flex items-center gap-2 select-none">
                 <span className="material-symbols-outlined text-primary text-xl select-none">construction</span>
@@ -1065,6 +1065,6 @@ export const HardwareSwaps = () => {
             onClose={() => setSelectedAuditDevice(null)}
           />
         )}
-    </div>
+    </ScreenLayout>
   );
 };

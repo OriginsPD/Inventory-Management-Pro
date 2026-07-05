@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ims_pro/ui/components/table';
 import { Skeleton } from '@ims_pro/ui/components/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ScreenLayout, ScreenHeader, Stagger, StaggerItem } from '@/components/ui/motion';
 import { 
   Select, 
   SelectContent, 
@@ -492,23 +493,13 @@ export const ReportsScreen = () => {
   };
 
   return (
-    <div className="space-y-6">
-        
-        {/* Header Block */}
-        <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-2xl select-none">analytics</span> 
-              Reports Console
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Compile lifecycle metrics, inventory counts, and customer allocation details. Export directly to spreadsheets.
-            </p>
-          </div>
-        </div>
+    <ScreenLayout className="space-y-6">
+        <ScreenHeader
+          title="Reports Console"
+          description="Compile lifecycle metrics, inventory counts, and customer allocation details. Export directly to spreadsheets."
+        />
 
-        {/* Reports Type Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { id: 'inventory', icon: 'database', title: 'Active Inventory', label: 'Inventory', desc: 'Asset status, metadata and assignments.' },
             { id: 'stock', icon: 'trending_up', title: 'Stock Capacity & Health', label: 'Capacities', desc: 'Capacities vs real-time stock tiers.' },
@@ -517,11 +508,11 @@ export const ReportsScreen = () => {
           ].map((tab) => {
             const isActive = activeReport === tab.id;
             return (
+              <StaggerItem key={tab.id}>
               <button
-                key={tab.id}
                 type="button"
                 onClick={() => handleReportTabChange(tab.id as ReportType)}
-                className={`text-left p-4 rounded-xl border transition-all duration-300 cursor-pointer flex flex-col justify-between h-28 glass-panel glow-accent-hover ${
+                className={`text-left p-4 rounded-xl border transition-all duration-300 cursor-pointer flex flex-col justify-between h-28 w-full glass-panel glow-accent-hover ${
                   isActive 
                     ? 'border-primary/80 bg-primary/10 shadow-sm glow-accent ring-1 ring-primary/30' 
                     : 'border-primary/10 hover:border-primary/30 hover:bg-primary/5'
@@ -538,11 +529,12 @@ export const ReportsScreen = () => {
                   <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{tab.desc}</p>
                 </div>
               </button>
+              </StaggerItem>
             );
           })}
-        </div>
+        </Stagger>
 
-        {/* Filter Panel & Console Area */}
+        <StaggerItem>
         <div className="glass-panel rounded-2xl p-5 space-y-4 glow-accent">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-4 border-b border-primary/10">
             <div>
@@ -903,8 +895,9 @@ export const ReportsScreen = () => {
           </div>
 
         </div>
+        </StaggerItem>
 
-      </div>
+      </ScreenLayout>
   );
 };
 

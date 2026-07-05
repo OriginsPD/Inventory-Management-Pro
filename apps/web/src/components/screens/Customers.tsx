@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { CreateCustomerSchema, CustomerType } from '@ims_pro/shared';
 import { useFeedback } from '@/components/ui/feedback-provider';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@ims_pro/ui/components/dialog';
+import { ScreenLayout, ScreenHeader, Stagger, StaggerItem } from '@/components/ui/motion';
 import {
   Select,
   SelectContent,
@@ -69,7 +70,7 @@ const DeviceAuditTimelineModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-xl w-full max-h-[80vh] flex flex-col border-0 animate-in fade-in zoom-in-95 duration-150 overflow-hidden" showCloseButton={true}>
+      <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-xl w-full max-h-[80vh] flex flex-col border-0 overflow-hidden" showCloseButton={true}>
         <DialogHeader className="text-left space-y-0.5 shrink-0">
           <DialogTitle className="text-sm font-extrabold tracking-tight text-foreground p-0 flex items-center gap-2 select-none">
             <span className="material-symbols-outlined text-primary text-base select-none">history</span>
@@ -568,14 +569,11 @@ export const Customers = () => {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div className="text-left">
-            <h2 className="text-2xl font-extrabold tracking-tight text-foreground">Customer Management</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Maintain a registry of corporate fleets and individual operators for hardware distribution.
-            </p>
-          </div>
+    <ScreenLayout className="max-w-6xl mx-auto">
+        <ScreenHeader
+          title="Customer Management"
+          description="Maintain a registry of corporate fleets and individual operators for hardware distribution."
+          actions={
           <div className="flex items-center gap-3">
             <div className="relative w-full md:w-64">
               <span className="material-symbols-outlined text-sm text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
@@ -593,11 +591,11 @@ export const Customers = () => {
               <span className="material-symbols-outlined text-sm">add</span> Add Customer
             </button>
           </div>
-        </div>
+          }
+        />
 
-        {/* KPI Summary Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 select-none">
-          <div className="glass-panel p-5 rounded-xl space-y-2 text-left">
+        <Stagger className="grid grid-cols-1 md:grid-cols-3 gap-4 select-none">
+          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2 text-left">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Fleet Accounts</p>
             <p className="text-2xl font-black text-foreground">
               {customers.length}
@@ -605,15 +603,15 @@ export const Customers = () => {
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">
               {customers.filter(c => c.type === 'COMPANY').length} Companies / {customers.filter(c => c.type === 'PERSON').length} Operators
             </p>
-          </div>
-          <div className="glass-panel p-5 rounded-xl space-y-2 text-left">
+          </StaggerItem>
+          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2 text-left">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Active Deployed Assets</p>
             <p className="text-2xl font-black text-[#00508a] dark:text-[#38bdf8]">
               {devices.filter(d => d.status === 'DISPATCHED').length}
             </p>
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Units Deployed in Field</p>
-          </div>
-          <div className="glass-panel p-5 rounded-xl space-y-2 text-left">
+          </StaggerItem>
+          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2 text-left">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Fleet RMA Rate</p>
             <p className="text-2xl font-black text-red-400">
               {devices.filter(d => d.status === 'DISPATCHED').length > 0
@@ -623,9 +621,10 @@ export const Customers = () => {
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">
               {devices.filter(d => d.status === 'DAMAGED').length} Active Damaged Units
             </p>
-          </div>
-        </div>
+          </StaggerItem>
+        </Stagger>
 
+        <StaggerItem>
         <div className="glass-panel rounded-xl overflow-x-auto overflow-y-visible">
           <Table className="table-fixed w-full min-w-[800px]">
             <TableHeader>
@@ -816,9 +815,10 @@ export const Customers = () => {
             </div>
           )}
         </div>
+        </StaggerItem>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="glass-panel-elevated max-w-lg w-full overflow-hidden border-0 p-0 animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
+        <DialogContent className="glass-panel-elevated max-w-lg w-full overflow-hidden border-0 p-0" showCloseButton={true}>
           <DialogHeader className="p-6 border-b border-primary/10 bg-card/60 text-left space-y-0.5">
             <DialogTitle className="text-lg font-extrabold text-foreground p-0">{selectedCustomer ? 'Edit Customer Profile' : 'Register New Customer'}</DialogTitle>
             <DialogDescription className="text-xs text-muted mt-0.5">Capture essential details for device allocation and tracking.</DialogDescription>
@@ -926,7 +926,7 @@ export const Customers = () => {
           onClose={() => setSelectedAuditDevice(null)}
         />
       )}
-    </div>
+    </ScreenLayout>
   );
 };
 

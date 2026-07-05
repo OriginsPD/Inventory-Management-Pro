@@ -1,4 +1,7 @@
-Please download and place the following variable WOFF2 font assets inside this directory:
-1. Geist-Variable.woff2
-2. GeistMono-Variable.woff2
-3. material-symbols-outlined.woff2
+Fonts are bundled via npm dependencies (see apps/web/package.json):
+
+- Geist sans: @fontsource-variable/geist
+- Geist mono: @fontsource-variable/geist-mono
+- Material Symbols Outlined: @material-symbols/font-400
+
+Imported in apps/web/src/index.css — no manual font files needed here.

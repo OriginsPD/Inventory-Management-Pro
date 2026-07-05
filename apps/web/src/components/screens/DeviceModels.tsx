@@ -23,6 +23,7 @@ import {
   TableHead,
   TableCell,
 } from "@ims_pro/ui/components/table"
+import { ScreenLayout, ScreenHeader, Stagger, StaggerItem, MotionDialogBody } from '@/components/ui/motion';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -320,44 +321,41 @@ export const DeviceModels = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-foreground">Device Models</h2>
-            <p className="text-sm text-muted-foreground mt-1">Configure hardware templates and relationship rules.</p>
-          </div>
-          {user?.role === 'SUPER_USER' && (
+    <ScreenLayout className="max-w-5xl mx-auto">
+        <ScreenHeader
+          title="Device Models"
+          description="Configure hardware templates and relationship rules."
+          actions={user?.role === 'SUPER_USER' ? (
             <button
               onClick={() => { reset(); setEditingModelId(null); setIsAdding(true); }}
               className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 h-9 px-4 gap-1.5 cursor-pointer"
             >
               <span className="material-symbols-outlined text-sm">add</span> New Model Template
             </button>
-          )}
-        </div>
+          ) : undefined}
+        />
 
-        {/* KPI Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="glass-panel p-5 rounded-xl space-y-2">
+        <Stagger className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Total Templates</p>
             <p className="text-2xl font-black text-foreground">{models.length}</p>
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Active hardware profiles</p>
-          </div>
-          <div className="glass-panel p-5 rounded-xl space-y-2">
+          </StaggerItem>
+          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Polymorphic Rules</p>
             <p className="text-2xl font-black text-[#eb5a00]">{models.filter(m => m.allowedChildren.length > 0).length}</p>
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Profiles with linked accessory rules</p>
-          </div>
-          <div className="glass-panel p-5 rounded-xl space-y-2">
+          </StaggerItem>
+          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Max Stock Capacity</p>
             <p className="text-2xl font-black text-[#00508a] dark:text-[#38bdf8]">
               {models.reduce((sum, m) => sum + (m.maxStock || 0), 0).toLocaleString()}
             </p>
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Combined target storage cap</p>
-          </div>
-        </div>
+          </StaggerItem>
+        </Stagger>
 
-        {/* Data Table View */}
+        <StaggerItem>
         <div className="glass-panel rounded-xl overflow-visible">
             <div className="w-full overflow-visible">
               <Table>
@@ -525,10 +523,13 @@ export const DeviceModels = () => {
               </div>
             )}
           </div>
+        </div>
+        </StaggerItem>
 
         {/* DIALOG MODAL: Create & Edit Form */}
         <Dialog open={isAdding} onOpenChange={(open) => { if (!open) { setIsAdding(false); setEditingModelId(null); } }}>
-          <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-xl w-full space-y-4 border-0 animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
+          <DialogContent className="glass-panel-elevated rounded-2xl max-w-xl w-full border-0" showCloseButton={true}>
+            <MotionDialogBody className="p-6 space-y-4">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <DialogHeader className="text-left space-y-0.5">
                 <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">
@@ -663,13 +664,15 @@ export const DeviceModels = () => {
                   </button>
                 </div>
               </form>
+            </MotionDialogBody>
             </DialogContent>
           </Dialog>
 
         {/* DIALOG MODAL: View Details Mode */}
         <Dialog open={!!viewModalModel} onOpenChange={(open) => { if (!open) setViewModalModel(null); }}>
           {viewModalModel && (
-            <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-md w-full space-y-4 border-0 animate-in fade-in zoom-in-95 duration-150" showCloseButton={true}>
+            <DialogContent className="glass-panel-elevated rounded-2xl max-w-md w-full border-0" showCloseButton={true}>
+              <MotionDialogBody className="p-6 space-y-4">
               <DialogHeader className="text-left space-y-0.5">
                 <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">Hardware Template Details</DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">Read-only configuration profile for this device template.</DialogDescription>
@@ -732,10 +735,11 @@ export const DeviceModels = () => {
                   Close Detail View
                 </button>
               </div>
+              </MotionDialogBody>
             </DialogContent>
           )}
         </Dialog>
-      </div>
+      </ScreenLayout>
   );
 };
 

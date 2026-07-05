@@ -1,6 +1,8 @@
-import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { Outlet, createFileRoute, redirect, useRouterState } from "@tanstack/react-router";
+import { AnimatePresence } from "motion/react";
 
 import { AppShell } from "@/components/layout/AppShell";
+import { PageTransition } from "@/components/ui/motion";
 import { getServerSession } from "@/lib/get-session";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -16,9 +18,15 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedLayout() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+
   return (
     <AppShell>
-      <Outlet />
+      <AnimatePresence mode="wait">
+        <PageTransition key={pathname} className="w-full">
+          <Outlet />
+        </PageTransition>
+      </AnimatePresence>
     </AppShell>
   );
 }

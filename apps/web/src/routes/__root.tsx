@@ -5,6 +5,7 @@ import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanst
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { createMiddleware } from "@tanstack/react-start";
 import { evlogErrorHandler } from "evlog/nitro/v3";
+import { LazyMotion, domAnimation } from "motion/react";
 import { ThemeProvider } from "next-themes";
 
 import { AuthProvider } from "@/components/ui/auth-context";
@@ -75,13 +76,15 @@ function AppProviders({ children }: { children: React.ReactNode }) {
 
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <QueryClientProvider client={queryClient}>
-            <FeedbackProvider>{children}</FeedbackProvider>
-          </QueryClientProvider>
-        </ThemeProvider>
-      </AuthProvider>
+      <LazyMotion features={domAnimation} strict>
+        <AuthProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <QueryClientProvider client={queryClient}>
+              <FeedbackProvider>{children}</FeedbackProvider>
+            </QueryClientProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </LazyMotion>
     </ErrorBoundary>
   );
 }

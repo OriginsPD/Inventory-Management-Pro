@@ -4,6 +4,7 @@ import { Device, DeviceModel } from '@/lib/types/domain';
 
 import { ScrollArea } from '@ims_pro/ui/components/scroll-area';
 import { InlineErrorState } from '@/components/ui/inline-error-state';
+import { ScreenLayout, ScreenHeader, Stagger, StaggerItem } from '@/components/ui/motion';
 
 interface DashboardStats {
   totalDevices: number;
@@ -355,14 +356,11 @@ export const DashboardScreen = () => {
   const [now] = useState(() => Date.now());
 
   return (
-    <div className="flex flex-col gap-8">
-        {/* Header Section */}
-        <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Warehouse Operations</h1>
-            <p className="text-muted-foreground mt-1 text-sm">Real-time logistics and inventory health telemetry.</p>
-          </div>
-        </div>
+    <ScreenLayout gap="gap-8">
+        <ScreenHeader
+          title="Warehouse Operations"
+          description="Real-time logistics and inventory health telemetry."
+        />
 
         {loadError !== null && !isLoading && (
           <div className="glass-panel rounded-xl overflow-hidden">
@@ -376,7 +374,7 @@ export const DashboardScreen = () => {
         )}
 
         {/* KPI Metrics Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <Stagger className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {isLoading ? (
             Array(5).fill(0).map((_, i) => (
               <div key={i} className="glass-panel p-5 rounded-xl animate-pulse space-y-3">
@@ -386,7 +384,7 @@ export const DashboardScreen = () => {
             ))
           ) : (
             <>
-                <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
+                <StaggerItem className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Total Hardware</span>
                   <span className="material-symbols-outlined text-primary text-xl">inventory</span>
@@ -397,9 +395,9 @@ export const DashboardScreen = () => {
                     <span className="material-symbols-outlined text-[12px]">trending_up</span> +2.4% vs prev week
                   </div>
                 </div>
-              </div>
+              </StaggerItem>
 
-                <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
+                <StaggerItem className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Active Dispatched</span>
                   <span className="material-symbols-outlined text-secondary-foreground text-xl">local_shipping</span>
@@ -410,9 +408,9 @@ export const DashboardScreen = () => {
                     <span className="material-symbols-outlined text-[12px]">sync</span> In Transit
                   </div>
                 </div>
-              </div>
+              </StaggerItem>
 
-                <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
+                <StaggerItem className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Testing Bench</span>
                   <span className="material-symbols-outlined text-purple-300 text-xl">biotech</span>
@@ -423,9 +421,9 @@ export const DashboardScreen = () => {
                     <span className="material-symbols-outlined text-[12px]">schedule</span> Avg. 4h cycle
                   </div>
                 </div>
-              </div>
+              </StaggerItem>
 
-                <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
+                <StaggerItem className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Ready Stock</span>
                   <span className="material-symbols-outlined text-primary text-xl">package_2</span>
@@ -436,9 +434,9 @@ export const DashboardScreen = () => {
                     <span className="material-symbols-outlined text-[12px]">check_circle</span> 92% SLA target
                   </div>
                 </div>
-              </div>
+              </StaggerItem>
 
-                <div className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
+                <StaggerItem className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">QC Pass Rate</span>
                   <span className="material-symbols-outlined text-primary text-xl">task_alt</span>
@@ -449,15 +447,15 @@ export const DashboardScreen = () => {
                     <span className="material-symbols-outlined text-[12px]">verified</span> Near Peak efficiency
                   </div>
                 </div>
-              </div>
+              </StaggerItem>
             </>
           )}
-        </div>
+        </Stagger>
 
         {/* Analytics & Graphs row */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <Stagger className="grid gap-6 md:grid-cols-3">
           {/* Dispatch Trend SVG Chart */}
-          <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between md:col-span-2">
+          <StaggerItem className="glass-panel p-6 rounded-2xl flex flex-col justify-between md:col-span-2">
             <div>
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
@@ -642,10 +640,10 @@ export const DashboardScreen = () => {
                 No telemetry trends logged.
               </div>
             )}
-          </div>
+          </StaggerItem>
 
           {/* Hardware Breakdown Donut equivalent */}
-          <div className="glass-panel p-6 rounded-2xl flex flex-col">
+          <StaggerItem className="glass-panel p-6 rounded-2xl flex flex-col">
             <div>
               <div className="flex justify-between items-center mb-2">
                 <h3 className="font-bold text-lg">Asset Class Breakdown</h3>
@@ -730,13 +728,13 @@ export const DashboardScreen = () => {
                 No inventory breakdown logged.
               </div>
             )}
-          </div>
-        </div>
+          </StaggerItem>
+        </Stagger>
 
         {/* Lower Layout Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <Stagger className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Stock Health Table */}
-          <div className="lg:col-span-3 glass-panel rounded-2xl overflow-hidden flex flex-col">
+          <StaggerItem className="lg:col-span-3 glass-panel rounded-2xl overflow-hidden flex flex-col">
             <div className="p-6 border-b border-primary/10 flex justify-between items-center bg-primary/5">
               <h3 className="font-bold text-lg">Model Stock Health Register</h3>
               <a href="/models" className="text-xs text-primary hover:underline">View All Models</a>
@@ -827,10 +825,10 @@ export const DashboardScreen = () => {
                 </tbody>
               </table>
             </div>
-          </div>
+          </StaggerItem>
 
           {/* Right layout Column */}
-          <div className="lg:col-span-1 flex flex-col gap-6">
+          <StaggerItem className="lg:col-span-1 flex flex-col gap-6">
             {/* Recent Operations Log */}
             <div className="glass-panel p-6 rounded-2xl flex-1 flex flex-col">
               <h3 className="font-bold text-lg mb-4">Recent Operations</h3>
@@ -879,9 +877,9 @@ export const DashboardScreen = () => {
                 Ingest Inventory
               </a>
             </div>
-          </div>
-        </div>
-      </div>
+          </StaggerItem>
+        </Stagger>
+      </ScreenLayout>
   );
 };
 

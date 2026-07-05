@@ -13,6 +13,8 @@ import type { QCCheckItem } from '@ims_pro/shared';
 import { playSuccessBeep, playErrorBuzz, playChirp } from '@/lib/audio';
 import { useDevices } from '@/lib/hooks/useDomain';
 import { Device } from '@/lib/types/domain';
+import { ScreenLayout, ScreenHeader, StaggerItem } from '@/components/ui/motion';
+import { ScreenLayout, ScreenHeader, StaggerItem } from '@/components/ui/motion';
 
 export const QCBench = () => {
   const { toast } = useFeedback();
@@ -458,14 +460,11 @@ export const QCBench = () => {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">QC Bench Testing</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Select a hardware unit from inventory to begin the manual diagnostic checklist.
-            </p>
-          </div>
+    <ScreenLayout className="max-w-6xl mx-auto">
+        <ScreenHeader
+          title="QC Bench Testing"
+          description="Select a hardware unit from inventory to begin the manual diagnostic checklist."
+          actions={
           <div className="relative w-full md:w-80">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">search</span>
             <input
@@ -475,8 +474,10 @@ export const QCBench = () => {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-        </div>
+          }
+        />
 
+        <StaggerItem>
         <div className="glass-panel rounded-2xl overflow-hidden">
           <Table>
             <TableHeader className="bg-card/40 border-b border-primary/10">
@@ -591,7 +592,8 @@ export const QCBench = () => {
             </div>
           )}
         </div>
-      </div>
+        </StaggerItem>
+      </ScreenLayout>
   );
 };
 

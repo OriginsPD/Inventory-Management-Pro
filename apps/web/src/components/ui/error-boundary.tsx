@@ -44,10 +44,11 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <ErrorScreen
           status="Runtime"
-          title="Station System Interrupted"
-          description="An unexpected frontend runtime exception occurred. Reload the station or return to the dashboard."
+          title="Terminal System Interrupted"
+          description="An unexpected frontend runtime exception occurred. Reload the terminal or return to the dashboard."
           icon="warning"
-          primaryLabel="Reload Station"
+          severity="error"
+          primaryLabel="Reload Terminal"
           secondaryLabel="Dashboard"
           onPrimary={this.handleReset}
           onSecondary={this.handleDashboard}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { useFeedback } from '@/components/ui/feedback-provider';
 import { useSearchParams } from "@/lib/hooks/useSearchParams";
+import { ScreenLayout, StaggerItem, FadeUp } from '@/components/ui/motion';
 
 export const SettingsScreen = () => {
   const { toast } = useFeedback();
@@ -69,7 +70,7 @@ export const SettingsScreen = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full animate-in fade-in duration-300">
+    <ScreenLayout className="max-w-4xl mx-auto">
       <style>{`
         @keyframes soundwave {
           0%, 100% { height: 4px; }
@@ -85,6 +86,7 @@ export const SettingsScreen = () => {
         .accent-glow-indigo { box-shadow: 0 0 15px rgba(99, 102, 241, 0.4); }
       `}</style>
 
+      <FadeUp>
       <div>
         <h1 className="text-3xl font-black tracking-tight text-foreground uppercase italic flex items-center gap-2">
           System <span className="text-primary">Settings</span>
@@ -93,8 +95,9 @@ export const SettingsScreen = () => {
           Personalize terminal workspace appearance, layout density, and audit sound feedback
         </p>
       </div>
+      </FadeUp>
 
-      {/* Horizontal Navigation Tab Bar */}
+      <StaggerItem>
       <div className="flex border-b border-primary/10 select-none">
         {[
           { id: 'visual', name: 'Visual Aesthetics', icon: 'palette' },
@@ -118,8 +121,9 @@ export const SettingsScreen = () => {
           );
         })}
       </div>
+      </StaggerItem>
 
-      {/* Settings Sections */}
+      <StaggerItem>
       <div className="w-full mt-2">
         {activeTab === 'visual' && (
           <div className="space-y-6">
@@ -344,7 +348,8 @@ export const SettingsScreen = () => {
             </div>
           </div>
         )}
-      </div>
-    </div>
+        </div>
+      </StaggerItem>
+    </ScreenLayout>
   );
 };
