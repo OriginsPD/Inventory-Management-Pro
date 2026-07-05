@@ -1,5 +1,5 @@
+import { useEffect } from "react";
 import { Outlet, createFileRoute, redirect, useRouterState } from "@tanstack/react-router";
-import { AnimatePresence } from "motion/react";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { PageTransition } from "@/components/ui/motion";
@@ -22,13 +22,18 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthenticatedLayout() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
+  useEffect(() => {
+    const main = document.querySelector("[data-portal-main]");
+    if (main instanceof HTMLElement) {
+      main.scrollTo({ top: 0, behavior: "instant" });
+    }
+  }, [pathname]);
+
   return (
     <AppShell>
-      <AnimatePresence mode="sync">
-        <PageTransition key={pathname} className="w-full">
-          <Outlet />
-        </PageTransition>
-      </AnimatePresence>
+      <PageTransition key={pathname} className="w-full">
+        <Outlet />
+      </PageTransition>
     </AppShell>
   );
 }

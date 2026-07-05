@@ -1,4 +1,3 @@
-import { ScreenLayout, StaggerItem } from "@/components/ui/motion";
 import { cn } from "@/lib/utils";
 
 import { CardGridSkeleton } from "./card-grid-skeleton";
@@ -24,7 +23,7 @@ interface ScreenLoadingShellProps {
 
 function HeaderSkeleton() {
   return (
-    <StaggerItem className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div className="space-y-2">
         <SkeletonBlock variant="title" className="h-9 w-56" />
         <SkeletonBlock variant="text" className="h-3 w-72 max-w-full" />
@@ -33,7 +32,7 @@ function HeaderSkeleton() {
         <SkeletonBlock variant="badge" className="h-9 w-24" />
         <SkeletonBlock variant="badge" className="h-9 w-32" />
       </div>
-    </StaggerItem>
+    </div>
   );
 }
 
@@ -59,11 +58,11 @@ function BodySkeleton({ variant }: { variant: ScreenLoadingVariant }) {
     case "profile":
       return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <StaggerItem className="glass-panel rounded-xl p-6 space-y-4 lg:col-span-1">
+          <div className="glass-panel rounded-xl p-6 space-y-4 lg:col-span-1">
             <SkeletonBlock variant="avatar" className="h-20 w-20 mx-auto" />
             <SkeletonBlock variant="title" className="mx-auto h-6 w-40" />
             <SkeletonBlock variant="text" className="mx-auto h-3 w-32" />
-          </StaggerItem>
+          </div>
           <div className="lg:col-span-2">
             <ListSkeleton rows={6} />
           </div>
@@ -84,9 +83,9 @@ export function ScreenLoadingShell({
   className,
 }: ScreenLoadingShellProps) {
   return (
-    <ScreenLayout className={cn("w-full", className)}>
+    <div className={cn("flex flex-col w-full gap-6", className)}>
       <HeaderSkeleton />
       <BodySkeleton variant={variant} />
-    </ScreenLayout>
+    </div>
   );
 }

@@ -8,14 +8,24 @@ import { FadeUp, Stagger, springTransition } from "./motion-primitives";
 interface ScreenLayoutProps extends HTMLMotionProps<"div"> {
   children: ReactNode;
   gap?: string;
+  animate?: boolean;
 }
 
 export function ScreenLayout({
   children,
   className,
   gap = "gap-6",
+  animate = false,
   ...props
 }: ScreenLayoutProps) {
+  if (!animate) {
+    return (
+      <div className={cn("flex flex-col w-full", gap, className)}>
+        {children}
+      </div>
+    );
+  }
+
   return (
     <Stagger className={cn("flex flex-col w-full", gap, className)} {...props}>
       {children}

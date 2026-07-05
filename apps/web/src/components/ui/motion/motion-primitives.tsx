@@ -17,8 +17,8 @@ export function FadeUp({ children, className, delay = 0, ...props }: FadeUpProps
 
   return (
     <m.div
-      initial={shouldReduceMotion ? false : { opacity: 0, y: 16, filter: "blur(4px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ ...springTransition, delay }}
       className={className}
       {...props}
@@ -63,11 +63,10 @@ export function StaggerItem({ children, className, ...props }: StaggerItemProps)
         shouldReduceMotion
           ? {}
           : {
-              hidden: { opacity: 0, y: 16, filter: "blur(4px)" },
+              hidden: { opacity: 0, y: 6 },
               visible: {
                 opacity: 1,
                 y: 0,
-                filter: "blur(0px)",
                 transition: springTransition,
               },
             }

@@ -7,7 +7,20 @@ import { useFeedback } from '@/components/ui/feedback-provider';
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { StockAlert } from '@/lib/types/domain';
 import { IMSBrandLogo } from '@/components/ui/IMSBrandLogo';
-import { Stagger, StaggerItem } from '@/components/ui/motion';
+
+const PAGE_TITLES: Record<string, string> = {
+  '/dashboard': 'Dashboard',
+  '/inventory': 'Inventory',
+  '/dispatch': 'Dispatch',
+  '/qc': 'QC Bench',
+  '/customers': 'Customers',
+  '/models': 'Model Templates',
+  '/swaps': 'RMA Swaps',
+  '/reports': 'Reports',
+  '/profile': 'Operator Profile',
+  '/settings': 'System Settings',
+  '/superuser': 'Super User Hub',
+};
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => {
   const { user, logout } = useAuth();
@@ -18,6 +31,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
   const shouldReduceMotion = useReducedMotion();
 
   const currentPath = useRouterState({ select: (s) => s.location.pathname });
+  const pageTitle = PAGE_TITLES[currentPath] ?? 'Portal';
 
   useEffect(() => {
     apiClient.get<StockAlert[]>('/api/stock-alerts')
@@ -37,24 +51,42 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
 
   const navGroups = [
     {
-      label: 'Operations',
+      label: 'Command Center',
       items: [
         { name: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
+      ],
+    },
+    {
+      label: 'Field Ops',
+      items: [
         { name: 'Inventory', path: '/inventory', icon: 'inventory_2' },
         { name: 'Dispatch', path: '/dispatch', icon: 'local_shipping' },
         { name: 'QC Bench', path: '/qc', icon: 'biotech' },
-      ]
+      ],
     },
     {
-      label: 'Management',
+      label: 'Registry',
       items: [
-        ...(user?.role === 'SUPER_USER' ? [{ name: 'Super User Hub', path: '/superuser', icon: 'shield_person' }] : []),
+        { name: 'Customers', path: '/customers', icon: 'groups' },
         { name: 'Model Templates', path: '/models', icon: 'layers' },
         { name: 'RMA Swaps', path: '/swaps', icon: 'swap_horiz' },
-        { name: 'Customers', path: '/customers', icon: 'groups' },
+      ],
+    },
+    {
+      label: 'Intelligence',
+      items: [
         { name: 'Reports', path: '/reports', icon: 'analytics' },
-        { name: 'Settings', path: '/settings', icon: 'settings' },
-      ]
+      ],
+    },
+    {
+      label: 'Console',
+      items: [
+        { name: 'Operator Profile', path: '/profile', icon: 'person' },
+        { name: 'System Settings', path: '/settings', icon: 'settings' },
+        ...(user?.role === 'SUPER_USER'
+          ? [{ name: 'Super User Hub', path: '/superuser', icon: 'shield_person' }]
+          : []),
+      ],
     },
   ];
 
@@ -88,35 +120,36 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-8">
-          <Stagger stagger={0.04}>
-            {navGroups.map((group) => (
-              <StaggerItem key={group.label} className="space-y-3">
-                <p className="px-3 text-[9px] font-bold uppercase tracking-[0.25em] text-muted-foreground">
-                  {group.label}
-                </p>
-                <div className="space-y-0.5">
-                  {group.items.map((item) => {
-                    const isActive = currentPath === item.path;
-                    return (
-                      <Link
-                        key={item.name}
-                        to={item.path}
-                        className={`flex items-center gap-3 px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-all duration-200 ${
-                          isActive 
-                            ? 'bg-primary/10 text-primary border-l-2 border-primary' 
-                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                        }`}
-                      >
-                        <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-                        {item.name}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </StaggerItem>
-            ))}
-          </Stagger>
+        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+          {navGroups.map((group, groupIndex) => (
+            <div
+              key={group.label}
+              className={groupIndex > 0 ? 'space-y-3 pt-4 border-t border-primary/5' : 'space-y-3'}
+            >
+              <p className="px-3 text-[9px] font-bold uppercase tracking-[0.25em] text-muted-foreground">
+                {group.label}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const isActive = currentPath === item.path;
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.path}
+                      className={`flex items-center gap-3 px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-all duration-200 ${
+                        isActive 
+                          ? 'bg-primary/10 text-primary border-l-2 border-primary' 
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         <div className="p-4 border-t border-border">
@@ -132,14 +165,19 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
 
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 bg-background">
         <header className="flex h-14 items-center justify-between border-b border-border bg-card px-6 shrink-0 z-10">
-          <button 
-            onClick={() => setSidebarOpen(true)}
-            className="p-1.5 -ml-1.5 lg:hidden text-muted-foreground hover:text-foreground"
-          >
-            <span className="material-symbols-outlined">menu</span>
-          </button>
+          <div className="flex items-center gap-3 min-w-0">
+            <button 
+              onClick={() => setSidebarOpen(true)}
+              className="p-1.5 -ml-1.5 lg:hidden text-muted-foreground hover:text-foreground shrink-0"
+            >
+              <span className="material-symbols-outlined">menu</span>
+            </button>
+            <h1 className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground truncate">
+              {pageTitle}
+            </h1>
+          </div>
           
-          <div className="flex items-center gap-4 ml-auto">
+          <div className="flex items-center gap-4 ml-auto shrink-0">
             {(() => {
               const withTarget = stockAlerts.filter(a => (a.maxStock ?? 0) > 0);
               const lowCount = withTarget.filter(a => a.level === 'LOW').length;
@@ -185,7 +223,10 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 lg:p-10 custom-scrollbar">
+        <main
+          data-portal-main
+          className="flex-1 overflow-y-auto overflow-x-hidden p-6 lg:p-8 custom-scrollbar"
+        >
           <div className="max-w-[1400px] w-full mx-auto">
             {children}
           </div>

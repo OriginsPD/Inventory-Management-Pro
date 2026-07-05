@@ -1,12 +1,12 @@
 import { m, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 
-import { springTransition } from "./motion-primitives";
-
 interface PageTransitionProps {
   children: ReactNode;
   className?: string;
 }
+
+const routeEase = [0.32, 0.72, 0, 1] as const;
 
 export function PageTransition({ children, className }: PageTransitionProps) {
   const shouldReduceMotion = useReducedMotion();
@@ -17,10 +17,10 @@ export function PageTransition({ children, className }: PageTransitionProps) {
 
   return (
     <m.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -4 }}
-      transition={springTransition}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: routeEase }}
       className={className}
     >
       {children}

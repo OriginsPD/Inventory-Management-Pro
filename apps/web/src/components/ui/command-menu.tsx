@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from '@tanstack/react-router';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   Search, 
   Home, 
@@ -11,7 +12,8 @@ import {
   Settings, 
   Scan, 
   FileSpreadsheet,
-  CornerDownLeft
+  CornerDownLeft,
+  UserCircle,
 } from 'lucide-react';
 import { ScrollArea } from '@ims_pro/ui/components/scroll-area';
 
@@ -19,27 +21,32 @@ interface CommandItem {
   id: string;
   name: string;
   category: 'Navigation' | 'Actions';
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   shortcut?: string;
   action: () => void;
 }
 
 export const CommandMenu = () => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const go = useCallback((to: string, search?: Record<string, string>) => {
+    navigate({ to, search });
+    setIsOpen(false);
+  }, [navigate]);
+
   const commands = useMemo<CommandItem[]>(() => [
-    // Navigation Commands
     {
       id: 'nav-dashboard',
       name: 'Go to Dashboard',
       category: 'Navigation',
       icon: Home,
       shortcut: 'G D',
-      action: () => { window.location.href = '/'; }
+      action: () => go('/dashboard'),
     },
     {
       id: 'nav-inventory',
@@ -47,7 +54,7 @@ export const CommandMenu = () => {
       category: 'Navigation',
       icon: Database,
       shortcut: 'G I',
-      action: () => { window.location.href = '/inventory'; }
+      action: () => go('/inventory'),
     },
     {
       id: 'nav-models',
@@ -55,7 +62,7 @@ export const CommandMenu = () => {
       category: 'Navigation',
       icon: Cpu,
       shortcut: 'G M',
-      action: () => { window.location.href = '/models'; }
+      action: () => go('/models'),
     },
     {
       id: 'nav-customers',
@@ -63,7 +70,7 @@ export const CommandMenu = () => {
       category: 'Navigation',
       icon: Users,
       shortcut: 'G C',
-      action: () => { window.location.href = '/customers'; }
+      action: () => go('/customers'),
     },
     {
       id: 'nav-dispatch',
@@ -71,7 +78,7 @@ export const CommandMenu = () => {
       category: 'Navigation',
       icon: Truck,
       shortcut: 'G P',
-      action: () => { window.location.href = '/dispatch'; }
+      action: () => go('/dispatch'),
     },
     {
       id: 'nav-qc',
@@ -79,7 +86,7 @@ export const CommandMenu = () => {
       category: 'Navigation',
       icon: CheckSquare,
       shortcut: 'G Q',
-      action: () => { window.location.href = '/qc'; }
+      action: () => go('/qc'),
     },
     {
       id: 'nav-swaps',
@@ -87,7 +94,15 @@ export const CommandMenu = () => {
       category: 'Navigation',
       icon: RefreshCw,
       shortcut: 'G S',
-      action: () => { window.location.href = '/swaps'; }
+      action: () => go('/swaps'),
+    },
+    {
+      id: 'nav-profile',
+      name: 'Go to Operator Profile',
+      category: 'Navigation',
+      icon: UserCircle,
+      shortcut: 'G U',
+      action: () => go('/profile'),
     },
     {
       id: 'nav-settings',
@@ -95,7 +110,7 @@ export const CommandMenu = () => {
       category: 'Navigation',
       icon: Settings,
       shortcut: 'G A',
-      action: () => { window.location.href = '/settings'; }
+      action: () => go('/settings'),
     },
     {
       id: 'nav-reports',
@@ -103,85 +118,66 @@ export const CommandMenu = () => {
       category: 'Navigation',
       icon: FileSpreadsheet,
       shortcut: 'G R',
-      action: () => { window.location.href = '/reports'; }
+      action: () => go('/reports'),
     },
-
-    // Action Commands
     {
       id: 'action-ingest',
       name: 'Bulk Ingest Assets (CSV Wizard)',
       category: 'Actions',
       icon: FileSpreadsheet,
-      action: () => {
-        window.location.href = '/inventory?action=ingest';
-      }
+      action: () => go('/inventory', { action: 'ingest' }),
     },
     {
       id: 'action-export-inventory',
       name: 'Export Active Inventory (Excel)',
       category: 'Actions',
       icon: FileSpreadsheet,
-      action: () => {
-        window.location.href = '/reports?tab=inventory';
-      }
+      action: () => go('/reports', { tab: 'inventory' }),
     },
     {
       id: 'action-export-stock',
       name: 'Export Stock Health Report (Excel)',
       category: 'Actions',
       icon: FileSpreadsheet,
-      action: () => {
-        window.location.href = '/reports?tab=stock';
-      }
+      action: () => go('/reports', { tab: 'stock' }),
     },
     {
       id: 'action-export-customers',
       name: 'Export Customer Allocations (Excel)',
       category: 'Actions',
       icon: FileSpreadsheet,
-      action: () => {
-        window.location.href = '/reports?tab=customer';
-      }
+      action: () => go('/reports', { tab: 'customer' }),
     },
     {
       id: 'action-export-audit',
       name: 'Export Lifecycle Audit logs (Excel)',
       category: 'Actions',
       icon: FileSpreadsheet,
-      action: () => {
-        window.location.href = '/reports?tab=audit';
-      }
+      action: () => go('/reports', { tab: 'audit' }),
     },
     {
       id: 'action-scan',
       name: 'Scan Box Incoming Inventory',
       category: 'Actions',
       icon: Scan,
-      action: () => {
-        window.location.href = '/inventory?action=scan';
-      }
+      action: () => go('/inventory', { action: 'scan' }),
     },
     {
       id: 'action-swap',
       name: 'Perform Atomic RMA Swap',
       category: 'Actions',
       icon: RefreshCw,
-      action: () => {
-        window.location.href = '/swaps?action=new';
-      }
+      action: () => go('/swaps', { action: 'new' }),
     },
     {
       id: 'action-dispatch-stage',
       name: 'Stage Dispatch Batch',
       category: 'Actions',
       icon: Truck,
-      action: () => {
-        window.location.href = '/dispatch?action=stage';
-      }
-    }
-  ], []);
+      action: () => go('/dispatch', { action: 'stage' }),
+    },
+  ], [go]);
 
-  // Filter commands based on search
   const filteredCommands = useMemo(() => {
     if (!search.trim()) return commands;
     const query = search.toLowerCase();
@@ -191,10 +187,8 @@ export const CommandMenu = () => {
     );
   }, [search, commands]);
 
-  // Handle global shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Toggle menu with Cmd+K or Ctrl+K
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setIsOpen(prev => !prev);
@@ -202,7 +196,6 @@ export const CommandMenu = () => {
         setSelectedIndex(0);
       }
 
-      // Escape to close
       if (e.key === 'Escape' && isOpen) {
         setIsOpen(false);
       }
@@ -212,7 +205,6 @@ export const CommandMenu = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  // Focus input when modal opens
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => {
@@ -221,7 +213,6 @@ export const CommandMenu = () => {
     }
   }, [isOpen]);
 
-  // Key navigation in list
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (filteredCommands.length === 0) return;
 
@@ -234,11 +225,9 @@ export const CommandMenu = () => {
     } else if (e.key === 'Enter') {
       e.preventDefault();
       filteredCommands[selectedIndex]?.action();
-      setIsOpen(false);
     }
   };
 
-  // Click outside to close
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -254,7 +243,6 @@ export const CommandMenu = () => {
 
   if (!isOpen) return null;
 
-  // Group commands by category
   const categories = ['Navigation', 'Actions'] as const;
 
   return (
@@ -263,7 +251,6 @@ export const CommandMenu = () => {
         ref={containerRef}
         className="w-full max-w-lg border border-border bg-card shadow-xl rounded-lg overflow-hidden flex flex-col max-h-[420px] animate-in zoom-in-95 duration-150"
       >
-        {/* Search header */}
         <div className="flex items-center gap-2.5 px-3.5 border-b border-border bg-card">
           <Search className="h-4 w-4 text-muted-foreground shrink-0" />
           <input
@@ -283,7 +270,6 @@ export const CommandMenu = () => {
           </kbd>
         </div>
 
-        {/* Command list content */}
         <ScrollArea className="flex-1 max-h-[300px]">
           {filteredCommands.length > 0 ? (
             <div className="p-2 space-y-3">
@@ -298,7 +284,6 @@ export const CommandMenu = () => {
                     </p>
                     <div className="space-y-0.5">
                       {categoryCommands.map(cmd => {
-                        // Find global index in the flattened filteredCommands array
                         const globalIdx = filteredCommands.findIndex(c => c.id === cmd.id);
                         const isSelected = globalIdx === selectedIndex;
                         const Icon = cmd.icon;
@@ -306,10 +291,7 @@ export const CommandMenu = () => {
                         return (
                           <div
                             key={cmd.id}
-                            onClick={() => {
-                              cmd.action();
-                              setIsOpen(false);
-                            }}
+                            onClick={() => cmd.action()}
                             onMouseEnter={() => setSelectedIndex(globalIdx)}
                             className={`flex items-center justify-between px-2.5 py-1.5 rounded-md cursor-pointer transition-colors duration-100 ${
                               isSelected 
@@ -347,7 +329,6 @@ export const CommandMenu = () => {
           )}
         </ScrollArea>
 
-        {/* Keyboard navigation footer */}
         <div className="flex items-center justify-between px-3.5 py-2 border-t border-border bg-muted/30 text-[10px] text-muted-foreground font-medium shrink-0">
           <div className="flex items-center gap-2.5">
             <span>↑↓ to navigate</span>
