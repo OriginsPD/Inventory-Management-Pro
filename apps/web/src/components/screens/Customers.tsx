@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { apiClient } from '@/lib/api-client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ims_pro/ui/components/table';
-import { Skeleton } from '@ims_pro/ui/components/skeleton';
+import { ListSkeleton, TableSkeleton } from '@/components/ui/loading';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -83,11 +83,7 @@ const DeviceAuditTimelineModal = ({
 
         <div className="flex-1 overflow-y-auto mt-4 pr-1 scrollbar-custom space-y-3 min-h-[200px]">
           {isLoading ? (
-            <div className="space-y-3 animate-pulse">
-              <div className="h-10 bg-primary/5 rounded-lg" />
-              <div className="h-10 bg-primary/5 rounded-lg" />
-              <div className="h-10 bg-primary/5 rounded-lg" />
-            </div>
+            <ListSkeleton rows={3} />
           ) : logs.length > 0 ? (
             <div className="relative border-l border-primary/10 ml-2.5 pl-4 space-y-4 py-1">
               {logs.map((log) => (
@@ -398,9 +394,7 @@ export const Customers = () => {
 
                   <div className="divide-y divide-primary/10">
                     {isHistoryLoading ? (
-                      Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="p-4"><Skeleton className="h-12 w-full animate-pulse" /></div>
-                      ))
+                      <ListSkeleton rows={3} className="p-2" />
                     ) : isHistoryError ? (
                       <div className="p-4">
                         <InlineErrorState
@@ -638,15 +632,18 @@ export const Customers = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-full animate-pulse" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-full animate-pulse" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-full animate-pulse" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-full animate-pulse" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
-                  </TableRow>
-                ))
+                <TableSkeleton
+                  bodyOnly
+                  rows={5}
+                  showHeader={false}
+                  columns={[
+                    { width: "w-full" },
+                    { width: "w-full" },
+                    { width: "w-full" },
+                    { width: "w-full" },
+                    { width: "w-8", align: "right", type: "icon" },
+                  ]}
+                />
               ) : isCustomersError ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-auto p-0">

@@ -6,9 +6,9 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { apiClient } from '@/lib/api-client';
-import { Skeleton } from '@ims_pro/ui/components/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@ims_pro/ui/components/dialog';
 import { ScreenLayout, StaggerItem, FadeUp, MotionDialogBody } from '@/components/ui/motion';
+import { ScreenLoadingShell, TableSkeleton } from '@/components/ui/loading';
 import {
   Select,
   SelectContent,
@@ -313,11 +313,7 @@ export const SuperUserHubScreen = () => {
   }, [auditLogs, auditSearch]);
 
   if (isAuthLoading) {
-    return (
-      <div className="max-w-6xl mx-auto py-10 flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
-      </div>
-    );
+    return <ScreenLoadingShell variant="tabs" />;
   }
 
   return (
@@ -410,14 +406,17 @@ export const SuperUserHubScreen = () => {
                     </TableHeader>
                     <TableBody>
                       {isUsersLoading ? (
-                        Array.from({ length: 3 }).map((_, index) => (
-                          <TableRow key={index} className="animate-pulse">
-                            <TableCell className="p-4"><Skeleton className="h-4 w-36" /></TableCell>
-                            <TableCell className="p-4"><Skeleton className="h-4 w-44" /></TableCell>
-                            <TableCell className="p-4"><Skeleton className="h-5 w-20 rounded" /></TableCell>
-                            <TableCell className="p-4 text-right"><Skeleton className="h-4 w-4 ml-auto" /></TableCell>
-                          </TableRow>
-                        ))
+                        <TableSkeleton
+                          bodyOnly
+                          rows={3}
+                          showHeader={false}
+                          columns={[
+                            { width: "w-36" },
+                            { width: "w-44" },
+                            { width: "w-20", type: "badge" },
+                            { width: "w-4", align: "right", type: "icon" },
+                          ]}
+                        />
                       ) : paginatedUsers.length > 0 ? (
                         paginatedUsers.map((u) => {
                           const getRoleBadgeClass = (r: string) => {
@@ -675,15 +674,18 @@ export const SuperUserHubScreen = () => {
                   </TableHeader>
                   <TableBody>
                     {isAuditLoading ? (
-                      Array.from({ length: 4 }).map((_, idx) => (
-                        <TableRow key={idx} className="animate-pulse">
-                          <TableCell className="p-4"><Skeleton className="h-4 w-12" /></TableCell>
-                          <TableCell className="p-4"><Skeleton className="h-4 w-24" /></TableCell>
-                          <TableCell className="p-4"><Skeleton className="h-4 w-20" /></TableCell>
-                          <TableCell className="p-4"><Skeleton className="h-4 w-48" /></TableCell>
-                          <TableCell className="p-4"><Skeleton className="h-4 w-16" /></TableCell>
-                        </TableRow>
-                      ))
+                      <TableSkeleton
+                        bodyOnly
+                        rows={4}
+                        showHeader={false}
+                        columns={[
+                          { width: "w-12" },
+                          { width: "w-24" },
+                          { width: "w-20" },
+                          { width: "w-48" },
+                          { width: "w-16" },
+                        ]}
+                      />
                     ) : filteredAuditLogs.length > 0 ? (
                       filteredAuditLogs.map((log) => (
                         <TableRow key={log.id} className="hover:bg-primary/5 transition-colors">

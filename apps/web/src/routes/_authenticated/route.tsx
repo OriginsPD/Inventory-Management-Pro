@@ -3,6 +3,7 @@ import { AnimatePresence } from "motion/react";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { PageTransition } from "@/components/ui/motion";
+import { ScreenLoadingShell } from "@/components/ui/loading";
 import { getServerSession } from "@/lib/get-session";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/_authenticated")({
     }
     return { session };
   },
+  pendingComponent: () => <ScreenLoadingShell variant="default" />,
   component: AuthenticatedLayout,
 });
 

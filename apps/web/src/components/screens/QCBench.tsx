@@ -4,8 +4,8 @@ import { useFeedback } from '@/components/ui/feedback-provider';
 import { apiClient } from '@/lib/api-client';
 import { useAuth } from '@/components/ui/auth-context';
 
-import { Skeleton } from '@ims_pro/ui/components/skeleton';
 import { Button } from '@ims_pro/ui/components/button';
+import { TableSkeleton } from '@/components/ui/loading';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ims_pro/ui/components/table';
 import { DEFAULT_QC_CHECKS, QCCheckStatus } from '@ims_pro/shared';
@@ -490,15 +490,18 @@ export const QCBench = () => {
             </TableHeader>
             <TableBody className="divide-y divide-primary/5">
               {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-32 bg-primary/10" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24 bg-primary/10" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20 bg-primary/10" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-28 bg-primary/10" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto bg-primary/10" /></TableCell>
-                  </TableRow>
-                ))
+                <TableSkeleton
+                  bodyOnly
+                  rows={5}
+                  showHeader={false}
+                  columns={[
+                    { width: "w-32" },
+                    { width: "w-24" },
+                    { width: "w-20", type: "badge" },
+                    { width: "w-28" },
+                    { width: "w-20", align: "right", type: "icon" },
+                  ]}
+                />
               ) : paginatedDevices.length > 0 ? (
                 paginatedDevices.map((device: Device) => {
                   const qcStatus = device.metadata?.qcStatus;

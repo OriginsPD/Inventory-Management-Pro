@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { useFeedback } from '@/components/ui/feedback-provider';
 import { useAuth } from '@/components/ui/auth-context';
-import { Skeleton } from '@ims_pro/ui/components/skeleton';
+import { TableSkeleton } from '@/components/ui/loading';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@ims_pro/ui/components/dialog';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -371,16 +371,19 @@ export const DeviceModels = () => {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    Array.from({ length: 4 }).map((_, index) => (
-                      <TableRow key={index} className="animate-pulse">
-                        <TableCell className="p-4 align-middle"><Skeleton className="h-4 w-36" /></TableCell>
-                        <TableCell className="p-4 align-middle"><Skeleton className="h-4 w-28" /></TableCell>
-                        <TableCell className="p-4 align-middle"><Skeleton className="h-5 w-16 rounded" /></TableCell>
-                        <TableCell className="p-4 align-middle"><Skeleton className="h-4 w-44" /></TableCell>
-                        <TableCell className="p-4 align-middle"><Skeleton className="h-4 w-28" /></TableCell>
-                        <TableCell className="p-4 align-middle text-right"><Skeleton className="h-4 w-4 ml-auto" /></TableCell>
-                      </TableRow>
-                    ))
+                    <TableSkeleton
+                      bodyOnly
+                      rows={4}
+                      showHeader={false}
+                      columns={[
+                        { width: "w-36" },
+                        { width: "w-28" },
+                        { width: "w-16", type: "badge" },
+                        { width: "w-44" },
+                        { width: "w-28" },
+                        { width: "w-4", align: "right", type: "icon" },
+                      ]}
+                    />
                   ) : paginatedModels.length > 0 ? (
                     paginatedModels.map((model) => (
                       <TableRow key={model.id} className="group hover:bg-primary/5 transition-colors">

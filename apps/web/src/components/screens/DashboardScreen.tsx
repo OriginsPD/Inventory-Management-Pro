@@ -5,6 +5,7 @@ import { Device, DeviceModel } from '@/lib/types/domain';
 import { ScrollArea } from '@ims_pro/ui/components/scroll-area';
 import { InlineErrorState } from '@/components/ui/inline-error-state';
 import { ScreenLayout, ScreenHeader, Stagger, StaggerItem } from '@/components/ui/motion';
+import { CardGridSkeleton, ChartSkeleton, SkeletonBlock } from '@/components/ui/loading';
 
 interface DashboardStats {
   totalDevices: number;
@@ -376,12 +377,7 @@ export const DashboardScreen = () => {
         {/* KPI Metrics Bento Grid */}
         <Stagger className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {isLoading ? (
-            Array(5).fill(0).map((_, i) => (
-              <div key={i} className="glass-panel p-5 rounded-xl animate-pulse space-y-3">
-                <div className="h-3 bg-primary/20 rounded w-2/3" />
-                <div className="h-6 bg-primary/20 rounded w-1/2" />
-              </div>
-            ))
+            <CardGridSkeleton count={5} columns={5} />
           ) : (
             <>
                 <StaggerItem className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
@@ -510,7 +506,7 @@ export const DashboardScreen = () => {
             </div>
 
             {isLoading ? (
-              <div className="h-[180px] bg-primary/5 animate-pulse rounded-lg border border-dashed border-primary/20" />
+              <ChartSkeleton />
             ) : activeTrendData.length > 0 ? (
               <div className="relative pt-2">
                 {/* SVG Graphics container */}
@@ -653,10 +649,7 @@ export const DashboardScreen = () => {
             </div>
 
             {isLoading ? (
-              <div className="space-y-4 animate-pulse">
-                <div className="h-3 bg-primary/20 rounded w-full" />
-                <div className="h-20 bg-primary/20 rounded w-full" />
-              </div>
+              <ChartSkeleton height="h-28" />
             ) : normalizedBreakdown.length > 0 ? (
               <div className="space-y-4">
                 {/* Donut chart */}
@@ -752,11 +745,11 @@ export const DashboardScreen = () => {
                 <tbody className="divide-y divide-primary/5">
                   {isLoading ? (
                     Array.from({ length: 3 }).map((_, idx) => (
-                      <tr key={idx} className="animate-pulse">
-                        <td className="px-6 py-4"><div className="h-4 bg-primary/10 rounded w-32" /></td>
-                        <td className="px-6 py-4"><div className="h-4 bg-primary/10 rounded w-16" /></td>
-                        <td className="px-6 py-4"><div className="h-3 bg-primary/10 rounded w-full" /></td>
-                        <td className="px-6 py-4"><div className="h-5 bg-primary/10 rounded w-12" /></td>
+                      <tr key={idx}>
+                        <td className="px-6 py-4"><SkeletonBlock className="h-4 w-32" /></td>
+                        <td className="px-6 py-4"><SkeletonBlock className="h-4 w-16" /></td>
+                        <td className="px-6 py-4"><SkeletonBlock className="h-3 w-full" /></td>
+                        <td className="px-6 py-4"><SkeletonBlock variant="badge" className="w-12" /></td>
                       </tr>
                     ))
                   ) : getModelProfiles().length > 0 ? (

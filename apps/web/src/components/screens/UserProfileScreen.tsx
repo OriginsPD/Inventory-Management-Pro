@@ -6,6 +6,7 @@ import { useAuth, type User } from '@/components/ui/auth-context';
 import { useFeedback } from '@/components/ui/feedback-provider';
 import { apiClient } from '@/lib/api-client';
 import { ScreenLayout, StaggerItem, FadeUp } from '@/components/ui/motion';
+import { ListSkeleton } from '@/components/ui/loading';
 
 interface AuditEntry {
   id: string;
@@ -233,11 +234,7 @@ export const UserProfileScreen = () => {
             </div>
 
             {isLoadingLogs ? (
-              <div className="space-y-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-14 bg-muted/60 animate-pulse border border-border rounded-xl" />
-                ))}
-              </div>
+              <ListSkeleton rows={4} />
             ) : filteredLogs.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
                 <span className="material-symbols-outlined text-4xl mb-2 opacity-30">history</span>

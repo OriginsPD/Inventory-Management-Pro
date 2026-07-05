@@ -8,7 +8,7 @@ import {
   TableCell,
 } from '@ims_pro/ui/components/table';
 import { Checkbox } from '@ims_pro/ui/components/checkbox';
-import { Skeleton } from '@ims_pro/ui/components/skeleton';
+import { TableSkeleton } from '@/components/ui/loading';
 import { EmptyState } from '@/components/ui/empty-state';
 import {
   DropdownMenu,
@@ -121,25 +121,21 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            Array.from({ length: 5 }).map((_, index) => (
-              <TableRow key={index} className="animate-pulse">
-                <TableCell className="w-[40px] px-4"><Skeleton className="h-4 w-4" /></TableCell>
-                {visibleColumns.identifier && <TableCell><Skeleton className="h-4 w-28" /></TableCell>}
-                {visibleColumns.type && <TableCell><Skeleton className="h-5 w-16 rounded" /></TableCell>}
-                {visibleColumns.modelName && <TableCell><Skeleton className="h-4 w-24" /></TableCell>}
-                {visibleColumns.status && (
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-2 w-2 rounded-full" />
-                      <Skeleton className="h-3.5 w-16" />
-                    </div>
-                  </TableCell>
-                )}
-                {visibleColumns.metadata && <TableCell><Skeleton className="h-4 w-32" /></TableCell>}
-                {visibleColumns.linked && <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>}
-                {visibleColumns.actions && <TableCell className="text-right"><Skeleton className="h-4 w-4 ml-auto" /></TableCell>}
-              </TableRow>
-            ))
+            <TableSkeleton
+              bodyOnly
+              rows={5}
+              showHeader={false}
+              showCheckbox
+              columns={[
+                ...(visibleColumns.identifier ? [{ width: "w-28" }] : []),
+                ...(visibleColumns.type ? [{ width: "w-16", type: "badge" as const }] : []),
+                ...(visibleColumns.modelName ? [{ width: "w-24" }] : []),
+                ...(visibleColumns.status ? [{ width: "w-16", type: "status" as const }] : []),
+                ...(visibleColumns.metadata ? [{ width: "w-32" }] : []),
+                ...(visibleColumns.linked ? [{ width: "w-20", align: "right" as const, type: "badge" as const }] : []),
+                ...(visibleColumns.actions ? [{ width: "w-4", align: "right" as const, type: "icon" as const }] : []),
+              ]}
+            />
           ) : paginatedDevices.length > 0 ? (
             paginatedDevices.map((device) => (
               <TableRow key={device.id} className="group hover:bg-primary/5 transition-colors">

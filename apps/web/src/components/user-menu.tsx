@@ -8,17 +8,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@ims_pro/ui/components/dropdown-menu";
-import { Skeleton } from "@ims_pro/ui/components/skeleton";
 import { Link, useNavigate } from "@tanstack/react-router";
 
 import { authClient } from "@/lib/auth-client";
+import { SkeletonBlock } from "@/components/ui/loading";
 
 export default function UserMenu() {
   const navigate = useNavigate();
   const { data: session, isPending } = authClient.useSession();
 
   if (isPending) {
-    return <Skeleton className="h-9 w-24" />;
+    return <SkeletonBlock variant="badge" className="h-9 w-24" />;
   }
 
   if (!session) {

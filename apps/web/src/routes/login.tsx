@@ -4,6 +4,7 @@ import { useRouterState } from "@tanstack/react-router";
 
 import { LoginScreen } from "@/components/screens/LoginScreen";
 import { PageTransition } from "@/components/ui/motion";
+import { PageLoader } from "@/components/ui/loading";
 import { getServerSession } from "@/lib/get-session";
 
 export const Route = createFileRoute("/login")({
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/login")({
       throw redirect({ to: "/dashboard" });
     }
   },
+  pendingComponent: () => <PageLoader label="AUTH GATE" />,
   component: LoginRoute,
 });
 

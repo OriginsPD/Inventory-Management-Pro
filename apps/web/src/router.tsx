@@ -1,6 +1,6 @@
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 
-import Loader from "./components/loader";
+import { PageLoader } from "@/components/ui/loading";
 import { routeTree } from "./routeTree.gen";
 
 export const getRouter = () => {
@@ -8,8 +8,9 @@ export const getRouter = () => {
     routeTree,
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
+    defaultPendingMs: 280,
     context: {},
-    defaultPendingComponent: () => <Loader />,
+    defaultPendingComponent: () => <PageLoader />,
     defaultNotFoundComponent: () => <div>Not Found</div>,
   });
 

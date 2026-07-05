@@ -7,8 +7,7 @@ import { toast } from "sonner";
 import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
-
-import Loader from "./loader";
+import { FormSkeleton } from "@/components/ui/loading";
 
 export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) {
   const navigate = useNavigate({
@@ -52,7 +51,7 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
   });
 
   if (isPending) {
-    return <Loader />;
+    return <FormSkeleton fields={3} />;
   }
 
   return (

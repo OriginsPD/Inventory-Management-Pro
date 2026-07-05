@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ims_pro/ui/components/table';
-import { Skeleton } from '@ims_pro/ui/components/skeleton';
+import { TableSkeleton } from '@/components/ui/loading';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ScreenLayout, ScreenHeader, Stagger, StaggerItem } from '@/components/ui/motion';
 import { 
@@ -685,10 +685,8 @@ export const ReportsScreen = () => {
           <div className="relative border border-primary/10 rounded-xl overflow-hidden bg-primary/5 backdrop-filter backdrop-blur-md">
             
             {isLoading ? (
-              <div className="p-8 space-y-4">
-                <Skeleton className="h-10 w-full bg-primary/5" />
-                <Skeleton className="h-10 w-full bg-primary/5" />
-                <Skeleton className="h-10 w-full bg-primary/5" />
+              <div className="p-8">
+                <TableSkeleton rows={5} wrapped={false} />
               </div>
             ) : isActiveReportError ? (
               <div className="p-4 bg-transparent">

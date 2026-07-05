@@ -338,3 +338,24 @@ body {
   height: 18px !important;
   flex-shrink: 0 !important;
 }
+
+@keyframes skeleton-shimmer {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.skeleton-shimmer {
+  animation: skeleton-shimmer 1.8s cubic-bezier(0.32, 0.72, 0, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer {
+    animation: none;
+    opacity: 0.6;
+  }
+}

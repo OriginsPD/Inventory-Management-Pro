@@ -6,7 +6,7 @@ import { useAuth } from '@/components/ui/auth-context';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Skeleton } from '@ims_pro/ui/components/skeleton';
+import { SkeletonBlock, TableSkeleton } from '@/components/ui/loading';
 import { Checkbox } from '@ims_pro/ui/components/checkbox';
 import { ScrollArea } from '@ims_pro/ui/components/scroll-area';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -410,9 +410,9 @@ export const CustomerDispatch = () => {
               
               {isLoading ? (
                 <div className="space-y-4">
-                  <Skeleton className="h-9 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-9 w-full" />
+                  <SkeletonBlock className="h-9 w-full" />
+                  <SkeletonBlock className="h-10 w-full" />
+                  <SkeletonBlock className="h-9 w-full" />
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -627,15 +627,18 @@ export const CustomerDispatch = () => {
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
-                      Array.from({ length: 4 }).map((_, index) => (
-                        <TableRow key={index} className="animate-pulse">
-                          <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                          <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                          <TableCell className="text-center"><Skeleton className="h-4 w-10 mx-auto" /></TableCell>
-                          <TableCell className="text-center"><Skeleton className="h-4 w-10 mx-auto" /></TableCell>
-                          <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
-                        </TableRow>
-                      ))
+                      <TableSkeleton
+                        bodyOnly
+                        rows={4}
+                        showHeader={false}
+                        columns={[
+                          { width: "w-32" },
+                          { width: "w-28" },
+                          { width: "w-10", align: "center" },
+                          { width: "w-10", align: "center" },
+                          { width: "w-24", align: "right", type: "icon" },
+                        ]}
+                      />
                     ) : paginatedBatches.length > 0 ? (
                       paginatedBatches.map((batch) => {
                         const { primaryCount, cascadeCount } = getBatchCounts(batch.devices);

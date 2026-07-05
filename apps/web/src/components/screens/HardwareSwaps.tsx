@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from "@/lib/hooks/useSearchParams";
 import { apiClient } from '@/lib/api-client';
-import { Skeleton } from '@ims_pro/ui/components/skeleton';
+import { ListSkeleton, TableSkeleton } from '@/components/ui/loading';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ims_pro/ui/components/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@ims_pro/ui/components/dialog';
@@ -211,11 +211,7 @@ const DeviceAuditTimelineModal = ({
 
         <div className="flex-1 overflow-y-auto mt-4 pr-1 scrollbar-custom space-y-3 min-h-[200px]">
           {isLoading ? (
-            <div className="space-y-3 animate-pulse">
-              <div className="h-10 bg-primary/5 rounded-lg" />
-              <div className="h-10 bg-primary/5 rounded-lg" />
-              <div className="h-10 bg-primary/5 rounded-lg" />
-            </div>
+            <ListSkeleton rows={3} />
           ) : logs.length > 0 ? (
             <div className="relative border-l border-primary/10 ml-2.5 pl-4 space-y-4 py-1">
               {logs.map((log) => (
@@ -443,17 +439,20 @@ export const HardwareSwaps = () => {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  Array.from({ length: 4 }).map((_, index) => (
-                    <TableRow key={index} className="animate-pulse">
-                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    </TableRow>
-                  ))
+                  <TableSkeleton
+                    bodyOnly
+                    rows={4}
+                    showHeader={false}
+                    columns={[
+                      { width: "w-24" },
+                      { width: "w-24" },
+                      { width: "w-32" },
+                      { width: "w-28" },
+                      { width: "w-20" },
+                      { width: "w-24" },
+                      { width: "w-20" },
+                    ]}
+                  />
                 ) : paginatedDamaged.length > 0 ? (
                   paginatedDamaged.map((device: Device) => (
                     <TableRow key={device.id} className="group hover:bg-primary/5 transition-colors">
