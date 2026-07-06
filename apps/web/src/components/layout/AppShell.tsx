@@ -13,19 +13,19 @@ import { ShortcutHelpOverlay } from '@/components/layout/ShortcutHelpOverlay';
 import { OnboardingTour } from '@/components/layout/OnboardingTour';
 import { StockAlertPill } from '@/components/portal';
 
-const PAGE_TITLES: Record<string, string> = {
-  '/dashboard': 'Dashboard',
-  '/inventory': 'Inventory',
-  '/dispatch': 'Dispatch',
-  '/qc': 'QC Bench',
-  '/customers': 'Customers',
-  '/models': 'Model Templates',
-  '/swaps': 'RMA Swaps',
-  '/reports': 'Reports',
-  '/profile': 'Operator Profile',
-  '/settings': 'System Settings',
-  '/superuser': 'Super User Hub',
-  '/alerts': 'Stock Alerts',
+const PAGE_BREADCRUMBS: Record<string, string> = {
+  '/dashboard': 'Command Center',
+  '/inventory': 'Field Ops',
+  '/dispatch': 'Field Ops',
+  '/qc': 'Field Ops',
+  '/customers': 'Registry',
+  '/models': 'Registry',
+  '/swaps': 'Registry',
+  '/reports': 'Intelligence',
+  '/profile': 'Console',
+  '/settings': 'Console',
+  '/superuser': 'Console',
+  '/alerts': 'Intelligence',
 };
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => {
@@ -37,7 +37,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
   const shouldReduceMotion = useReducedMotion();
 
   const currentPath = useRouterState({ select: (s) => s.location.pathname });
-  const pageTitle = PAGE_TITLES[currentPath] ?? (currentPath.startsWith('/devices/') ? 'Device Detail' : 'Portal');
+  const breadcrumb = PAGE_BREADCRUMBS[currentPath] ?? (currentPath.startsWith('/devices/') ? 'Registry' : 'Portal');
 
   useEffect(() => {
     apiClient.get<StockAlert[]>('/api/stock-alerts')
@@ -99,7 +99,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <GlobalScannerProvider>
-    <div className="h-screen w-screen overflow-hidden flex bg-background text-foreground font-sans antialiased selection:bg-primary/30 relative">
+    <div className="h-screen w-screen overflow-hidden flex bg-background text-foreground font-sans antialiased ambient-canvas relative">
       <AnimatePresence>
         {sidebarOpen && (
           <m.div
@@ -107,7 +107,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
             animate={{ opacity: 1 }}
             exit={shouldReduceMotion ? undefined : { opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-black/80 lg:hidden"
+            className="fixed inset-0 z-40 bg-black/40 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -116,25 +116,25 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
       <aside className={`fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col sidebar-panel transition-transform duration-200 lg:static lg:translate-x-0 shrink-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        <div className="relative flex h-20 items-center justify-start px-6 border-b border-border shrink-0">
+        <div className="relative flex h-16 items-center justify-start px-6 border-b border-border shrink-0">
           <Link to="/dashboard" className="flex items-center justify-start hover:opacity-90 transition-opacity">
-            <IMSBrandLogo size={36} showText={true} />
+            <IMSBrandLogo size={32} showText={true} />
           </Link>
           <button 
-            className="absolute right-4 top-1/2 -translate-y-1/2 lg:hidden p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+            className="absolute right-4 top-1/2 -translate-y-1/2 lg:hidden p-1 hover:bg-muted rounded-md text-muted-foreground hover:text-foreground"
             onClick={() => setSidebarOpen(false)}
           >
             <span className="material-symbols-outlined text-sm">close</span>
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+        <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-6">
           {navGroups.map((group, groupIndex) => (
             <div
               key={group.label}
-              className={groupIndex > 0 ? 'space-y-3 pt-4 border-t border-primary/5' : 'space-y-3'}
+              className={groupIndex > 0 ? 'space-y-2 pt-4 border-t border-border' : 'space-y-2'}
             >
-              <p className="px-3 text-[9px] font-bold uppercase tracking-[0.25em] text-muted-foreground">
+              <p className="px-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                 {group.label}
               </p>
               <div className="space-y-0.5">
@@ -144,10 +144,10 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
                     <Link
                       key={item.name}
                       to={item.path}
-                      className={`flex items-center gap-3 px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-all duration-200 ${
+                      className={`flex items-center gap-3 px-3 py-2 text-[13px] font-medium rounded-md transition-colors duration-150 border-l-2 ${
                         isActive 
-                          ? 'bg-primary/10 text-primary border-l-2 border-primary' 
-                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                          ? 'border-foreground text-foreground bg-muted/60' 
+                          : 'border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground'
                       }`}
                     >
                       <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
@@ -163,29 +163,29 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
         <div className="p-4 border-t border-border">
           <button 
             onClick={handleLogout} 
-            className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-transparent hover:bg-red-500/10 border border-border/40 hover:border-red-500/30 text-muted-foreground hover:text-red-400 transition-all duration-200 group cursor-pointer"
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-md hover:bg-[var(--status-danger-bg)] border border-border text-muted-foreground hover:text-[var(--status-danger-fg)] transition-colors duration-150 group cursor-pointer"
           >
-            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Terminate Session</span>
-            <span className="material-symbols-outlined text-[18px] group-hover:translate-x-0.5 transition-transform">logout</span>
+            <span className="text-sm font-medium">Sign out</span>
+            <span className="material-symbols-outlined text-[18px]">logout</span>
           </button>
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 bg-background">
-        <header className="flex h-14 items-center justify-between border-b border-border bg-card px-6 shrink-0 z-10">
+      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 bg-background relative z-[1]">
+        <header className="flex h-12 items-center justify-between border-b border-border bg-card px-4 lg:px-6 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <button 
               onClick={() => setSidebarOpen(true)}
-              className="p-1.5 -ml-1.5 lg:hidden text-muted-foreground hover:text-foreground shrink-0"
+              className="p-1.5 -ml-1.5 lg:hidden text-muted-foreground hover:text-foreground shrink-0 rounded-md hover:bg-muted"
             >
               <span className="material-symbols-outlined">menu</span>
             </button>
-            <h1 className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground truncate">
-              {pageTitle}
-            </h1>
+            <p className="text-xs font-mono text-muted-foreground truncate hidden sm:block">
+              {breadcrumb}
+            </p>
           </div>
           
-          <div className="flex items-center gap-4 ml-auto shrink-0">
+          <div className="flex items-center gap-3 ml-auto shrink-0">
             {(() => {
               const withTarget = stockAlerts.filter(a => (a.maxStock ?? 0) > 0);
               const lowCount = withTarget.filter(a => a.level === 'LOW').length;
@@ -193,35 +193,35 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
               if (withTarget.length === 0) return null;
               if (lowCount > 0) return (
                 <Link to="/alerts" className="hidden sm:block">
-                  <StockAlertPill level="LOW" label="Critical Alerts" count={lowCount} />
+                  <StockAlertPill level="LOW" label="Critical alerts" count={lowCount} />
                 </Link>
               );
               if (warnCount > 0) return (
                 <Link to="/alerts" className="hidden sm:block">
-                  <StockAlertPill level="WARNING" label="Stock Warnings" count={warnCount} />
+                  <StockAlertPill level="WARNING" label="Stock warnings" count={warnCount} />
                 </Link>
               );
               return (
                 <Link to="/alerts" className="hidden sm:block">
-                  <StockAlertPill level="HEALTHY" label="System Nominal" />
+                  <StockAlertPill level="HEALTHY" label="System nominal" />
                 </Link>
               );
             })()}
 
-            <div className="h-8 w-px bg-border mx-2 hidden sm:block" />
+            <div className="h-6 w-px bg-border hidden sm:block" />
             <button
               onClick={() => navigate({ to: "/profile" })}
-              className="flex items-center gap-3 px-3 py-1.5 hover:bg-muted border border-transparent hover:border-border transition-all group"
+              className="flex items-center gap-2.5 px-2 py-1 rounded-md hover:bg-muted transition-colors group"
             >
               <div className="text-right hidden sm:block">
-                <p className="text-[10px] font-black text-foreground uppercase tracking-tight leading-none group-hover:text-primary transition-colors">
+                <p className="text-sm font-medium text-foreground leading-none">
                   {user?.name}
                 </p>
-                <p className="text-[8px] font-mono text-muted-foreground uppercase tracking-widest mt-1 leading-none">
-                  {user?.role === 'SUPER_USER' ? 'Admin Node' : 'Technician'}
+                <p className="text-[11px] font-mono text-muted-foreground mt-0.5 leading-none">
+                  {user?.role === 'SUPER_USER' ? 'Admin' : 'Technician'}
                 </p>
               </div>
-              <div className="w-8 h-8 bg-muted border border-border flex items-center justify-center text-[10px] font-black text-foreground group-hover:border-primary/50 transition-colors">
+              <div className="w-8 h-8 rounded-md bg-muted border border-border flex items-center justify-center text-xs font-medium text-foreground">
                 {user?.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'U'}
               </div>
             </button>
@@ -237,8 +237,8 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
           </div>
         </main>
 
-        <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur-md">
-          <div className="grid grid-cols-4 gap-1 p-2">
+        <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card">
+          <div className="grid grid-cols-4 gap-0 p-1">
             {[
               { to: '/dashboard', icon: 'dashboard', label: 'Home' },
               { to: '/inventory', icon: 'inventory_2', label: 'Stock' },
@@ -248,8 +248,8 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
               <Link
                 key={item.to}
                 to={item.to}
-                className={`flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl min-h-[52px] text-[8px] font-bold uppercase tracking-wider ${
-                  currentPath === item.to ? 'text-primary bg-primary/10' : 'text-muted-foreground'
+                className={`flex flex-col items-center justify-center gap-0.5 py-2 min-h-[52px] text-[10px] font-medium ${
+                  currentPath === item.to ? 'text-foreground bg-muted/60' : 'text-muted-foreground'
                 }`}
               >
                 <span className="material-symbols-outlined text-[20px]">{item.icon}</span>

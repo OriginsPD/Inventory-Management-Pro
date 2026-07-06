@@ -55,7 +55,7 @@ export function AuditTimeline({
             <div className={cn('absolute -left-[27px] top-1.5 h-9 w-9 rounded-full border flex items-center justify-center relative z-10 shrink-0 transition-transform group-hover:scale-105', timelineNodeStyle)}>
               <span className="material-symbols-outlined text-[16px] font-black">{icon}</span>
             </div>
-            <div className="flex-1 glass-panel hover:bg-card/80 p-4 rounded-xl transition-all flex flex-col sm:flex-row items-start justify-between gap-4 border border-border/80 hover:border-primary/20">
+            <div className="flex-1 surface-card hover:bg-card/80 p-4 rounded-xl transition-all flex flex-col sm:flex-row items-start justify-between gap-4 border border-border/80 hover:border-primary/20">
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <span className={cn('text-[8px] font-black px-2 py-0.5 rounded-sm uppercase tracking-wider border', badgeStyles)}>

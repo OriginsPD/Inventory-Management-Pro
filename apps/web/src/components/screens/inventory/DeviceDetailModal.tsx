@@ -29,14 +29,14 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
 
   return (
     <Dialog open={!!device} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="glass-panel-elevated rounded-2xl max-w-lg w-full border-0" showCloseButton={true}>
+      <DialogContent className="surface-card rounded-2xl max-w-lg w-full border-0" showCloseButton={true}>
         <MotionDialogBody className="p-6 space-y-4">
         <DialogHeader className="text-left space-y-0.5">
           <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">Device Inventory Profile</DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground mt-0.5">Comprehensive view of inventory entry details.</DialogDescription>
         </DialogHeader>
 
-        <div className="flex border-b border-primary/10 pb-2 gap-4">
+        <div className="flex border-b border-border pb-2 gap-4">
           <button
             type="button"
             onClick={() => setDeviceDetailTab('info')}
@@ -55,12 +55,12 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
 
         {deviceDetailTab === 'info' ? (
           <div className="space-y-4 text-xs text-left">
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2 border border-primary/10 rounded-xl bg-primary/5 p-3">
-              <div className="flex flex-col justify-center py-1 border-b border-primary/10">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2 border border-border rounded-xl bg-primary/5 p-3">
+              <div className="flex flex-col justify-center py-1 border-b border-border">
                 <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Identifier</span>
                 <span className="font-mono font-bold text-foreground tracking-mono text-xs truncate">{device.identifier}</span>
               </div>
-              <div className="flex flex-col justify-center py-1 border-b border-primary/10">
+              <div className="flex flex-col justify-center py-1 border-b border-border">
                 <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Asset Class</span>
                 <span>
                   <span className="inline-flex items-center rounded-md border border-primary/20 bg-primary/10 px-1.5 py-0.25 text-[10px] font-bold text-primary font-mono tracking-wider">
@@ -68,11 +68,11 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
                   </span>
                 </span>
               </div>
-              <div className="flex flex-col justify-center py-1 border-b border-primary/10">
+              <div className="flex flex-col justify-center py-1 border-b border-border">
                 <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Template Model</span>
                 <span className="font-semibold text-foreground text-xs truncate">{device.modelName}</span>
               </div>
-              <div className="flex flex-col justify-center py-1 border-b border-primary/10">
+              <div className="flex flex-col justify-center py-1 border-b border-border">
                 <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Current Status</span>
                 <span className="inline-flex items-center gap-1.5">
                   {device.status === 'IN_STOCK' && (
@@ -105,7 +105,7 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
                   )}
                 </span>
               </div>
-              <div className="flex flex-col justify-center py-1 border-b border-primary/10 col-span-2 last:border-0 font-sans">
+              <div className="flex flex-col justify-center py-1 border-b border-border col-span-2 last:border-0 font-sans">
                 <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Paired Linkages</span>
                 <span className="font-semibold text-foreground text-xs">
                   {device.linked > 0 ? `${device.linked} active links` : 'Stand-alone'}
@@ -116,9 +116,9 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
             <div className="space-y-1 font-sans">
               <span className="text-[10px] uppercase font-bold text-primary tracking-wider block mb-1">Device Attributes</span>
               {device.metadata && Object.keys(device.metadata).length > 0 ? (
-                <div className="bg-primary/5 border border-primary/10 rounded-xl p-3 text-xs grid grid-cols-2 gap-x-6 gap-y-2">
+                <div className="bg-primary/5 border border-border rounded-xl p-3 text-xs grid grid-cols-2 gap-x-6 gap-y-2">
                   {Object.entries(device.metadata).map(([k, v]) => (
-                    <div key={k} className="flex flex-col justify-center py-1 border-b border-primary/10 last:border-0">
+                    <div key={k} className="flex flex-col justify-center py-1 border-b border-border last:border-0">
                       <span className="text-[9px] font-bold text-primary uppercase tracking-wider mb-0.5">{k.replace(/([A-Z])/g, ' $1')}:</span>
                       <span className="font-mono text-foreground font-bold text-xs truncate">{String(v)}</span>
                     </div>
@@ -146,7 +146,7 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
                 />
               </div>
             ) : (
-              <div className="relative border-l border-primary/10 pl-6 ml-3 space-y-6 text-left">
+              <div className="relative border-l border-border pl-6 ml-3 space-y-6 text-left">
                 {auditLogs.map((log) => {
     let dotColor = 'bg-muted border-border';
                   if (log.actionType === 'INGEST') dotColor = 'bg-emerald-400 border-emerald-500';
@@ -179,11 +179,11 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
           </ScrollArea>
         )}
 
-        <div className="flex justify-end pt-2 border-t border-primary/10">
+        <div className="flex justify-end pt-2 border-t border-border">
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
           >
             Close Profile
           </button>

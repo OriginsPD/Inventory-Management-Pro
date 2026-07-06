@@ -8,7 +8,7 @@ import * as z from 'zod';
 import { apiClient } from '@/lib/api-client';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@ims_pro/ui/components/dialog';
 import { PortalPageShell } from '@/components/layout/PortalPageShell';
-import { ScreenLayout, StaggerItem, FadeUp, MotionDialogBody } from '@/components/ui/motion';
+import { StaggerItem, FadeUp, MotionDialogBody } from '@/components/ui/motion';
 import { ScreenLoadingShell, TableSkeleton } from '@/components/ui/loading';
 import {
   Select,
@@ -340,7 +340,7 @@ export const SuperUserHubScreen = () => {
         <div className="w-full">
           {activeTab === 'users' && (
             <div className="space-y-6">
-              <div className="glass-panel p-6 space-y-5">
+              <div className="surface-card p-6 space-y-5">
                 <div className="flex justify-between items-center pb-2 border-b border-border/40">
                   <div>
                     <h3 className="font-black text-xs uppercase tracking-wider text-foreground">User Registry</h3>
@@ -357,7 +357,7 @@ export const SuperUserHubScreen = () => {
                 </div>
 
                 {/* Search */}
-                <div className="flex items-center gap-2 border border-primary/10 p-2 rounded-xl bg-card/60">
+                <div className="flex items-center gap-2 border border-border p-2 rounded-xl bg-card/60">
                   <div className="relative flex-1">
                     <span className="material-symbols-outlined text-sm text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
                     <input
@@ -375,7 +375,7 @@ export const SuperUserHubScreen = () => {
                 {/* Table */}
                 <div className="border border-border/80 rounded-xl bg-black/10 overflow-hidden">
                   <Table>
-                    <TableHeader className="bg-card/45 border-b border-primary/10">
+                    <TableHeader className="bg-card/45 border-b border-border">
                       <TableRow>
                         <TableHead className="px-4 text-[10px] uppercase font-bold tracking-wider">Operator Name</TableHead>
                         <TableHead className="px-4 text-[10px] uppercase font-bold tracking-wider">Email Address</TableHead>
@@ -454,7 +454,7 @@ export const SuperUserHubScreen = () => {
 
                   {/* Pagination */}
                   {userTotalPages > 1 && (
-                    <div className="flex justify-between items-center px-4 py-3 border-t border-primary/10 bg-transparent text-xs text-muted-foreground">
+                    <div className="flex justify-between items-center px-4 py-3 border-t border-border bg-transparent text-xs text-muted-foreground">
                       <div>
                         Showing {userStartIndex + 1} to {Math.min(userStartIndex + userPageSize, filteredUsers.length)} of {filteredUsers.length} users
                       </div>
@@ -462,7 +462,7 @@ export const SuperUserHubScreen = () => {
                         <button
                           onClick={() => setUserCurrentPage(prev => Math.max(prev - 1, 1))}
                           disabled={userCurrentPage === 1}
-                          className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                          className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                         >
                           Previous
                         </button>
@@ -470,7 +470,7 @@ export const SuperUserHubScreen = () => {
                         <button
                           onClick={() => setUserCurrentPage(prev => Math.min(prev + 1, userTotalPages))}
                           disabled={userCurrentPage === userTotalPages}
-                          className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                          className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                         >
                           Next
                         </button>
@@ -483,7 +483,7 @@ export const SuperUserHubScreen = () => {
           )}
 
           {activeTab === 'links' && (
-            <div className="glass-panel p-6 space-y-5">
+            <div className="surface-card p-6 space-y-5">
               <div>
                 <h3 className="font-black text-xs uppercase tracking-wider text-foreground">Polymorphic Relationship Rules</h3>
                 <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mt-1">
@@ -575,7 +575,7 @@ export const SuperUserHubScreen = () => {
           )}
 
           {activeTab === 'system' && (
-            <div className="glass-panel p-6 space-y-5">
+            <div className="surface-card p-6 space-y-5">
               <div className="flex items-center justify-between border-b border-border/40 pb-3">
                 <div className="flex items-center gap-2.5 text-primary">
                   <span className="material-symbols-outlined text-[18px]">verified_user</span>
@@ -609,7 +609,7 @@ export const SuperUserHubScreen = () => {
           )}
 
           {activeTab === 'audit' && (
-            <div className="glass-panel p-6 space-y-5">
+            <div className="surface-card p-6 space-y-5">
               <div className="flex justify-between items-center pb-2 border-b border-border/40">
                 <div>
                   <h3 className="font-black text-xs uppercase tracking-wider text-foreground">Security Audit Logs</h3>
@@ -619,7 +619,7 @@ export const SuperUserHubScreen = () => {
                 </div>
                 <button
                   onClick={() => fetchAuditLogs(true)}
-                  className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-primary/10 hover:bg-primary/5 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-border hover:bg-primary/5 text-muted-foreground hover:text-foreground cursor-pointer"
                   title="Refresh Audit Logs"
                 >
                   <span className="material-symbols-outlined text-sm">refresh</span>
@@ -627,7 +627,7 @@ export const SuperUserHubScreen = () => {
               </div>
 
               {/* Search Bar for logs */}
-              <div className="flex items-center gap-2 border border-primary/10 p-2 rounded-xl bg-card/60">
+              <div className="flex items-center gap-2 border border-border p-2 rounded-xl bg-card/60">
                 <div className="relative flex-1">
                   <span className="material-symbols-outlined text-sm text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
                   <input
@@ -642,7 +642,7 @@ export const SuperUserHubScreen = () => {
               {/* Audit Logs Registry */}
               <div className="border border-border/80 rounded-xl bg-black/10 overflow-hidden text-xs">
                 <Table>
-                  <TableHeader className="bg-card/45 border-b border-primary/10">
+                  <TableHeader className="bg-card/45 border-b border-border">
                     <TableRow>
                       <TableHead className="px-4 py-2 w-[15%] text-[9px] uppercase font-bold tracking-wider">Action</TableHead>
                       <TableHead className="px-4 py-2 w-[20%] text-[9px] uppercase font-bold tracking-wider">Device</TableHead>
@@ -669,7 +669,7 @@ export const SuperUserHubScreen = () => {
                       filteredAuditLogs.map((log) => (
                         <TableRow key={log.id} className="hover:bg-primary/5 transition-colors">
                           <TableCell className="p-4 font-mono font-bold align-middle">
-                            <span className="px-1.5 py-0.5 rounded bg-primary/10 border border-primary/10 text-[9px] tracking-wider text-primary uppercase">{log.actionType}</span>
+                            <span className="px-1.5 py-0.5 rounded bg-primary/10 border border-border text-[9px] tracking-wider text-primary uppercase">{log.actionType}</span>
                           </TableCell>
                           <TableCell className="p-4 font-mono text-foreground font-semibold align-middle truncate">
                             {log.deviceIdentifier || '-'}
@@ -707,7 +707,7 @@ export const SuperUserHubScreen = () => {
 
       {/* User Creation / Editing Modal */}
       <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>
-        <DialogContent className="glass-panel-elevated rounded-2xl max-w-md w-full border-0" showCloseButton={true}>
+        <DialogContent className="surface-card rounded-2xl max-w-md w-full border-0" showCloseButton={true}>
           <MotionDialogBody className="p-6 space-y-4">
           <DialogHeader className="text-left space-y-0.5">
             <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">
@@ -724,7 +724,7 @@ export const SuperUserHubScreen = () => {
               <Input
                 type="text"
                 placeholder="Jane Doe"
-                className={`bg-background/50 border-primary/10 text-xs h-10 rounded-xl text-foreground placeholder:text-muted-foreground/30 ${
+                className={`bg-background/50 border-border text-xs h-10 rounded-xl text-foreground placeholder:text-muted-foreground/30 ${
                   userErrors.name ? 'border-red-500/50' : ''
                 }`}
                 {...registerUser('name')}
@@ -737,7 +737,7 @@ export const SuperUserHubScreen = () => {
               <Input
                 type="email"
                 placeholder="jane@amberconnect.com"
-                className={`bg-background/50 border-primary/10 text-xs h-10 rounded-xl text-foreground placeholder:text-muted-foreground/30 ${
+                className={`bg-background/50 border-border text-xs h-10 rounded-xl text-foreground placeholder:text-muted-foreground/30 ${
                   userErrors.email ? 'border-red-500/50' : ''
                 }`}
                 {...registerUser('email')}
@@ -751,7 +751,7 @@ export const SuperUserHubScreen = () => {
                 <Input
                   type="password"
                   placeholder="••••••••"
-                  className={`bg-background/50 border-primary/10 text-xs h-10 rounded-xl text-foreground placeholder:text-muted-foreground/30 ${
+                  className={`bg-background/50 border-border text-xs h-10 rounded-xl text-foreground placeholder:text-muted-foreground/30 ${
                     userErrors.password ? 'border-red-500/50' : ''
                   }`}
                   {...registerUser('password')}
@@ -767,7 +767,7 @@ export const SuperUserHubScreen = () => {
                 name="role"
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className="w-full text-xs h-10 bg-background/50 border border-primary/10 rounded-xl text-foreground focus:ring-primary/20">
+                    <SelectTrigger className="w-full text-xs h-10 bg-background/50 border border-border rounded-xl text-foreground focus:ring-primary/20">
                       <SelectValue placeholder="Select system role..." />
                     </SelectTrigger>
                     <SelectContent>

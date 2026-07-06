@@ -26,7 +26,7 @@ export function OpsTableShell({
 }: OpsTableShellProps) {
   return (
     <DataPanel padding="none" className={className}>
-      <div className="p-4 sm:p-5 border-b border-primary/10 space-y-3">
+      <div className="p-4 sm:p-5 border-b border-border space-y-3">
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
           {search ? <div className="flex-1 min-w-0">{search}</div> : null}
           <div className="flex items-center gap-2 flex-wrap shrink-0">
@@ -39,7 +39,7 @@ export function OpsTableShell({
         {isLoading ? <TableSkeleton rows={skeletonRows} className="p-4" /> : children}
       </div>
       {footer ? (
-        <div className="p-4 border-t border-primary/10 flex items-center justify-between gap-3 flex-wrap">
+        <div className="p-4 border-t border-border flex items-center justify-between gap-3 flex-wrap">
           {footer}
         </div>
       ) : null}

@@ -58,7 +58,7 @@ function BodySkeleton({ variant }: { variant: ScreenLoadingVariant }) {
     case "profile":
       return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="glass-panel rounded-xl p-6 space-y-4 lg:col-span-1">
+          <div className="surface-card rounded-xl p-6 space-y-4 lg:col-span-1">
             <SkeletonBlock variant="avatar" className="h-20 w-20 mx-auto" />
             <SkeletonBlock variant="title" className="mx-auto h-6 w-40" />
             <SkeletonBlock variant="text" className="mx-auto h-3 w-32" />

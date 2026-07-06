@@ -12,7 +12,7 @@ export function ChartSkeleton({ height = "h-[180px]", className }: ChartSkeleton
   return (
     <StaggerItem
       className={cn(
-        "glass-panel rounded-xl border border-dashed border-primary/15 p-5 space-y-4",
+        "surface-card border border-dashed border-border p-5 space-y-4",
         className,
       )}
     >

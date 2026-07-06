@@ -27,7 +27,7 @@ export function CardGridSkeleton({
       {Array.from({ length: count }).map((_, i) => (
         <StaggerItem
           key={i}
-          className="glass-panel rounded-xl p-5 space-y-3 ring-1 ring-primary/5"
+          className="surface-card rounded-xl p-5 space-y-3 ring-1 border-border"
         >
           <div className="flex justify-between items-start">
             <SkeletonBlock variant="text" className="w-2/3 h-3" />

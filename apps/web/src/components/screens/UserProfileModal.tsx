@@ -241,7 +241,7 @@ export const UserProfileModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
                           <span className="material-symbols-outlined text-[14px] font-black">{icon}</span>
                         </div>
                         
-                        <div className="flex-1 glass-panel hover:bg-card/80 p-3.5 rounded-xl transition-all flex flex-col sm:flex-row items-start justify-between gap-3 border border-border/80 hover:border-primary/20">
+                        <div className="flex-1 surface-card hover:bg-card/80 p-3.5 rounded-xl transition-all flex flex-col sm:flex-row items-start justify-between gap-3 border border-border/80 hover:border-primary/20">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-wider border ${badgeStyles}`}>

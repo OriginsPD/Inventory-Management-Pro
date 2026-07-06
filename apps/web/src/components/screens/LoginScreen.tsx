@@ -58,69 +58,65 @@ export const LoginScreen = () => {
         </FadeUp>
 
         <FadeUp delay={0.08}>
-        <div className="bg-card p-8 border border-border shadow-2xl space-y-6">
+        <div className="surface-card p-8 space-y-6">
           <div className="space-y-1">
-            <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">Authentication Required</h2>
-            <p className="text-[11px] text-muted-foreground leading-normal font-medium">Provide operator credentials to initialize secure terminal session.</p>
+            <h2 className="font-serif text-xl tracking-tight text-foreground">Sign in</h2>
+            <p className="text-sm text-muted-foreground">Enter your operator credentials to access the portal.</p>
           </div>
 
           {errorMsg && (
             <MotionPresenceBanner show={!!errorMsg} className="w-full">
               <div
                 role="alert"
-                className="grid grid-cols-[auto_1fr] items-center gap-x-2 bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-2 text-[10px] font-bold uppercase tracking-tight"
+                className="flex items-center gap-2 bg-[var(--status-danger-bg)] border border-transparent text-[var(--status-danger-fg)] px-3 py-2 text-sm rounded-md"
               >
-                <span className="inline-flex size-4 shrink-0 items-center justify-center self-center">
-                  <span className="material-symbols-outlined text-[16px] leading-none [font-variation-settings:'FILL'_0,'wght'_400,'GRAD'_0,'opsz'_20]">
-                    error
-                  </span>
-                </span>
-                <span className="leading-none self-center">{errorMsg}</span>
+                <span className="material-symbols-outlined text-[18px]">error</span>
+                <span>{errorMsg}</span>
               </div>
             </MotionPresenceBanner>
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.15em] block ml-0.5">
-                Operator ID (Email)
+              <label className="text-sm font-medium text-foreground block">
+                Email
               </label>
               <Input
                 type="email"
                 placeholder="operator@imspro.com"
-                className={`bg-background border-border text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-foreground placeholder:text-muted-foreground/60 transition-colors ${
-                  errors.email ? 'border-red-500/50' : ''
+                className={`bg-card border-border text-sm h-10 rounded-md focus:border-foreground/30 focus:ring-1 focus:ring-ring text-foreground placeholder:text-muted-foreground ${
+                  errors.email ? 'border-[var(--status-danger-fg)]' : ''
                 }`}
                 {...register('email')}
               />
               {errors.email && (
-                <p className="text-[9px] text-red-500 font-bold mt-1 ml-0.5 uppercase">{errors.email.message}</p>
+                <p className="text-xs text-[var(--status-danger-fg)] mt-1">{errors.email.message}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.15em] block ml-0.5">
-                Security Token (Password)
+              <label className="text-sm font-medium text-foreground block">
+                Password
               </label>
               <Input
                 type="password"
                 placeholder="••••••••"
-                className={`bg-background border-border text-xs h-10 rounded-none focus:border-primary/50 focus:ring-0 text-foreground placeholder:text-muted-foreground/60 transition-colors ${
-                  errors.password ? 'border-red-500/50' : ''
+                className={`bg-card border-border text-sm h-10 rounded-md focus:border-foreground/30 focus:ring-1 focus:ring-ring text-foreground placeholder:text-muted-foreground ${
+                  errors.password ? 'border-[var(--status-danger-fg)]' : ''
                 }`}
                 {...register('password')}
               />
               {errors.password && (
-                <p className="text-[9px] text-red-500 font-bold mt-1 ml-0.5 uppercase">{errors.password.message}</p>
+                <p className="text-xs text-[var(--status-danger-fg)] mt-1">{errors.password.message}</p>
               )}
             </div>
 
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full font-black rounded-none h-10 text-[10px] uppercase tracking-[0.2em] cursor-pointer transition-all disabled:opacity-50 mt-2 active:scale-[0.99]"
+              className="w-full font-medium rounded-md h-10 text-sm cursor-pointer transition-all disabled:opacity-50 mt-2 active:scale-[0.98] bg-primary text-primary-foreground hover:bg-[#333333] dark:hover:bg-[#e7e5e4]"
             >
-              {isSubmitting ? 'Establishing Link...' : 'Authorize Session'}
+              {isSubmitting ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>
 

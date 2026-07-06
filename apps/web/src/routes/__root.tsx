@@ -35,7 +35,9 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 function initTheme() {
   if (typeof window === "undefined") return;
   try {
-    const savedAccent = localStorage.getItem("ims_theme_accent") || "brand";
+    const rawAccent = localStorage.getItem("ims_theme_accent") || "brand";
+    const validAccents = new Set(["brand", "neutral", "slate", "stone"]);
+    const savedAccent = validAccents.has(rawAccent) ? rawAccent : "brand";
     if (savedAccent && savedAccent !== "brand") {
       document.documentElement.setAttribute("data-accent", savedAccent);
     } else {

@@ -27,7 +27,7 @@ export const SelectionBanner: React.FC<SelectionBannerProps> = ({
   
   return (
     <MotionPresenceBanner show={show}>
-    <div className="bg-primary/10 border-b border-primary/10 py-2.5 px-4 text-xs flex justify-between items-center text-foreground">
+    <div className="bg-primary/10 border-b border-border py-2.5 px-4 text-xs flex justify-between items-center text-foreground">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="material-symbols-outlined text-[16px] text-primary shrink-0">info</span>
         <span>

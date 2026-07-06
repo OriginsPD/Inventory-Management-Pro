@@ -5,7 +5,7 @@ export function PortalInput({ className, ...props }: InputProps) {
   return (
     <Input
       className={cn(
-        'rounded-xl border-border bg-background/50 text-xs font-mono h-10 focus:border-primary/50 focus:ring-1 focus:ring-primary/30',
+        'rounded-md border-border bg-card text-sm h-10 focus:border-foreground/30 focus:ring-1 focus:ring-ring',
         className,
       )}
       {...props}

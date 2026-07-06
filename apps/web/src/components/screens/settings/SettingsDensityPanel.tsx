@@ -5,36 +5,38 @@ interface SettingsDensityPanelProps {
 
 export function SettingsDensityPanel({ density, onSelectDensity }: SettingsDensityPanelProps) {
   return (
-    <div className="glass-panel p-6 space-y-5">
+    <div className="surface-card p-6 space-y-5">
       <div>
-        <h3 className="font-black text-xs uppercase tracking-wider text-foreground">Workspace Spacing Grid</h3>
-        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mt-1">
-          Optimize layout spacing index to toggle dashboard breathing room vs data rows density
+        <h3 className="font-medium text-sm text-foreground">Layout density</h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          Standard spacing for readability, or compact mode for more rows per screen.
         </p>
       </div>
 
-      <div className="relative flex bg-muted/65 p-1 border border-border w-full rounded-xl select-none">
+      <div className="relative flex bg-muted/65 p-1 border border-border w-full rounded-lg select-none">
         <div
-          className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-card border border-border shadow-sm rounded-lg transition-all duration-300 ease-out ${
+          className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-card border border-border rounded-md transition-all duration-300 ease-out ${
             density === 'compact' ? 'left-[calc(50%+2px)]' : 'left-1'
           }`}
         />
 
         <button
+          type="button"
           onClick={() => onSelectDensity('default')}
-          className={`flex-1 text-center py-2.5 text-[10px] font-bold uppercase tracking-wider relative z-10 transition-colors duration-200 cursor-pointer ${
-            density === 'default' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+          className={`flex-1 text-center py-2.5 text-sm font-medium relative z-10 transition-colors duration-200 cursor-pointer ${
+            density === 'default' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          Standard Breathing Grid
+          Standard
         </button>
         <button
+          type="button"
           onClick={() => onSelectDensity('compact')}
-          className={`flex-1 text-center py-2.5 text-[10px] font-bold uppercase tracking-wider relative z-10 transition-colors duration-200 cursor-pointer ${
-            density === 'compact' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+          className={`flex-1 text-center py-2.5 text-sm font-medium relative z-10 transition-colors duration-200 cursor-pointer ${
+            density === 'compact' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          Compact (High Data Density)
+          Compact
         </button>
       </div>
     </div>

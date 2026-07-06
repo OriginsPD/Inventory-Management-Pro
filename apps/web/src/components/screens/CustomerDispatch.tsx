@@ -349,7 +349,7 @@ export const CustomerDispatch = () => {
     return (
       <div key={node.device.id} className="space-y-1">
         <div 
-          className="flex items-center justify-between p-2.5 rounded-xl border border-primary/10 bg-background/50 shadow-sm text-xs transition-all hover:bg-primary/5"
+          className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-background/50 shadow-sm text-xs transition-all hover:bg-primary/5"
           style={{ marginLeft: `${depth * 20}px` }}
         >
           <div className="flex items-center gap-2 truncate">
@@ -387,8 +387,8 @@ export const CustomerDispatch = () => {
           <StaggerItem>
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
             {/* Console Left Panel: Dispatch Configuration */}
-            <div className="glass-panel p-5 rounded-2xl space-y-4 xl:col-span-4">
-              <div className="flex items-center gap-2 border-b border-primary/10 pb-3">
+            <div className="surface-card p-5 rounded-2xl space-y-4 xl:col-span-4">
+              <div className="flex items-center gap-2 border-b border-border pb-3">
                 <span className="material-symbols-outlined text-[18px] text-primary">local_shipping</span>
                 <h3 className="font-extrabold text-sm text-foreground">Assign New Dispatch</h3>
               </div>
@@ -411,7 +411,7 @@ export const CustomerDispatch = () => {
                         name="customerId"
                         render={({ field }) => (
                           <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
+                            <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-border rounded-lg text-foreground focus:ring-primary/20">
                               <SelectValue placeholder="Select customer..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -436,7 +436,7 @@ export const CustomerDispatch = () => {
                         {isSubmitting ? 'Processing Dispatch...' : `Confirm Dispatch Batch (${stagedDeviceIds.length})`}
                       </button>
                     ) : (
-                      <div className="text-center text-xs text-muted-foreground p-3 border border-primary/10 rounded-xl bg-primary/5">
+                      <div className="text-center text-xs text-muted-foreground p-3 border border-border rounded-xl bg-primary/5">
                         Read-only access. Dispatching is disabled.
                       </div>
                     )}
@@ -446,8 +446,8 @@ export const CustomerDispatch = () => {
             </div>
 
             {/* Console Right Panel: Staging Queue */}
-            <div className="glass-panel p-5 rounded-2xl space-y-4 xl:col-span-8 h-[560px] overflow-hidden flex flex-col">
-              <div className="flex items-center justify-between border-b border-primary/10 pb-3">
+            <div className="surface-card p-5 rounded-2xl space-y-4 xl:col-span-8 h-[560px] overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between border-b border-border pb-3">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[18px] text-muted-foreground">layers</span>
                   <h3 className="font-extrabold text-sm text-foreground">Staging Queue ({stagedDeviceIds.length})</h3>
@@ -481,7 +481,7 @@ export const CustomerDispatch = () => {
                   icon="local_shipping"
                   title="No Devices Staged"
                   description="There are currently no hardware tracking units staged for dispatch."
-                  className="py-12 bg-transparent border-dashed border-primary/10"
+                  className="py-12 bg-transparent border-dashed border-border"
                 />
                 </div>
               ) : (
@@ -497,7 +497,7 @@ export const CustomerDispatch = () => {
                       const parentDev = parentRel ? devices.find(dev => dev.id === parentRel.primaryDeviceId) : null;
 
                       return (
-                        <div key={d.id} className="w-full text-xs border border-primary/10 bg-background/50 rounded-xl p-3 space-y-1.5 shadow-sm relative pr-10">
+                        <div key={d.id} className="w-full text-xs border border-border bg-background/50 rounded-xl p-3 space-y-1.5 shadow-sm relative pr-10">
                           <button
                             type="button"
                             onClick={() => onRemoveFromQueue(d.id || '')}
@@ -519,7 +519,7 @@ export const CustomerDispatch = () => {
                           )}
 
                           {parentDev && (
-                            <div className="text-[10px] text-primary bg-primary/5 p-2 rounded-lg border border-primary/10 space-y-1 mt-1.5">
+                            <div className="text-[10px] text-primary bg-primary/5 p-2 rounded-lg border border-border space-y-1 mt-1.5">
                               <span className="font-extrabold uppercase tracking-wider text-[8px] block">Tied Component Linkage:</span>
                               <div className="font-mono">Tied to Parent: {parentDev.identifier} ({parentDev.modelName})</div>
                             </div>
@@ -534,7 +534,7 @@ export const CustomerDispatch = () => {
               {/* Summary cue badge */}
               {stagedDeviceIds.length > 0 && (
                 <MotionPresenceBanner show={stagedDeviceIds.length > 0}>
-                <div className="bg-primary/10 text-foreground text-xs p-3 rounded-xl border border-primary/10 font-bold flex items-center gap-1.5">
+                <div className="bg-primary/10 text-foreground text-xs p-3 rounded-xl border border-border font-bold flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-[18px] text-primary shrink-0">inventory_2</span>
                   <span>
                     Staging Summary: <strong>{totalStagedCount}</strong> units total ({stagedDeviceIds.length} direct, {stagedChildren.length} cascading components).
@@ -551,14 +551,14 @@ export const CustomerDispatch = () => {
           <StaggerItem>
           <div className="space-y-4">
             {/* Registry Toolbar filters */}
-            <div className="flex flex-col md:flex-row gap-3 border border-primary/10 p-3.5 rounded-xl bg-card/60 justify-between items-center">
+            <div className="flex flex-col md:flex-row gap-3 border border-border p-3.5 rounded-xl bg-card/60 justify-between items-center">
               <div className="relative w-full md:flex-1">
                 <span className="material-symbols-outlined text-[18px] text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
                 <input 
                   placeholder="Search serial, client fleet, model name..." 
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground"
+                  className="flex h-9 w-full rounded-lg border border-border bg-primary/5 pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground"
                 />
               </div>
 
@@ -566,7 +566,7 @@ export const CustomerDispatch = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-primary font-bold uppercase tracking-wider text-[10px]">Type:</span>
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="h-8 border-primary/10 bg-background/50 text-xs w-36 text-foreground rounded-lg">
+                    <SelectTrigger className="h-8 border-border bg-background/50 text-xs w-36 text-foreground rounded-lg">
                       <SelectValue placeholder="All Types" />
                     </SelectTrigger>
                     <SelectContent>
@@ -584,7 +584,7 @@ export const CustomerDispatch = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-primary font-bold uppercase tracking-wider text-[10px]">Topology:</span>
                   <Select value={linkFilter} onValueChange={setLinkFilter}>
-                    <SelectTrigger className="h-8 border-primary/10 bg-background/50 text-xs w-40 text-foreground rounded-lg">
+                    <SelectTrigger className="h-8 border-border bg-background/50 text-xs w-40 text-foreground rounded-lg">
                       <SelectValue placeholder="All Topologies" />
                     </SelectTrigger>
                     <SelectContent>
@@ -598,7 +598,7 @@ export const CustomerDispatch = () => {
             </div>
 
             {/* Batches Table wrapper */}
-            <div className="glass-panel rounded-xl overflow-hidden">
+            <div className="surface-card rounded-xl overflow-hidden">
               <ScrollArea className="w-full">
                 <Table>
                   <TableHeader>
@@ -668,7 +668,7 @@ export const CustomerDispatch = () => {
                                 <button
                                   type="button"
                                   onClick={() => setViewBatch(batch)}
-                                  className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground h-8 px-2.5 gap-1 cursor-pointer"
+                                  className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-primary/15 text-foreground h-8 px-2.5 gap-1 cursor-pointer"
                                 >
                                   <span className="material-symbols-outlined text-sm">visibility</span> View Details
                                 </button>
@@ -677,7 +677,7 @@ export const CustomerDispatch = () => {
                                     type="button"
                                     onClick={() => handleReturnBatch(batch)}
                                     disabled={isSubmitting}
-                                    className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-red-500/10 hover:text-red-400 text-foreground h-8 px-2.5 gap-1 cursor-pointer disabled:opacity-50"
+                                    className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-red-500/10 hover:text-red-400 text-foreground h-8 px-2.5 gap-1 cursor-pointer disabled:opacity-50"
                                   >
                                     <span className="material-symbols-outlined text-sm">sync</span> Return Stock
                                   </button>
@@ -705,7 +705,7 @@ export const CustomerDispatch = () => {
 
               {/* Pagination Controls */}
               {filteredBatches.length > 0 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-primary/10 bg-transparent">
+                <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-transparent">
                   <div className="text-xs text-muted-foreground">
                     Showing <span className="font-semibold text-foreground">{startIndex + 1}</span> to{' '}
                     <span className="font-semibold text-foreground">{Math.min(endIndex, filteredBatches.length)}</span> of{' '}
@@ -716,7 +716,7 @@ export const CustomerDispatch = () => {
                       type="button"
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                     >
                       Previous
                     </button>
@@ -736,7 +736,7 @@ export const CustomerDispatch = () => {
                             className={`inline-flex items-center justify-center rounded-lg text-xs font-bold h-8 w-8 transition-colors cursor-pointer ${
                               currentPage === pageNum
                                 ? 'bg-primary text-primary-foreground'
-                                : 'border border-primary/10 bg-primary/5 text-foreground hover:bg-primary/15'
+                                : 'border border-border bg-primary/5 text-foreground hover:bg-primary/15'
                             }`}
                           >
                             {pageNum}
@@ -756,7 +756,7 @@ export const CustomerDispatch = () => {
                       type="button"
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages || totalPages === 0}
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                     >
                       Next
                     </button>
@@ -770,26 +770,26 @@ export const CustomerDispatch = () => {
 
         {/* MODAL 1: Stage Devices Selection */}
         <Dialog open={isSelectModalOpen} onOpenChange={setIsSelectModalOpen}>
-          <DialogContent className="glass-panel-elevated rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden" showCloseButton={true}>
-            <DialogHeader className="p-6 border-b border-primary/10 text-left space-y-0.5">
+          <DialogContent className="surface-card rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden" showCloseButton={true}>
+            <DialogHeader className="p-6 border-b border-border text-left space-y-0.5">
               <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">Stage Available Devices</DialogTitle>
             <DialogDescription className="text-xs text-muted mt-0.5">Select and queue available units from warehouse stock to prepare dispatch.</DialogDescription>
             </DialogHeader>
 
               {/* Filters */}
-              <div className="p-4 border-b border-primary/10 bg-primary/5 flex flex-col sm:flex-row gap-3">
+              <div className="p-4 border-b border-border bg-primary/5 flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
                   <span className="material-symbols-outlined text-sm text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
                   <input
                     placeholder="Search serial or model name..."
                     value={modalSearch}
                     onChange={(e) => setModalSearch(e.target.value)}
-                    className="flex h-9 w-full rounded-lg border border-primary/10 bg-background/50 pl-9 pr-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground font-sans"
+                    className="flex h-9 w-full rounded-lg border border-border bg-background/50 pl-9 pr-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground font-sans"
                   />
                 </div>
                 <div className="w-full sm:w-48">
                   <Select value={modalTypeFilter} onValueChange={setModalTypeFilter}>
-                    <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
+                    <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-border rounded-lg text-foreground focus:ring-primary/20">
                       <SelectValue placeholder="All Types" />
                     </SelectTrigger>
                     <SelectContent>
@@ -807,7 +807,7 @@ export const CustomerDispatch = () => {
 
               {/* Table List (Scrollable) */}
               <ScrollArea className="flex-1 p-4">
-                <div className="border border-primary/10 rounded-xl bg-background/50 overflow-hidden">
+                <div className="border border-border rounded-xl bg-background/50 overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -895,7 +895,7 @@ export const CustomerDispatch = () => {
               </ScrollArea>
 
               {/* Footer */}
-              <div className="p-4 border-t border-primary/10 flex justify-between items-center bg-primary/5">
+              <div className="p-4 border-t border-border flex justify-between items-center bg-primary/5">
                 <span className="text-xs text-muted-foreground font-semibold">
                   Selected: {modalSelectedIds.size} unit(s)
                 </span>
@@ -903,7 +903,7 @@ export const CustomerDispatch = () => {
                   <button
                     type="button"
                     onClick={() => setIsSelectModalOpen(false)}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -922,8 +922,8 @@ export const CustomerDispatch = () => {
         {/* MODAL 2: Batch Detail Hierarchy Breakdown */}
         <Dialog open={!!viewBatch} onOpenChange={(open) => { if (!open) setViewBatch(null); }}>
           {viewBatch && (
-            <DialogContent className="glass-panel-elevated rounded-2xl max-w-xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden" showCloseButton={true}>
-              <DialogHeader className="p-6 border-b border-primary/10 text-left space-y-0.5">
+            <DialogContent className="surface-card rounded-2xl max-w-xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden" showCloseButton={true}>
+              <DialogHeader className="p-6 border-b border-border text-left space-y-0.5">
                 <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">Dispatch Batch Details</DialogTitle>
             <DialogDescription className="flex items-center gap-1.5 text-xs text-muted mt-1">
                   <span className="material-symbols-outlined text-sm text-primary">person</span>
@@ -947,7 +947,7 @@ export const CustomerDispatch = () => {
                     <span className="material-symbols-outlined text-sm">layers</span>
                     Hierarchical Component Breakdown
                   </div>
-                  <div className="space-y-3 bg-background/40 p-4 border border-primary/10 rounded-xl">
+                  <div className="space-y-3 bg-background/40 p-4 border border-border rounded-xl">
                     {buildHierarchy(viewBatch.devices).length > 0 ? (
                       buildHierarchy(viewBatch.devices).map(rootNode => renderDeviceNode(rootNode))
                     ) : (
@@ -963,7 +963,7 @@ export const CustomerDispatch = () => {
               </ScrollArea>
 
               {/* Footer */}
-              <div className="p-4 border-t border-primary/10 flex justify-between items-center bg-primary/5">
+              <div className="p-4 border-t border-border flex justify-between items-center bg-primary/5">
                 <span className="text-xs text-muted-foreground font-semibold">
                   Batch Total: {viewBatch.devices.length} unit(s)
                 </span>
@@ -973,7 +973,7 @@ export const CustomerDispatch = () => {
                       type="button"
                       onClick={() => handleReturnBatch(viewBatch)}
                       disabled={isSubmitting}
-                      className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-red-500/10 hover:text-red-400 text-foreground h-9 px-4 gap-1 cursor-pointer"
+                      className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-red-500/10 hover:text-red-400 text-foreground h-9 px-4 gap-1 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-sm">sync</span> Return Entire Batch
                     </button>
@@ -981,7 +981,7 @@ export const CustomerDispatch = () => {
                   <button
                     type="button"
                     onClick={() => setViewBatch(null)}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
                   >
                     Close
                   </button>

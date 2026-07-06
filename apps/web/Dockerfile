@@ -24,6 +24,7 @@ WORKDIR /app
 CMD ["sh", "-c", "bun install && bun run --filter web dev"]
 
 FROM base AS build
+WORKDIR /app/apps/web
 RUN bun run build
 
 FROM oven/bun:1.3-alpine AS production

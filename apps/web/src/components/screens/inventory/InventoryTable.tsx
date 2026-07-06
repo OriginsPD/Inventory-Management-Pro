@@ -59,7 +59,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
   totalPages,
 }) => {
   return (
-    <div className="glass-panel rounded-xl overflow-visible">
+    <div className="surface-card rounded-xl overflow-visible">
       <Table>
         <TableHeader>
           <TableRow>
@@ -224,7 +224,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                 {visibleColumns.linked && (
                   <TableCell className="text-right text-muted-foreground font-medium">
                     {device.linked > 0 ? (
-                      <span className="text-foreground inline-flex items-center gap-1.5 bg-primary/5 px-2 py-1 rounded-lg text-xs border border-primary/10">
+                      <span className="text-foreground inline-flex items-center gap-1.5 bg-primary/5 px-2 py-1 rounded-lg text-xs border border-border">
                         <span className="material-symbols-outlined text-sm text-primary">developer_board</span> {device.linked} linked
                       </span>
                     ) : (
@@ -298,7 +298,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
 
       {/* Pagination Controls */}
       {devices.length > 0 && (
-        <div className="flex items-center justify-between px-4 py-4 border-t border-primary/10 bg-transparent">
+        <div className="flex items-center justify-between px-4 py-4 border-t border-border bg-transparent">
           <div className="text-sm text-muted-foreground flex-1">
             {isAllSelectedGlobally ? (
               `All ${devices.length} of ${devices.length} row(s) selected.`
@@ -313,7 +313,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                 setCurrentPage(prev => Math.max(prev - 1, 1));
               }}
               disabled={currentPage === 1}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
             >
               Previous
             </button>
@@ -323,7 +323,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                 setCurrentPage(prev => Math.min(prev + 1, totalPages));
               }}
               disabled={currentPage === totalPages || totalPages === 0}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
             >
               Next
             </button>

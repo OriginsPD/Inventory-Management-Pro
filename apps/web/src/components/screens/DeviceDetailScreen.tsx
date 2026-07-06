@@ -41,7 +41,7 @@ export function DeviceDetailScreen() {
   if (loading) {
     return (
       <PortalPageShell eyebrow="Registry" title="Device" subtitle="Loading device record…">
-        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Syncing…</p>
+        <p className="text-sm text-muted-foreground">Loading device record…</p>
       </PortalPageShell>
     );
   }
@@ -49,7 +49,7 @@ export function DeviceDetailScreen() {
   if (error || !device) {
     return (
       <PortalPageShell eyebrow="Registry" title="Device" accentWord="Not Found" subtitle={error ?? 'Unknown device'}>
-        <Link to="/inventory" className="text-primary text-[10px] font-bold uppercase tracking-wider">← Back to inventory</Link>
+        <Link to="/inventory" className="text-sm font-medium text-foreground hover:underline">← Back to inventory</Link>
       </PortalPageShell>
     );
   }
@@ -88,7 +88,7 @@ export function DeviceDetailScreen() {
           </div>
 
           {canWrite ? (
-            <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-primary/10">
+            <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-border">
               <Link to="/qc" search={{ qcDevice: device.id }}>
                 <PortalButton variant="outline" size="sm">QC Bench</PortalButton>
               </Link>

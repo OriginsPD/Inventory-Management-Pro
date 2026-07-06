@@ -9,9 +9,9 @@ interface StockAlertPillProps {
 }
 
 const levelStyles = {
-  HEALTHY: 'text-emerald-500 bg-emerald-500/5 border-emerald-500/20',
-  WARNING: 'text-amber-500 bg-amber-500/5 border-amber-500/20',
-  LOW: 'text-red-500 bg-red-500/5 border-red-500/20',
+  HEALTHY: 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] border-transparent',
+  WARNING: 'bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)] border-transparent',
+  LOW: 'bg-[var(--status-danger-bg)] text-[var(--status-danger-fg)] border-transparent',
 };
 
 export function StockAlertPill({ level, label, count, onClick, className }: StockAlertPillProps) {
@@ -21,9 +21,9 @@ export function StockAlertPill({ level, label, count, onClick, className }: Stoc
       type={onClick ? 'button' : undefined}
       onClick={onClick}
       className={cn(
-        'inline-flex items-center gap-1.5 text-[9px] font-bold font-mono uppercase tracking-tighter px-2 py-1 border transition-all',
+        'inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider px-2.5 py-1 rounded-full border transition-colors',
         levelStyles[level],
-        onClick && 'hover:brightness-110 cursor-pointer min-h-[44px] sm:min-h-0',
+        onClick && 'hover:opacity-90 cursor-pointer min-h-[44px] sm:min-h-0',
         className,
       )}
     >

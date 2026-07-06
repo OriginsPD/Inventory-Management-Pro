@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ims_pro/ui/components/table';
 import { TableSkeleton } from '@/components/ui/loading';
 import { EmptyState } from '@/components/ui/empty-state';
-import { ScreenLayout, ScreenHeader, Stagger, StaggerItem } from '@/components/ui/motion';
+import { PortalPageShell } from '@/components/layout/PortalPageShell';
+import { Stagger, StaggerItem } from '@/components/ui/motion';
 import { 
   Select, 
   SelectContent, 
@@ -493,11 +494,11 @@ export const ReportsScreen = () => {
   };
 
   return (
-    <ScreenLayout className="space-y-6">
-        <ScreenHeader
-          title="Reports Console"
-          description="Compile lifecycle metrics, inventory counts, and customer allocation details. Export directly to spreadsheets."
-        />
+    <PortalPageShell
+      eyebrow="Intelligence"
+      title="Reports console"
+      subtitle="Lifecycle metrics, inventory counts, and customer allocation details."
+    >
 
         <Stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
@@ -512,10 +513,10 @@ export const ReportsScreen = () => {
               <button
                 type="button"
                 onClick={() => handleReportTabChange(tab.id as ReportType)}
-                className={`text-left p-4 rounded-xl border transition-all duration-300 cursor-pointer flex flex-col justify-between h-28 w-full glass-panel glow-accent-hover ${
+                className={`text-left p-4 rounded-lg border transition-all duration-200 cursor-pointer flex flex-col justify-between h-28 w-full surface-card surface-card-hover ${
                   isActive 
-                    ? 'border-primary/80 bg-primary/10 shadow-sm glow-accent ring-1 ring-primary/30' 
-                    : 'border-primary/10 hover:border-primary/30 hover:bg-primary/5'
+                    ? 'border-foreground/30 bg-muted' 
+                    : 'border-border hover:border-foreground/20'
                 }`}
               >
                 <div className="flex items-center justify-between w-full">
@@ -535,8 +536,8 @@ export const ReportsScreen = () => {
         </Stagger>
 
         <StaggerItem>
-        <div className="glass-panel rounded-2xl p-5 space-y-4 glow-accent">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-4 border-b border-primary/10">
+        <div className="surface-card rounded-lg p-5 space-y-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-4 border-b border-border">
             <div>
               <h2 className="text-sm font-bold tracking-tight text-foreground">{activeReportDetails.title}</h2>
               <p className="text-[11px] text-muted-foreground mt-0.5">{activeReportDetails.description}</p>
@@ -548,7 +549,7 @@ export const ReportsScreen = () => {
                 type="button"
                 onClick={handleExportCSV}
                 disabled={isLoading || isExporting || activeReportDetails.data.length === 0}
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-semibold transition-all border border-primary/10 bg-primary/5 text-foreground hover:bg-primary/10 h-8.5 px-3.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer gap-1.5"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-semibold transition-all border border-border bg-primary/5 text-foreground hover:bg-primary/10 h-8.5 px-3.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer gap-1.5"
               >
                 <span className="material-symbols-outlined text-sm select-none">download</span> CSV
               </button>
@@ -569,7 +570,7 @@ export const ReportsScreen = () => {
           </div>
 
           {/* Filters Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-primary/5 p-3 rounded-xl border border-primary/10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-primary/5 p-3 rounded-xl border border-border">
             
             {/* Search query */}
             <div className="relative col-span-1 sm:col-span-2 md:col-span-1">
@@ -579,17 +580,17 @@ export const ReportsScreen = () => {
                 placeholder="Fuzzy search matching terms..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-9 w-full rounded-lg border border-primary/10 bg-primary/5 pl-9 pr-3 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary/20 font-sans transition-all"
+                className="h-9 w-full rounded-lg border border-border bg-primary/5 pl-9 pr-3 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary/20 font-sans transition-all"
               />
             </div>
 
             {/* Inventory Type Filter (Inventory & Stock Health) */}
             {(activeReport === 'inventory' || activeReport === 'stock') && (
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-border rounded-lg text-foreground focus:ring-primary/20">
                   <SelectValue placeholder="Filter Asset Type" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border border-primary/10">
+                <SelectContent className="bg-popover border border-border">
                   <SelectItem value="ALL" className="text-xs">All Asset Types</SelectItem>
                   <SelectItem value="TRACKER" className="text-xs">Trackers</SelectItem>
                   <SelectItem value="SIM" className="text-xs">SIM Cards</SelectItem>
@@ -603,10 +604,10 @@ export const ReportsScreen = () => {
             {/* Inventory Status Filter */}
             {activeReport === 'inventory' && (
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-border rounded-lg text-foreground focus:ring-primary/20">
                   <SelectValue placeholder="Filter Device Status" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border border-primary/10">
+                <SelectContent className="bg-popover border border-border">
                   <SelectItem value="ALL" className="text-xs">All Statuses</SelectItem>
                   <SelectItem value="IN_STOCK" className="text-xs">In Stock</SelectItem>
                   <SelectItem value="DISPATCHED" className="text-xs">Dispatched</SelectItem>
@@ -620,10 +621,10 @@ export const ReportsScreen = () => {
             {/* Inventory Customer Filter */}
             {activeReport === 'inventory' && (
               <Select value={customerFilter} onValueChange={setCustomerFilter}>
-                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-border rounded-lg text-foreground focus:ring-primary/20">
                   <SelectValue placeholder="Filter Customer" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border border-primary/10">
+                <SelectContent className="bg-popover border border-border">
                   <SelectItem value="ALL" className="text-xs">All Customers</SelectItem>
                   {customers.map((c: Customer) => (
                     <SelectItem key={c.id || ''} value={c.id || ''} className="text-xs">{c.name}</SelectItem>
@@ -635,10 +636,10 @@ export const ReportsScreen = () => {
             {/* Stock Health Level Filter */}
             {activeReport === 'stock' && (
               <Select value={healthFilter} onValueChange={setHealthFilter}>
-                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-border rounded-lg text-foreground focus:ring-primary/20">
                   <SelectValue placeholder="Filter Stock Status" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border border-primary/10">
+                <SelectContent className="bg-popover border border-border">
                   <SelectItem value="ALL" className="text-xs">All Stock Health Levels</SelectItem>
                   <SelectItem value="HEALTHY" className="text-xs">Healthy (60%+)</SelectItem>
                   <SelectItem value="WARNING" className="text-xs">Warning (30-59%)</SelectItem>
@@ -650,10 +651,10 @@ export const ReportsScreen = () => {
             {/* Customer Type Filter */}
             {activeReport === 'customer' && (
               <Select value={custTypeFilter} onValueChange={setCustTypeFilter}>
-                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-border rounded-lg text-foreground focus:ring-primary/20">
                   <SelectValue placeholder="Filter Client Type" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border border-primary/10">
+                <SelectContent className="bg-popover border border-border">
                   <SelectItem value="ALL" className="text-xs">All Customer Types</SelectItem>
                   <SelectItem value="COMPANY" className="text-xs">Corporations / Fleets</SelectItem>
                   <SelectItem value="PERSON" className="text-xs">Individuals</SelectItem>
@@ -664,10 +665,10 @@ export const ReportsScreen = () => {
             {/* Audit Log Action Filter */}
             {activeReport === 'audit' && (
               <Select value={actionFilter} onValueChange={setActionFilter}>
-                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
+                <SelectTrigger className="h-9 text-xs bg-primary/5 border border-border rounded-lg text-foreground focus:ring-primary/20">
                   <SelectValue placeholder="Filter Audit Action" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border border-primary/10">
+                <SelectContent className="bg-popover border border-border">
                   <SelectItem value="ALL" className="text-xs">All Operations</SelectItem>
                   <SelectItem value="INGEST" className="text-xs">Ingestion (Bulk/Single)</SelectItem>
                   <SelectItem value="LINK" className="text-xs">Link Creation</SelectItem>
@@ -682,7 +683,7 @@ export const ReportsScreen = () => {
           </div>
 
           {/* Table Preview Grid */}
-          <div className="relative border border-primary/10 rounded-xl overflow-hidden bg-primary/5 backdrop-filter backdrop-blur-md">
+          <div className="relative border border-border rounded-xl overflow-hidden bg-primary/5 backdrop-filter backdrop-blur-md">
             
             {isLoading ? (
               <div className="p-8">
@@ -708,7 +709,7 @@ export const ReportsScreen = () => {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="hover:bg-transparent bg-primary/10 border-b border-primary/10">
+                  <TableRow className="hover:bg-transparent bg-primary/10 border-b border-border">
                     {activeReportDetails.headers.map((h, i) => (
                       <TableHead key={i} className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80 py-3 px-4">
                         {h}
@@ -870,7 +871,7 @@ export const ReportsScreen = () => {
 
             {/* Preview limit caption bar */}
             {!isLoading && !isActiveReportError && activeReportDetails.data.length > 15 && (
-              <div className="p-3 bg-primary/10 border-t border-primary/10 flex items-center gap-1.5 text-[10px] text-muted-foreground justify-center">
+              <div className="p-3 bg-primary/10 border-t border-border flex items-center gap-1.5 text-[10px] text-muted-foreground justify-center">
                 <span className="material-symbols-outlined text-xs text-primary select-none">info</span>
                 <span>Showing top 15 records in the live preview. Download to export the full breakdown of {activeReportDetails.data.length} records.</span>
               </div>
@@ -886,7 +887,7 @@ export const ReportsScreen = () => {
               <span className="font-semibold text-foreground font-mono">{activeReportDetails.total}</span>
               <span>records match the applied parameters.</span>
             </div>
-            <div className="flex items-center gap-1 text-[9px] bg-primary/5 px-2.5 py-1 rounded-lg border border-primary/10 font-mono uppercase tracking-wide">
+            <div className="flex items-center gap-1 text-[9px] bg-primary/5 px-2.5 py-1 rounded-lg border border-border font-mono uppercase tracking-wide">
               <span className="material-symbols-outlined text-[10px] text-muted-foreground mr-1 select-none">calendar_today</span>
               Compiled At {new Date().toLocaleTimeString()}
             </div>
@@ -895,7 +896,7 @@ export const ReportsScreen = () => {
         </div>
         </StaggerItem>
 
-      </ScreenLayout>
+    </PortalPageShell>
   );
 };
 

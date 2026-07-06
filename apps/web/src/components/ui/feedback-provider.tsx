@@ -88,8 +88,8 @@ export const FeedbackProvider = ({ children }: { children: React.ReactNode }) =>
 
       {/* Confirm Dialog Overlay Modal */}
       <Dialog open={!!confirmData} onOpenChange={(open) => { if (!open && confirmData) confirmData.resolve(false); }}>
-        <DialogContent className="glass-panel p-0 rounded-2xl max-w-sm w-full border-0 overflow-hidden" showCloseButton={false}>
-          <MotionDialogBody className="p-6 space-y-4 glow-accent">
+        <DialogContent className="surface-card p-0 rounded-2xl max-w-sm w-full border-0 overflow-hidden" showCloseButton={false}>
+          <MotionDialogBody className="p-6 space-y-4">
             <DialogHeader className="flex flex-row items-center gap-2 space-y-0 text-left">
               <span className="material-symbols-outlined text-primary text-xl select-none">help_outline</span>
               <DialogTitle className="text-sm font-bold text-foreground p-0">{confirmData?.title}</DialogTitle>
@@ -100,7 +100,7 @@ export const FeedbackProvider = ({ children }: { children: React.ReactNode }) =>
             <div className="flex items-center gap-3 justify-end pt-2">
               <button
                 onClick={() => confirmData?.resolve(false)}
-                className="h-8.5 px-4 rounded-lg text-xs font-semibold border border-primary/10 bg-primary/5 text-foreground hover:bg-primary/10 transition-colors cursor-pointer"
+                className="h-8.5 px-4 rounded-lg text-xs font-semibold border border-border bg-primary/5 text-foreground hover:bg-primary/10 transition-colors cursor-pointer"
               >
                 Cancel
               </button>

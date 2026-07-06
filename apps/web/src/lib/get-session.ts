@@ -4,9 +4,14 @@ import { getRequestHeaders } from "@tanstack/react-start/server";
 import { authClient } from "@/lib/auth-client";
 
 export const getServerSession = createServerFn({ method: "GET" }).handler(async () => {
-  const headers = getRequestHeaders();
-  const session = await authClient.getSession({
-    fetchOptions: { headers },
-  });
-  return session.data ?? null;
+  try {
+    const headers = getRequestHeaders();
+    const session = await authClient.getSession({
+      fetchOptions: { headers },
+    });
+    return session.data ?? null;
+  } catch (error) {
+    console.error("[getServerSession] API unreachable:", error);
+    return null;
+  }
 });

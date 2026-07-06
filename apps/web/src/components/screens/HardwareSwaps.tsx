@@ -9,7 +9,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useDevices, useRelationships } from '@/lib/hooks/useDomain';
 import { Device } from '@/lib/types/domain';
 import { playSuccessBeep, playErrorBuzz } from '@/lib/audio';
-import { ScreenLayout, ScreenHeader, Stagger, StaggerItem } from '@/components/ui/motion';
+import { PortalPageShell } from '@/components/layout/PortalPageShell';
+import { PortalButton } from '@/components/ui/portal';
+import { Stagger, StaggerItem } from '@/components/ui/motion';
 
 interface StagedSwap {
   id: string;
@@ -88,7 +90,7 @@ const SearchableSelect = ({
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
         className={`flex h-9 w-full items-center justify-between rounded-lg border bg-primary/5 px-3 py-2 text-xs text-foreground shadow-sm transition-all focus:outline-hidden focus:ring-1 focus:ring-primary/20 focus:border-primary/40 disabled:opacity-50 disabled:pointer-events-none cursor-pointer ${
-          error ? 'border-red-500/50' : 'border-primary/10'
+          error ? 'border-red-500/50' : 'border-border'
         }`}
       >
         <span className="truncate">
@@ -102,10 +104,10 @@ const SearchableSelect = ({
       {isOpen && triggerRef.current?.parentElement && createPortal(
         <div
           ref={dropdownRef}
-          className="pointer-events-auto absolute top-full left-0 w-full mt-1 z-50 glass-panel-elevated max-h-60 rounded-xl border border-primary/15 bg-card/95 shadow-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-1 duration-100"
+          className="pointer-events-auto absolute top-full left-0 w-full mt-1 z-50 surface-card max-h-60 rounded-xl border border-primary/15 bg-card/95 shadow-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-1 duration-100"
         >
           {/* Search bar inside dropdown */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b border-primary/10 bg-primary/5 shrink-0">
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b border-border bg-primary/5 shrink-0">
             <span className="material-symbols-outlined text-xs text-muted-foreground select-none">search</span>
             <input
               type="text"
@@ -198,7 +200,7 @@ const DeviceAuditTimelineModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-xl w-full max-h-[80vh] flex flex-col border-0 overflow-hidden" showCloseButton={true}>
+      <DialogContent className="surface-card p-6 rounded-2xl max-w-xl w-full max-h-[80vh] flex flex-col border-0 overflow-hidden" showCloseButton={true}>
         <DialogHeader className="text-left space-y-0.5 shrink-0">
           <DialogTitle className="text-sm font-extrabold tracking-tight text-foreground p-0 flex items-center gap-2 select-none">
             <span className="material-symbols-outlined text-primary text-base select-none">history</span>
@@ -213,7 +215,7 @@ const DeviceAuditTimelineModal = ({
           {isLoading ? (
             <ListSkeleton rows={3} />
           ) : logs.length > 0 ? (
-            <div className="relative border-l border-primary/10 ml-2.5 pl-4 space-y-4 py-1">
+            <div className="relative border-l border-border ml-2.5 pl-4 space-y-4 py-1">
               {logs.map((log) => (
                 <div key={log.id} className="relative flex flex-col gap-1 text-xs">
                   <span className="absolute -left-[21.5px] top-1 h-2.5 w-2.5 rounded-full border border-primary/20 bg-card flex items-center justify-center">
@@ -221,7 +223,7 @@ const DeviceAuditTimelineModal = ({
                   </span>
                   <div className="flex items-center justify-between gap-4">
                     <span className="font-bold text-foreground inline-flex items-center gap-1">
-                      <span className="px-1 py-0.5 rounded bg-primary/10 border border-primary/10 text-[9px] font-mono tracking-wider text-primary uppercase">{log.actionType}</span>
+                      <span className="px-1 py-0.5 rounded bg-primary/10 border border-border text-[9px] font-mono tracking-wider text-primary uppercase">{log.actionType}</span>
                     </span>
                     <span className="text-[10px] text-muted-foreground font-mono">
                       {new Date(log.createdAt).toLocaleDateString(undefined, {
@@ -353,30 +355,30 @@ export const HardwareSwaps = () => {
   const totalPages = Math.ceil(damagedUnits.length / pageSize);
 
   return (
-    <ScreenLayout>
-        <ScreenHeader
-          title="RMA Swaps & Replacements"
-          description="Swap out faulty field hardware tracking units with certified warehouse stock to maintain uptime."
-        />
+    <PortalPageShell
+      eyebrow="Registry"
+      title="RMA swaps and replacements"
+      subtitle="Swap faulty field hardware with certified warehouse stock."
+    >
 
         <Stagger className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2">
+          <StaggerItem className="surface-card p-5 rounded-xl space-y-2">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Awaiting Swap</p>
             <p className="text-2xl font-black text-foreground">
               {devices.filter(d => d.status === 'DAMAGED' && !d.metadata?.replacedBy).length}
             </p>
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Active RMA Queue</p>
           </StaggerItem>
-          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2">
+          <StaggerItem className="surface-card p-5 rounded-xl space-y-2">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Swaps Processed</p>
-            <p className="text-2xl font-black text-[#eb5a00]">
+            <p className="text-2xl font-serif text-foreground">
               {devices.filter(d => d.status === 'DAMAGED' && d.metadata?.replacedBy).length}
             </p>
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Completed Replacements</p>
           </StaggerItem>
-          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2">
+          <StaggerItem className="surface-card p-5 rounded-xl space-y-2">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Replacement Reserves</p>
-            <p className="text-2xl font-black text-[#00508a] dark:text-[#38bdf8]">
+            <p className="text-2xl font-serif text-[var(--status-info-fg)]">
               {devices.filter(d => d.status === 'IN_STOCK').length}
             </p>
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Warehouse stocked units</p>
@@ -384,7 +386,7 @@ export const HardwareSwaps = () => {
         </Stagger>
 
         <StaggerItem>
-        <div className="glass-panel p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="surface-card p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="space-y-1 text-left">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-[18px] text-primary">sync</span>
@@ -412,7 +414,7 @@ export const HardwareSwaps = () => {
 
         <StaggerItem>
         <div className="space-y-4 w-full">
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 border border-primary/10 p-2 rounded-xl bg-card/60">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 border border-border p-2 rounded-xl bg-card/60">
             <div className="flex items-center gap-2 flex-1 px-2">
               <span className="material-symbols-outlined text-sm text-muted-foreground shrink-0">search</span>
               <input 
@@ -424,7 +426,7 @@ export const HardwareSwaps = () => {
             </div>
           </div>
 
-          <div className="glass-panel rounded-xl overflow-visible">
+          <div className="surface-card rounded-xl overflow-visible">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -550,7 +552,7 @@ export const HardwareSwaps = () => {
 
           {/* Pagination Controls */}
           {damagedUnits.length > 0 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-primary/10 bg-transparent">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-transparent">
               <div className="text-xs text-muted-foreground">
                 Showing <span className="font-semibold text-foreground">{startIndex + 1}</span> to{' '}
                 <span className="font-semibold text-foreground">{Math.min(endIndex, damagedUnits.length)}</span> of{' '}
@@ -561,7 +563,7 @@ export const HardwareSwaps = () => {
                   type="button"
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                 >
                   Previous
                 </button>
@@ -581,7 +583,7 @@ export const HardwareSwaps = () => {
                         className={`inline-flex items-center justify-center rounded-lg text-xs font-bold h-8 w-8 transition-colors cursor-pointer ${
                           currentPage === pageNum
                             ? 'bg-primary text-primary-foreground'
-                            : 'border border-primary/10 bg-primary/5 text-foreground hover:bg-primary/15'
+                            : 'border border-border bg-primary/5 text-foreground hover:bg-primary/15'
                         }`}
                       >
                         {pageNum}
@@ -601,7 +603,7 @@ export const HardwareSwaps = () => {
                   type="button"
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages || totalPages === 0}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                 >
                   Next
                 </button>
@@ -613,7 +615,7 @@ export const HardwareSwaps = () => {
 
         {/* BATCH SWAP STAGING WORKBENCH DIALOG */}
         <Dialog open={isStagingModalOpen} onOpenChange={(open) => { if (!open && !isExecuting) setIsStagingModalOpen(false); }}>
-          <DialogContent className="glass-panel-elevated p-6 rounded-2xl sm:max-w-6xl w-full h-[90vh] flex flex-col border-0 overflow-hidden" showCloseButton={!isExecuting}>
+          <DialogContent className="surface-card p-6 rounded-2xl sm:max-w-6xl w-full h-[90vh] flex flex-col border-0 overflow-hidden" showCloseButton={!isExecuting}>
             <DialogHeader className="text-left space-y-0.5 shrink-0">
               <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0 flex items-center gap-2 select-none">
                 <span className="material-symbols-outlined text-primary text-xl select-none">construction</span>
@@ -625,7 +627,7 @@ export const HardwareSwaps = () => {
             </DialogHeader>
 
             {/* Quick Barcode Scan resolver panel inside modal */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-primary/10 pb-4 mt-2 shrink-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border pb-4 mt-2 shrink-0">
               <div className="md:col-span-1 space-y-1.5">
                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
                   Quick Barcode Scan (Faulty or Replacement)
@@ -670,7 +672,7 @@ export const HardwareSwaps = () => {
                       }
                     }}
                     placeholder="Scan Serial/IMEI..."
-                    className="w-full bg-background border border-primary/10 text-xs h-8 pl-8 pr-2 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden text-foreground placeholder:text-muted-foreground/40 transition-colors font-mono"
+                    className="w-full bg-background border border-border text-xs h-8 pl-8 pr-2 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden text-foreground placeholder:text-muted-foreground/40 transition-colors font-mono"
                   />
                 </div>
                 {scanFeedback && (
@@ -722,7 +724,7 @@ export const HardwareSwaps = () => {
             </div>
 
             {/* Defect failure reason & Notes input row inside modal */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-primary/10 pb-4 mt-2 shrink-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border pb-4 mt-2 shrink-0">
               <div className="md:col-span-1 space-y-1">
                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
                   Defect / RMA Failure Reason
@@ -731,7 +733,7 @@ export const HardwareSwaps = () => {
                   disabled={isExecuting}
                   value={defectReason}
                   onChange={(e) => setDefectReason(e.target.value)}
-                  className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-2 text-xs text-foreground shadow-sm transition-all focus:outline-hidden focus:ring-1 focus:ring-primary/20 focus:border-primary/40 disabled:opacity-50 cursor-pointer"
+                  className="flex h-9 w-full rounded-lg border border-border bg-primary/5 px-3 py-2 text-xs text-foreground shadow-sm transition-all focus:outline-hidden focus:ring-1 focus:ring-primary/20 focus:border-primary/40 disabled:opacity-50 cursor-pointer"
                 >
                   <option value="Battery Defect">Battery Defect</option>
                   <option value="GPS Antenna Failure">GPS Antenna Failure</option>
@@ -752,14 +754,14 @@ export const HardwareSwaps = () => {
                   value={technicianNotes}
                   onChange={(e) => setTechnicianNotes(e.target.value)}
                   placeholder="Enter failure diagnostics or swap details..."
-                  className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-2 text-xs text-foreground shadow-sm transition-all focus:outline-hidden focus:ring-1 focus:ring-primary/20 focus:border-primary/40 disabled:opacity-50 placeholder:text-muted-foreground/30 text-foreground"
+                  className="flex h-9 w-full rounded-lg border border-border bg-primary/5 px-3 py-2 text-xs text-foreground shadow-sm transition-all focus:outline-hidden focus:ring-1 focus:ring-primary/20 focus:border-primary/40 disabled:opacity-50 placeholder:text-muted-foreground/30 text-foreground"
                 />
               </div>
             </div>
 
             {/* Middle Section: Staging Preview Flow Card & Staging Action */}
             {oldSelectVal && newSelectVal && (
-              <div className="py-3 px-4 mt-2 border border-primary/10 rounded-xl bg-primary/5 shrink-0 flex items-center justify-between gap-6 animate-in fade-in duration-150">
+              <div className="py-3 px-4 mt-2 border border-border rounded-xl bg-primary/5 shrink-0 flex items-center justify-between gap-6 animate-in fade-in duration-150">
                 <div className="flex items-center gap-6 flex-1 justify-around">
                   <div className="flex flex-col min-w-0 max-w-[40%] text-left">
                     <span className="text-[8px] font-mono text-red-400 uppercase tracking-widest font-black leading-none">Faulty Field Unit</span>
@@ -788,7 +790,7 @@ export const HardwareSwaps = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0 pl-4 border-l border-primary/10">
+                <div className="flex items-center gap-3 shrink-0 pl-4 border-l border-border">
                   {/* Compatibility Check */}
                   {(() => {
                     const oDev = devices.find(d => d.id === oldSelectVal);
@@ -851,9 +853,9 @@ export const HardwareSwaps = () => {
             )}
 
             {/* Bottom Section: Staging Queue List (Scrollable) */}
-            <div className="flex-1 overflow-y-auto mt-4 border border-primary/10 rounded-xl bg-card/40 min-h-[180px]">
+            <div className="flex-1 overflow-y-auto mt-4 border border-border rounded-xl bg-card/40 min-h-[180px]">
               <Table>
-                <TableHeader className="sticky top-0 bg-card/95 backdrop-blur-md z-10 border-b border-primary/10">
+                <TableHeader className="sticky top-0 bg-card/95 backdrop-blur-md z-10 border-b border-border">
                   <TableRow>
                     <TableHead className="text-[10px] uppercase font-bold py-2">Staged Faulty Device</TableHead>
                     <TableHead className="text-[10px] uppercase font-bold py-2">Replacement Device</TableHead>
@@ -910,7 +912,7 @@ export const HardwareSwaps = () => {
                               </span>
                             )}
                             {item.inheritedCount > 0 && (
-                              <span className="inline-flex items-center text-[9px] font-bold text-[#00508a] bg-[#00508a]/5 px-1.5 py-0.5 rounded border border-[#00508a]/10 dark:text-[#38bdf8] dark:bg-[#38bdf8]/5 dark:border-[#38bdf8]/10 font-mono">
+                              <span className="inline-flex items-center text-[10px] font-medium text-[var(--status-info-fg)] bg-[var(--status-info-bg)] px-2 py-0.5 rounded-full font-mono">
                                 +{item.inheritedCount} links
                               </span>
                             )}
@@ -933,7 +935,7 @@ export const HardwareSwaps = () => {
                                       detailStr = `${childDev.type || 'Accessory'}`;
                                     }
                                     return (
-                                      <div key={rel.id} className="text-[9px] font-medium text-muted-foreground bg-primary/5 border border-primary/10 rounded-lg p-1.5 flex flex-col gap-0.5">
+                                      <div key={rel.id} className="text-[9px] font-medium text-muted-foreground bg-primary/5 border border-border rounded-lg p-1.5 flex flex-col gap-0.5">
                                         <div className="flex items-center justify-between">
                                           <span className="font-mono text-foreground font-bold">{childDev.identifier}</span>
                                           <span className="text-[8px] font-semibold text-primary uppercase">{childDev.type}</span>
@@ -1013,7 +1015,7 @@ export const HardwareSwaps = () => {
             </div>
 
             {/* Footer: Execution controls */}
-            <div className="mt-4 pt-4 border-t border-primary/10 flex items-center justify-between shrink-0 select-none">
+            <div className="mt-4 pt-4 border-t border-border flex items-center justify-between shrink-0 select-none">
               <div className="text-xs text-muted-foreground">
                 Total Staged: <span className="font-bold text-foreground">{stagedSwaps.length}</span>
                 {stagedSwaps.some(s => s.status === 'SUCCESS') && (
@@ -1027,7 +1029,7 @@ export const HardwareSwaps = () => {
                   type="button"
                   disabled={isExecuting}
                   onClick={() => setIsStagingModalOpen(false)}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
                 >
                   {stagedSwaps.some(s => s.status === 'SUCCESS') ? 'Close Staging' : 'Cancel'}
                 </button>
@@ -1064,6 +1066,6 @@ export const HardwareSwaps = () => {
             onClose={() => setSelectedAuditDevice(null)}
           />
         )}
-    </ScreenLayout>
+    </PortalPageShell>
   );
 };

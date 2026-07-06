@@ -215,7 +215,7 @@ export const QCBench = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              <div className="glass-panel px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <div className="surface-card px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
                 <span className="text-muted-foreground mr-1">Status:</span>
                 {selectedDevice.status === 'IN_STOCK' && <span className="text-emerald-400 font-bold">In Stock</span>}
                 {selectedDevice.status === 'DISPATCHED' && <span className="text-blue-400 font-bold">Dispatched</span>}
@@ -230,7 +230,7 @@ export const QCBench = () => {
           </div>
 
           {/* Automated Telemetry Diagnostics Bench */}
-          <div className="glass-panel p-6 rounded-2xl space-y-4">
+          <div className="surface-card p-6 rounded-2xl space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <h3 className="text-sm font-bold flex items-center gap-2">
@@ -262,7 +262,7 @@ export const QCBench = () => {
             </div>
 
             {diagnosticsResult && (
-              <div className="border border-primary/10 rounded-xl bg-primary/5 p-4 space-y-4">
+              <div className="border border-border rounded-xl bg-primary/5 p-4 space-y-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                   {/* Status Indicator */}
                   <div className="space-y-1">
@@ -361,8 +361,8 @@ export const QCBench = () => {
             )}
           </div>
 
-          <div className="glass-panel rounded-2xl overflow-hidden">
-            <div className="bg-primary/5 p-4 border-b border-primary/10 flex items-center justify-between">
+          <div className="surface-card rounded-2xl overflow-hidden">
+            <div className="bg-primary/5 p-4 border-b border-border flex items-center justify-between">
               <h3 className="text-sm font-bold flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary text-xl">fact_check</span>
                 Hardware Test Matrix
@@ -394,7 +394,7 @@ export const QCBench = () => {
                         className={`h-8 flex-1 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all border ${
                           result.status === 'PASSED' 
                             ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_15px_rgba(52,211,153,0.1)]' 
-                            : 'bg-transparent border-primary/10 text-muted-foreground hover:text-foreground hover:bg-primary/5'
+                            : 'bg-transparent border-border text-muted-foreground hover:text-foreground hover:bg-primary/5'
                         } disabled:opacity-50 disabled:pointer-events-none`}
                         onClick={() => handleUpdateStatus(check.id, 'PASSED')}
                         disabled={user?.role === 'REVIEWER'}
@@ -406,7 +406,7 @@ export const QCBench = () => {
                         className={`h-8 flex-1 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all border ${
                           result.status === 'FAILED' 
                             ? 'bg-red-500/20 text-red-400 border-red-500/40 shadow-[0_0_15px_rgba(248,113,113,0.1)]' 
-                            : 'bg-transparent border-primary/10 text-muted-foreground hover:text-foreground hover:bg-primary/5'
+                            : 'bg-transparent border-border text-muted-foreground hover:text-foreground hover:bg-primary/5'
                         } disabled:opacity-50 disabled:pointer-events-none`}
                         onClick={() => handleUpdateStatus(check.id, 'FAILED')}
                         disabled={user?.role === 'REVIEWER'}
@@ -419,7 +419,7 @@ export const QCBench = () => {
                     <div className="md:col-span-4">
                       <input 
                         placeholder="Add comments (optional)..." 
-                        className="w-full bg-background border border-primary/10 rounded-lg py-1.5 px-3 text-xs font-medium placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary focus:outline-none focus:border-primary text-foreground disabled:opacity-50"
+                        className="w-full bg-background border border-border rounded-lg py-1.5 px-3 text-xs font-medium placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary focus:outline-none focus:border-primary text-foreground disabled:opacity-50"
                         value={result.notes}
                         onChange={(e) => handleUpdateNotes(check.id, e.target.value)}
                         disabled={user?.role === 'REVIEWER'}
@@ -430,7 +430,7 @@ export const QCBench = () => {
               })}
             </div>
 
-            <div className="p-4 px-6 bg-primary/5 border-t border-primary/10 flex items-center justify-between">
+            <div className="p-4 px-6 bg-primary/5 border-t border-border flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span className="material-symbols-outlined text-sm text-muted-foreground">info</span>
                 <span>Submit only after all items have been verified.</span>
@@ -449,7 +449,7 @@ export const QCBench = () => {
                   Complete QC Report
                 </Button>
               ) : (
-                <div className="text-xs text-muted-foreground border border-primary/10 rounded-lg px-4 py-2 bg-primary/5">
+                <div className="text-xs text-muted-foreground border border-border rounded-lg px-4 py-2 bg-primary/5">
                   Read-only view. Report completion is disabled.
                 </div>
               )}
@@ -478,9 +478,9 @@ export const QCBench = () => {
       }
       className="max-w-6xl mx-auto"
     >
-        <div className="glass-panel rounded-2xl overflow-hidden">
+        <div className="surface-card rounded-2xl overflow-hidden">
           <Table>
-            <TableHeader className="bg-card/40 border-b border-primary/10">
+            <TableHeader className="bg-card/40 border-b border-border">
               <TableRow>
                 <TableHead className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Device Identifier</TableHead>
                 <TableHead className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Model Template</TableHead>
@@ -522,7 +522,7 @@ export const QCBench = () => {
                             Failed
                           </span>
                         ) : (
-                          <span className="text-[10px] text-muted-foreground font-bold border border-primary/10 px-2 py-0.5 rounded uppercase tracking-wider">
+                          <span className="text-[10px] text-muted-foreground font-bold border border-border px-2 py-0.5 rounded uppercase tracking-wider">
                             Untested
                           </span>
                         )}
@@ -562,7 +562,7 @@ export const QCBench = () => {
           </Table>
 
           {!isLoading && filteredDevices.length > 0 && (
-            <div className="flex flex-col gap-3 border-t border-primary/10 bg-primary/5 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 border-t border-border bg-primary/5 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-xs text-muted-foreground">
                 Showing <span className="font-mono font-bold text-foreground">{startIndex + 1}</span>
                 {' '}to{' '}
@@ -579,7 +579,7 @@ export const QCBench = () => {
                   type="button"
                   onClick={() => setCurrentPage(page => Math.max(page - 1, 1))}
                   disabled={currentPage === 1}
-                  className="inline-flex h-8 items-center justify-center rounded-lg border border-primary/10 bg-primary/5 px-3 text-xs font-bold text-foreground transition-all hover:bg-primary/15 disabled:pointer-events-none disabled:opacity-30"
+                  className="inline-flex h-8 items-center justify-center rounded-lg border border-border bg-primary/5 px-3 text-xs font-bold text-foreground transition-all hover:bg-primary/15 disabled:pointer-events-none disabled:opacity-30"
                 >
                   Previous
                 </button>
@@ -587,7 +587,7 @@ export const QCBench = () => {
                   type="button"
                   onClick={() => setCurrentPage(page => Math.min(page + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="inline-flex h-8 items-center justify-center rounded-lg border border-primary/10 bg-primary/5 px-3 text-xs font-bold text-foreground transition-all hover:bg-primary/15 disabled:pointer-events-none disabled:opacity-30"
+                  className="inline-flex h-8 items-center justify-center rounded-lg border border-border bg-primary/5 px-3 text-xs font-bold text-foreground transition-all hover:bg-primary/15 disabled:pointer-events-none disabled:opacity-30"
                 >
                   Next
                 </button>

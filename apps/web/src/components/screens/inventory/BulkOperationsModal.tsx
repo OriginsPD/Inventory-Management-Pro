@@ -608,7 +608,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="glass-panel-elevated rounded-2xl sm:max-w-6xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden" showCloseButton={true}>
+      <DialogContent className="surface-card rounded-2xl sm:max-w-6xl w-full max-h-[90vh] flex flex-col border-0 p-0 overflow-hidden" showCloseButton={true}>
         <MotionDialogBody className="flex flex-col flex-1 min-h-0 overflow-hidden">
         <DialogHeader className="hidden">
           <DialogTitle>Bulk Operations</DialogTitle>
@@ -616,7 +616,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
         </DialogHeader>
 
           <div className="p-6 pb-0 flex flex-col gap-4">
-            <div className="flex border-b border-primary/10 pb-2 gap-4">
+            <div className="flex border-b border-border pb-2 gap-4">
               <button onClick={() => setBulkSubTab('ingest')} className={`text-xs font-bold uppercase tracking-wider pb-1 border-b-2 transition-colors cursor-pointer ${bulkSubTab === 'ingest' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Bulk Ingestion</button>
               <button onClick={() => setBulkSubTab('link')} className={`text-xs font-bold uppercase tracking-wider pb-1 border-b-2 transition-colors cursor-pointer ${bulkSubTab === 'link' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Polymorphic Linking</button>
             </div>
@@ -654,7 +654,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                 )}
 
                 {isCsvMapping ? (
-                  <div className="space-y-6 border border-primary/10 p-5 rounded-xl bg-primary/5">
+                  <div className="space-y-6 border border-border p-5 rounded-xl bg-primary/5">
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="text-sm font-bold text-foreground">CSV Column Import Wizard</h4>
@@ -670,21 +670,21 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-muted-foreground block">Identifier / Serial <span className="text-red-400">*</span></label>
                         <Select value={csvMappings.identifier} onValueChange={(val) => setCsvMappings(prev => ({ ...prev, identifier: val }))}>
-                          <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground"><SelectValue placeholder="Select identifier column" /></SelectTrigger>
+                          <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-border rounded-lg text-foreground"><SelectValue placeholder="Select identifier column" /></SelectTrigger>
                           <SelectContent>{csvHeaders.map(h => (<SelectItem key={h} value={h}>{h}</SelectItem>))}</SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-muted-foreground block">Metadata Field 1</label>
                         <Select value={csvMappings.meta1} onValueChange={(val) => setCsvMappings(prev => ({ ...prev, meta1: val }))}>
-                          <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground"><SelectValue placeholder="Select column" /></SelectTrigger>
+                          <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-border rounded-lg text-foreground"><SelectValue placeholder="Select column" /></SelectTrigger>
                           <SelectContent><SelectItem value="__none__">-- None --</SelectItem>{csvHeaders.map(h => (<SelectItem key={h} value={h}>{h}</SelectItem>))}</SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-muted-foreground block">Metadata Field 2</label>
                         <Select value={csvMappings.meta2} onValueChange={(val) => setCsvMappings(prev => ({ ...prev, meta2: val }))}>
-                          <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground"><SelectValue placeholder="Select column" /></SelectTrigger>
+                          <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-border rounded-lg text-foreground"><SelectValue placeholder="Select column" /></SelectTrigger>
                           <SelectContent><SelectItem value="__none__">-- None --</SelectItem>{csvHeaders.map(h => (<SelectItem key={h} value={h}>{h}</SelectItem>))}</SelectContent>
                         </Select>
                       </div>
@@ -710,7 +710,7 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                           setBulkIngestError('');
                         }}
                       >
-                        <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground"><SelectValue placeholder="Select a model..." /></SelectTrigger>
+                        <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-border rounded-lg text-foreground"><SelectValue placeholder="Select a model..." /></SelectTrigger>
                         <SelectContent>{models.map(m => (<SelectItem key={m.id} value={m.id}>{m.name} ({m.brand})</SelectItem>))}</SelectContent>
                       </Select>
                       {!hasSelectedModel && (
@@ -719,19 +719,19 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                     </div>
 
                     <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${!hasSelectedModel ? 'opacity-60' : ''}`}>
-                      <div className="border border-primary/10 rounded-xl p-4 bg-primary/5 flex flex-col justify-between space-y-4">
+                      <div className="border border-border rounded-xl p-4 bg-primary/5 flex flex-col justify-between space-y-4">
                         <div className="text-center">
                           <span className="material-symbols-outlined text-3xl mx-auto text-primary mb-2">table_chart</span>
                           <h4 className="text-xs font-bold text-foreground">Column List Upload</h4>
                           <p className="text-[11px] text-muted-foreground mt-0.5">Upload CSV or XLSX files. Metadata rows above headers are skipped.</p>
                         </div>
-                        <label className={`w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold border border-primary/10 h-9 transition-all ${hasSelectedModel ? 'bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 cursor-pointer' : 'bg-muted/30 text-muted-foreground/60 cursor-not-allowed'}`}>
+                        <label className={`w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold border border-border h-9 transition-all ${hasSelectedModel ? 'bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 cursor-pointer' : 'bg-muted/30 text-muted-foreground/60 cursor-not-allowed'}`}>
                           Browse Import File
                           <input type="file" className="hidden" disabled={!hasSelectedModel} accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleIngestCSVUpload} />
                         </label>
                       </div>
 
-                      <div className="border border-primary/10 rounded-xl p-4 bg-primary/5 space-y-3">
+                      <div className="border border-border rounded-xl p-4 bg-primary/5 space-y-3">
                         <div className="flex items-center gap-1.5 text-primary">
                           <span className="material-symbols-outlined text-sm animate-pulse text-primary">qr_code_scanner</span>
                           <h4 className="text-xs font-bold text-foreground">Rapid Physical Scanner</h4>
@@ -756,8 +756,8 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                       </div>
                     </div>
 
-                    <div className="border border-primary/10 rounded-xl bg-background overflow-hidden min-h-0">
-                      <div className="bg-card/60 p-2.5 px-4 text-xs font-semibold text-muted-foreground flex justify-between items-center border-b border-primary/10 sticky top-0 z-10">
+                    <div className="border border-border rounded-xl bg-background overflow-hidden min-h-0">
+                      <div className="bg-card/60 p-2.5 px-4 text-xs font-semibold text-muted-foreground flex justify-between items-center border-b border-border sticky top-0 z-10">
                         <span>Prepared Ingestion Table ({bulkIngestList.length})</span>
                         {bulkIngestList.length > 0 && <button onClick={() => setBulkIngestList([])} className="text-[10px] text-red-400 hover:underline font-semibold cursor-pointer">Clear List</button>}
                       </div>
@@ -774,8 +774,8 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                               {bulkIngestList.map((item, idx) => (
                                 <TableRow key={idx} className="hover:bg-primary/5 border-b border-primary/5 text-xs">
                                   <TableCell className="px-4 font-bold text-primary font-mono">{item.identifier}</TableCell>
-                                  <TableCell className="p-1"><input type="text" value={(item.metadata.field1 as string) || ''} onChange={(e) => handleUpdateItemMeta(idx, 'field1', e.target.value)} className="h-7 w-full border border-primary/10 rounded bg-background px-2 text-foreground" /></TableCell>
-                                  <TableCell className="p-1"><input type="text" value={(item.metadata.field2 as string) || ''} onChange={(e) => handleUpdateItemMeta(idx, 'field2', e.target.value)} className="h-7 w-full border border-primary/10 rounded bg-background px-2 text-foreground" /></TableCell>
+                                  <TableCell className="p-1"><input type="text" value={(item.metadata.field1 as string) || ''} onChange={(e) => handleUpdateItemMeta(idx, 'field1', e.target.value)} className="h-7 w-full border border-border rounded bg-background px-2 text-foreground" /></TableCell>
+                                  <TableCell className="p-1"><input type="text" value={(item.metadata.field2 as string) || ''} onChange={(e) => handleUpdateItemMeta(idx, 'field2', e.target.value)} className="h-7 w-full border border-border rounded bg-background px-2 text-foreground" /></TableCell>
                                   <TableCell className="px-2 text-right"><button onClick={() => setBulkIngestList(bulkIngestList.filter((_, i) => i !== idx))} className="text-[10px] text-red-400 font-semibold cursor-pointer">Remove</button></TableCell>
                                 </TableRow>
                               ))}
@@ -798,26 +798,26 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                 {linkError && <div className="bg-red-500/10 text-red-400 text-xs p-2.5 rounded-lg border border-red-500/20 font-medium">{linkError}</div>}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="border border-primary/10 rounded-xl p-4 bg-primary/5 flex flex-col justify-between space-y-4">
+                  <div className="border border-border rounded-xl p-4 bg-primary/5 flex flex-col justify-between space-y-4">
                     <div className="text-center">
                       <span className="material-symbols-outlined text-3xl mx-auto text-primary mb-2">table_chart</span>
                       <h4 className="text-xs font-bold text-foreground">Relationship Matrix Upload</h4>
                       <p className="text-[11px] text-muted-foreground mt-0.5">Upload CSV or XLSX with parent and child identifier columns.</p>
                     </div>
-                    <label className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold border border-primary/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 cursor-pointer transition-all">
+                    <label className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold border border-border bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 cursor-pointer transition-all">
                       Browse Import File
                       <input type="file" className="hidden" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleLinkCSVUpload} />
                     </label>
                   </div>
-                  <div className="border border-primary/10 rounded-xl p-4 bg-primary/5 space-y-3">
+                  <div className="border border-border rounded-xl p-4 bg-primary/5 space-y-3">
                     <div className="space-y-2">
-                      <input ref={scanLinkPrimaryRef} type="text" placeholder="Scan Primary Tracker..." value={primaryScan} onChange={(e) => setPrimaryScan(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && scanLinkChildRef.current?.focus()} className="flex h-9 w-full rounded-lg border border-primary/10 bg-background px-3 py-1 text-xs text-foreground" />
-                      <input ref={scanLinkChildRef} type="text" placeholder="Scan Child Asset..." value={childScan} onChange={(e) => setChildScan(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && triggerManualLinkScan()} className="flex h-9 w-full rounded-lg border border-primary/10 bg-background px-3 py-1 text-xs text-foreground" />
+                      <input ref={scanLinkPrimaryRef} type="text" placeholder="Scan Primary Tracker..." value={primaryScan} onChange={(e) => setPrimaryScan(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && scanLinkChildRef.current?.focus()} className="flex h-9 w-full rounded-lg border border-border bg-background px-3 py-1 text-xs text-foreground" />
+                      <input ref={scanLinkChildRef} type="text" placeholder="Scan Child Asset..." value={childScan} onChange={(e) => setChildScan(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && triggerManualLinkScan()} className="flex h-9 w-full rounded-lg border border-border bg-background px-3 py-1 text-xs text-foreground" />
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between border border-primary/10 rounded-xl p-4 bg-primary/5">
+                <div className="flex items-center justify-between border border-border rounded-xl p-4 bg-primary/5">
                   <div className="space-y-0.5">
                     <h4 className="text-xs font-bold text-foreground">Auto-Ingestion Option</h4>
                     <p className="text-[10px] text-muted-foreground">Auto-create parent or child assets if they do not exist in inventory.</p>
@@ -829,13 +829,13 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
                       onChange={(e) => setAutoCreateDevices(e.target.checked)} 
                       className="sr-only peer"
                     />
-                    <div className="relative w-8 h-4 bg-zinc-800 rounded-full transition-colors peer-checked:bg-primary/10 border border-primary/10 after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-zinc-500 peer-checked:after:bg-primary after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:after:translate-x-3.5"></div>
+                    <div className="relative w-8 h-4 bg-zinc-800 rounded-full transition-colors peer-checked:bg-primary/10 border border-border after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-zinc-500 peer-checked:after:bg-primary after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:after:translate-x-3.5"></div>
                     <span className="text-xs font-semibold text-foreground">Enable Auto-Create</span>
                   </label>
                 </div>
 
-                <div className="border border-primary/10 rounded-xl bg-background overflow-hidden">
-                  <div className="bg-card/60 p-2.5 px-4 text-xs font-semibold text-muted-foreground flex justify-between items-center border-b border-primary/10 sticky top-0 z-10">
+                <div className="border border-border rounded-xl bg-background overflow-hidden">
+                  <div className="bg-card/60 p-2.5 px-4 text-xs font-semibold text-muted-foreground flex justify-between items-center border-b border-border sticky top-0 z-10">
                     <span>Prepared Relationships ({linkPairs.length})</span>
                     {linkPairs.length > 0 && <button onClick={() => setLinkPairs([])} className="text-[10px] text-red-400 hover:underline font-semibold cursor-pointer">Clear List</button>}
                   </div>
@@ -881,8 +881,8 @@ export const BulkOperationsModal: React.FC<BulkOperationsModalProps> = ({
           </ScrollArea>
 
           {!isCsvMapping && (
-            <div className="p-6 pt-4 border-t border-primary/10 flex gap-2 justify-end bg-card/90 backdrop-blur-2xl rounded-b-2xl">
-              <button type="button" onClick={onClose} className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold border border-primary/10 bg-card/60 text-muted-foreground h-9 px-4 cursor-pointer">Cancel</button>
+            <div className="p-6 pt-4 border-t border-border flex gap-2 justify-end bg-card/90 backdrop-blur-2xl rounded-b-2xl">
+              <button type="button" onClick={onClose} className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold border border-border bg-card/60 text-muted-foreground h-9 px-4 cursor-pointer">Cancel</button>
               {bulkSubTab === 'ingest' ? (
                 <button onClick={handleBulkIngestSubmit} disabled={!hasSelectedModel || bulkIngestList.length === 0} className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold bg-primary text-primary-foreground shadow h-9 px-4 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">Commit Ingestion ({bulkIngestList.length})</button>
               ) : (

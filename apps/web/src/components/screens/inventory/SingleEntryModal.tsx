@@ -175,7 +175,7 @@ export const SingleEntryModal: React.FC<SingleEntryModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="glass-panel-elevated rounded-2xl max-w-md w-full border-0" showCloseButton={true}>
+      <DialogContent className="surface-card rounded-2xl max-w-md w-full border-0" showCloseButton={true}>
         <MotionDialogBody className="p-6 space-y-4">
         <DialogHeader className="text-left space-y-0.5">
           <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">{editingDevice ? 'Edit Device Properties' : 'Add Single Device'}</DialogTitle>
@@ -196,7 +196,7 @@ export const SingleEntryModal: React.FC<SingleEntryModalProps> = ({
                 placeholder="e.g. TRK-982103"
                 {...register('identifier')}
                 className={`flex h-9 w-full rounded-lg border bg-primary/5 px-3 py-1 text-sm shadow-sm transition-all placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground ${
-                  errors.identifier ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-primary/10'
+                  errors.identifier ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-border'
                 }`}
               />
               {errors.identifier && (
@@ -211,7 +211,7 @@ export const SingleEntryModal: React.FC<SingleEntryModalProps> = ({
                 name="modelId"
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value || ""}>
-                    <SelectTrigger className={`w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20 ${errors.modelId ? 'border-red-500/50 focus:ring-red-500/20' : ''}`}>
+                    <SelectTrigger className={`w-full text-xs h-9 bg-primary/5 border border-border rounded-lg text-foreground focus:ring-primary/20 ${errors.modelId ? 'border-red-500/50 focus:ring-red-500/20' : ''}`}>
                       <SelectValue placeholder="Select a model..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -228,7 +228,7 @@ export const SingleEntryModal: React.FC<SingleEntryModalProps> = ({
             </div>
 
             {assetType === 'SIM' && (
-              <div className="grid grid-cols-2 gap-3 border-t border-primary/10 pt-3">
+              <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1">Phone Number (MSISDN)</label>
                   <input 
@@ -236,7 +236,7 @@ export const SingleEntryModal: React.FC<SingleEntryModalProps> = ({
                     placeholder="+1 (868) 555-0199"
                     {...register('meta1')}
                     className={`flex h-9 w-full rounded-lg border bg-primary/5 px-3 py-1 text-xs shadow-sm transition-all placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground ${
-                      errors.meta1 ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-primary/10'
+                      errors.meta1 ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-border'
                     }`}
                   />
                   {errors.meta1 && (
@@ -250,7 +250,7 @@ export const SingleEntryModal: React.FC<SingleEntryModalProps> = ({
                     placeholder="e.g. KORE Wireless"
                     {...register('meta2')}
                     className={`flex h-9 w-full rounded-lg border bg-primary/5 px-3 py-1 text-xs shadow-sm transition-all placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground ${
-                      errors.meta2 ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-primary/10'
+                      errors.meta2 ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-border'
                     }`}
                   />
                   {errors.meta2 && (
@@ -261,14 +261,14 @@ export const SingleEntryModal: React.FC<SingleEntryModalProps> = ({
             )}
 
             {assetType === 'TRACKER' && (
-              <div className="grid grid-cols-2 gap-3 border-t border-primary/10 pt-3">
+              <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1">Firmware Version</label>
                   <input 
                     type="text" 
                     placeholder="e.g. v1.2.9"
                     {...register('meta1')}
-                    className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground placeholder:text-muted-foreground/30"
+                    className="flex h-9 w-full rounded-lg border border-border bg-primary/5 px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground placeholder:text-muted-foreground/30"
                   />
                 </div>
                 <div>
@@ -277,14 +277,14 @@ export const SingleEntryModal: React.FC<SingleEntryModalProps> = ({
                     type="text" 
                     placeholder="e.g. REV_C"
                     {...register('meta2')}
-                    className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground placeholder:text-muted-foreground/30"
+                    className="flex h-9 w-full rounded-lg border border-border bg-primary/5 px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground placeholder:text-muted-foreground/30"
                   />
                 </div>
               </div>
             )}
 
             {assetType === 'SD_CARD' && (
-              <div className="grid grid-cols-2 gap-3 border-t border-primary/10 pt-3">
+              <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1">Storage Capacity</label>
                   <input 
@@ -292,7 +292,7 @@ export const SingleEntryModal: React.FC<SingleEntryModalProps> = ({
                     placeholder="e.g. 32GB"
                     {...register('meta1')}
                     className={`flex h-9 w-full rounded-lg border bg-primary/5 px-3 py-1 text-xs shadow-sm transition-all placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground ${
-                      errors.meta1 ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-primary/10'
+                      errors.meta1 ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-border'
                     }`}
                   />
                   {errors.meta1 && (
@@ -306,7 +306,7 @@ export const SingleEntryModal: React.FC<SingleEntryModalProps> = ({
                     placeholder="e.g. Class 10 / U3"
                     {...register('meta2')}
                     className={`flex h-9 w-full rounded-lg border bg-primary/5 px-3 py-1 text-xs shadow-sm transition-all placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground ${
-                      errors.meta2 ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-primary/10'
+                      errors.meta2 ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-border'
                     }`}
                   />
                   {errors.meta2 && (
@@ -317,14 +317,14 @@ export const SingleEntryModal: React.FC<SingleEntryModalProps> = ({
             )}
 
             {assetType === 'PANIC_BUTTON' && (
-              <div className="grid grid-cols-2 gap-3 border-t border-primary/10 pt-3">
+              <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1">RF Frequency</label>
                   <input 
                     type="text" 
                     placeholder="e.g. 433 MHz"
                     {...register('meta1')}
-                    className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground placeholder:text-muted-foreground/30"
+                    className="flex h-9 w-full rounded-lg border border-border bg-primary/5 px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground placeholder:text-muted-foreground/30"
                   />
                 </div>
                 <div>
@@ -333,7 +333,7 @@ export const SingleEntryModal: React.FC<SingleEntryModalProps> = ({
                     type="text" 
                     placeholder="e.g. Red"
                     {...register('meta2')}
-                    className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground placeholder:text-muted-foreground/30"
+                    className="flex h-9 w-full rounded-lg border border-border bg-primary/5 px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground placeholder:text-muted-foreground/30"
                   />
                 </div>
               </div>
@@ -343,7 +343,7 @@ export const SingleEntryModal: React.FC<SingleEntryModalProps> = ({
               <button 
                 type="button" 
                 onClick={onClose}
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
               >
                 Cancel
               </button>

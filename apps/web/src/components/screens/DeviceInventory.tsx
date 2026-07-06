@@ -255,7 +255,7 @@ export const DeviceInventory = () => {
       />
 
       {hasInventoryError && (
-        <div className="glass-panel rounded-xl overflow-hidden mb-4">
+        <div className="surface-card rounded-xl overflow-hidden mb-4">
           <InlineErrorState
             title="Inventory data failed to load"
             description="Some inventory data could not be loaded. Retry the request before editing devices or managing links."

@@ -3,6 +3,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { readLocalStorage, writeLocalStorage } from '@/lib/client-storage';
 
+const VALID_ACCENTS = new Set(['brand', 'neutral', 'slate', 'stone']);
+
+function normalizeAccent(accent: string | undefined): string {
+  if (!accent || VALID_ACCENTS.has(accent)) return accent || 'brand';
+  return 'brand';
+}
+
 export interface UserPreferences {
   accent?: string;
   density?: string;
@@ -51,8 +58,10 @@ export function useUserPreferences() {
     writeLocalStorage(STORAGE_KEY, JSON.stringify(next));
 
     if (patch.accent !== undefined) {
-      writeLocalStorage('ims_theme_accent', patch.accent);
-      if (patch.accent !== 'brand') document.documentElement.setAttribute('data-accent', patch.accent);
+      const accent = normalizeAccent(patch.accent);
+      next.accent = accent;
+      writeLocalStorage('ims_theme_accent', accent);
+      if (accent !== 'brand') document.documentElement.setAttribute('data-accent', accent);
       else document.documentElement.removeAttribute('data-accent');
     }
     if (patch.density !== undefined) {

@@ -23,7 +23,9 @@ import {
   TableHead,
   TableCell,
 } from "@ims_pro/ui/components/table"
-import { ScreenLayout, ScreenHeader, Stagger, StaggerItem, MotionDialogBody } from '@/components/ui/motion';
+import { PortalPageShell } from '@/components/layout/PortalPageShell';
+import { PortalButton } from '@/components/ui/portal';
+import { Stagger, StaggerItem, MotionDialogBody } from '@/components/ui/motion';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -225,7 +227,7 @@ export const DeviceModels = () => {
       <div className="flex items-center gap-1.5 py-1" title={tooltipText}>
         {/* Parent Node */}
         <div 
-          className="flex items-center justify-center h-6 w-6 rounded-md bg-[#00508a]/10 border border-[#00508a]/20 text-[#00508a] dark:text-[#38bdf8] dark:bg-[#38bdf8]/10 dark:border-[#38bdf8]/20" 
+          className="flex items-center justify-center h-6 w-6 rounded-md bg-[var(--status-info-bg)] border border-transparent text-[var(--status-info-fg)]"
           title={`Parent Class: ${model.assetType}`}
         >
           <span className="material-symbols-outlined text-[15px]">{parentIcon}</span>
@@ -321,34 +323,35 @@ export const DeviceModels = () => {
   };
 
   return (
-    <ScreenLayout className="max-w-5xl mx-auto">
-        <ScreenHeader
-          title="Device Models"
-          description="Configure hardware templates and relationship rules."
-          actions={user?.role === 'SUPER_USER' ? (
-            <button
-              onClick={() => { reset(); setEditingModelId(null); setIsAdding(true); }}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 h-9 px-4 gap-1.5 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-sm">add</span> New Model Template
-            </button>
-          ) : undefined}
-        />
+    <PortalPageShell
+      eyebrow="Registry"
+      title="Device models"
+      subtitle="Configure hardware templates and relationship rules."
+      className="max-w-5xl mx-auto"
+      actions={user?.role === 'SUPER_USER' ? (
+        <PortalButton
+          onClick={() => { reset(); setEditingModelId(null); setIsAdding(true); }}
+        >
+          <span className="material-symbols-outlined text-sm mr-1.5">add</span>
+          New model template
+        </PortalButton>
+      ) : undefined}
+    >
 
         <Stagger className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2">
+          <StaggerItem className="surface-card p-5 rounded-xl space-y-2">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Total Templates</p>
             <p className="text-2xl font-black text-foreground">{models.length}</p>
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Active hardware profiles</p>
           </StaggerItem>
-          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2">
+          <StaggerItem className="surface-card p-5 rounded-xl space-y-2">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Polymorphic Rules</p>
-            <p className="text-2xl font-black text-[#eb5a00]">{models.filter(m => m.allowedChildren.length > 0).length}</p>
+            <p className="text-2xl font-serif text-foreground">{models.filter(m => m.allowedChildren.length > 0).length}</p>
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Profiles with linked accessory rules</p>
           </StaggerItem>
-          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2">
+          <StaggerItem className="surface-card p-5 rounded-xl space-y-2">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Max Stock Capacity</p>
-            <p className="text-2xl font-black text-[#00508a] dark:text-[#38bdf8]">
+            <p className="text-2xl font-serif text-[var(--status-info-fg)]">
               {models.reduce((sum, m) => sum + (m.maxStock || 0), 0).toLocaleString()}
             </p>
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Combined target storage cap</p>
@@ -356,7 +359,7 @@ export const DeviceModels = () => {
         </Stagger>
 
         <StaggerItem>
-        <div className="glass-panel rounded-xl overflow-visible">
+        <div className="surface-card rounded-xl overflow-visible">
             <div className="w-full overflow-visible">
               <Table>
                 <TableHeader>
@@ -458,7 +461,7 @@ export const DeviceModels = () => {
 
             {/* Pagination Controls */}
             {models.length > 0 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-primary/10 bg-transparent">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-transparent">
                 <div className="text-xs text-muted-foreground">
                   Showing <span className="font-semibold text-foreground">{startIndex + 1}</span> to{' '}
                   <span className="font-semibold text-foreground">{Math.min(endIndex, models.length)}</span> of{' '}
@@ -471,7 +474,7 @@ export const DeviceModels = () => {
                       setCurrentPage(prev => Math.max(prev - 1, 1));
                     }}
                     disabled={currentPage === 1}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                   >
                     Previous
                   </button>
@@ -493,7 +496,7 @@ export const DeviceModels = () => {
                           className={`inline-flex items-center justify-center rounded-lg text-xs font-bold h-8 w-8 transition-colors cursor-pointer ${
                             currentPage === pageNum
                               ? 'bg-primary text-primary-foreground'
-                              : 'border border-primary/10 bg-primary/5 text-foreground hover:bg-primary/15'
+                              : 'border border-border bg-primary/5 text-foreground hover:bg-primary/15'
                           }`}
                         >
                           {pageNum}
@@ -518,7 +521,7 @@ export const DeviceModels = () => {
                       setCurrentPage(prev => Math.min(prev + 1, totalPages));
                     }}
                     disabled={currentPage === totalPages || totalPages === 0}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                   >
                     Next
                   </button>
@@ -530,7 +533,7 @@ export const DeviceModels = () => {
 
         {/* DIALOG MODAL: Create & Edit Form */}
         <Dialog open={isAdding} onOpenChange={(open) => { if (!open) { setIsAdding(false); setEditingModelId(null); } }}>
-          <DialogContent className="glass-panel-elevated rounded-2xl max-w-xl w-full border-0" showCloseButton={true}>
+          <DialogContent className="surface-card rounded-2xl max-w-xl w-full border-0" showCloseButton={true}>
             <MotionDialogBody className="p-6 space-y-4">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <DialogHeader className="text-left space-y-0.5">
@@ -550,7 +553,7 @@ export const DeviceModels = () => {
                       placeholder="e.g. Amber Shield V4"
                       {...register('name')}
                       className={`flex h-9 w-full rounded-lg border bg-primary/5 px-3 py-1 text-sm shadow-sm transition-all placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground ${
-                        errors.name ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-primary/10'
+                        errors.name ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-border'
                       }`}
                     />
                     {errors.name && (
@@ -564,7 +567,7 @@ export const DeviceModels = () => {
                       placeholder="e.g. Amber Connect"
                       {...register('brand')}
                       className={`flex h-9 w-full rounded-lg border bg-primary/5 px-3 py-1 text-sm shadow-sm transition-all placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground ${
-                        errors.brand ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-primary/10'
+                        errors.brand ? 'border-red-500/50 focus-visible:ring-red-500/20' : 'border-border'
                       }`}
                     />
                     {errors.brand && (
@@ -581,7 +584,7 @@ export const DeviceModels = () => {
                       name="assetType"
                       render={({ field }) => (
                         <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
+                          <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-border rounded-lg text-foreground focus:ring-primary/20">
                             <SelectValue placeholder="Select type..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -605,7 +608,7 @@ export const DeviceModels = () => {
                       min={0}
                       placeholder="e.g. 200"
                       {...register('maxStock')}
-                      className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground"
+                      className="flex h-9 w-full rounded-lg border border-border bg-primary/5 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground"
                     />
                     <p className="text-[10px] text-muted-foreground mt-0.5">Used for stock health alerts. Set to 0 to disable.</p>
                   </div>
@@ -619,7 +622,7 @@ export const DeviceModels = () => {
                     type="text"
                     placeholder="e.g. ^TRK-\d{6}$"
                     {...register('identifierPattern')}
-                    className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground font-mono"
+                    className="flex h-9 w-full rounded-lg border border-border bg-primary/5 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/40 text-foreground font-mono"
                   />
                   <p className="text-[10px] text-muted-foreground mt-0.5">Used to validate scanned identifiers (e.g. SIM cards, trackers). Empty disables validation.</p>
                 </div>
@@ -628,7 +631,7 @@ export const DeviceModels = () => {
                   <label className="text-xs font-semibold text-muted-foreground block mb-2">
                     Allowed Components (Polymorphic Links)
                   </label>
-                  <div className="flex flex-wrap gap-4 p-3 border border-primary/10 rounded-xl bg-primary/5">
+                  <div className="flex flex-wrap gap-4 p-3 border border-border rounded-xl bg-primary/5">
                     {polymorphicOptions.map((type) => (
                       <div key={type} className="flex items-center space-x-2">
                         <Checkbox 
@@ -650,11 +653,11 @@ export const DeviceModels = () => {
                   </p>
                 </div>
 
-                <div className="flex gap-2 justify-end pt-2 border-t border-primary/10">
+                <div className="flex gap-2 justify-end pt-2 border-t border-border">
                   <button
                     type="button"
                     onClick={() => { setIsAdding(false); setEditingModelId(null); }}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -673,7 +676,7 @@ export const DeviceModels = () => {
         {/* DIALOG MODAL: View Details Mode */}
         <Dialog open={!!viewModalModel} onOpenChange={(open) => { if (!open) setViewModalModel(null); }}>
           {viewModalModel && (
-            <DialogContent className="glass-panel-elevated rounded-2xl max-w-md w-full border-0" showCloseButton={true}>
+            <DialogContent className="surface-card rounded-2xl max-w-md w-full border-0" showCloseButton={true}>
               <MotionDialogBody className="p-6 space-y-4">
               <DialogHeader className="text-left space-y-0.5">
                 <DialogTitle className="text-lg font-extrabold tracking-tight text-foreground p-0">Hardware Template Details</DialogTitle>
@@ -682,16 +685,16 @@ export const DeviceModels = () => {
 
               <div className="space-y-4 text-xs">
                 {/* High Density Grid */}
-                <div className="grid grid-cols-2 gap-x-6 gap-y-2 border border-primary/10 rounded-xl bg-primary/5 p-3">
-                  <div className="flex flex-col justify-center py-1 border-b border-primary/10">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2 border border-border rounded-xl bg-primary/5 p-3">
+                  <div className="flex flex-col justify-center py-1 border-b border-border">
                     <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Model Name</span>
                     <span className="font-bold text-foreground text-xs truncate">{viewModalModel.name}</span>
                   </div>
-                  <div className="flex flex-col justify-center py-1 border-b border-primary/10">
+                  <div className="flex flex-col justify-center py-1 border-b border-border">
                     <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Brand</span>
                     <span className="font-semibold text-foreground text-xs truncate">{viewModalModel.brand}</span>
                   </div>
-                  <div className="flex flex-col justify-center py-1 border-b border-primary/10">
+                  <div className="flex flex-col justify-center py-1 border-b border-border">
                     <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Classification</span>
                     <span>
                       <span className="inline-flex items-center rounded-md border border-primary/20 bg-primary/10 px-1.5 py-0.25 text-[10px] font-bold text-primary font-mono tracking-wider">
@@ -699,13 +702,13 @@ export const DeviceModels = () => {
                       </span>
                     </span>
                   </div>
-                  <div className="flex flex-col justify-center py-1 border-b border-primary/10">
+                  <div className="flex flex-col justify-center py-1 border-b border-border">
                     <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5">Max Stock Target</span>
                     <span className="font-semibold text-foreground text-xs">{viewModalModel.maxStock || 'None'}</span>
                   </div>
-                  <div className="flex flex-col justify-center py-1 border-b border-primary/10 col-span-2 last:border-0 font-mono">
+                  <div className="flex flex-col justify-center py-1 border-b border-border col-span-2 last:border-0 font-mono">
                     <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-0.5 font-sans">Barcode Regex</span>
-                    <span className="text-[11px] bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10 text-amber-400 break-all">{viewModalModel.identifierPattern || 'None'}</span>
+                    <span className="text-[11px] bg-primary/5 px-1.5 py-0.5 rounded border border-border text-amber-400 break-all">{viewModalModel.identifierPattern || 'None'}</span>
                   </div>
                 </div>
 
@@ -716,7 +719,7 @@ export const DeviceModels = () => {
                       viewModalModel.allowedChildren.map((child: string) => (
                         <span
                           key={child}
-                          className="bg-primary/5 px-2 py-0.5 rounded-md text-[10px] text-primary font-bold border border-primary/10 uppercase tracking-wider"
+                          className="bg-primary/5 px-2 py-0.5 rounded-md text-[10px] text-primary font-bold border border-border uppercase tracking-wider"
                         >
                           {child}
                         </span>
@@ -728,11 +731,11 @@ export const DeviceModels = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end pt-2 border-t border-primary/10">
+              <div className="flex justify-end pt-2 border-t border-border">
                 <button
                   type="button"
                   onClick={() => setViewModalModel(null)}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
                 >
                   Close Detail View
                 </button>
@@ -741,7 +744,7 @@ export const DeviceModels = () => {
             </DialogContent>
           )}
         </Dialog>
-      </ScreenLayout>
+    </PortalPageShell>
   );
 };
 

@@ -17,10 +17,8 @@ const paddingMap = {
 
 export function DataPanel({ children, className, innerClassName, padding = 'md' }: DataPanelProps) {
   return (
-    <div className={cn('rounded-[1.25rem] p-1 ring-1 ring-primary/10', className)}>
-      <div className={cn('glass-panel rounded-[calc(1.25rem-0.25rem)]', paddingMap[padding], innerClassName)}>
-        {children}
-      </div>
+    <div className={cn('surface-card', paddingMap[padding], className, innerClassName)}>
+      {children}
     </div>
   );
 }

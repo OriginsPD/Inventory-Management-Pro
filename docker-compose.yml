@@ -46,6 +46,18 @@ services:
       SKIP_ENV_VALIDATION: "true"
     ports:
       - "3002:3002"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "fetch('http://127.0.0.1:3002/').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     depends_on:
       db:
         condition: service_healthy
@@ -70,7 +82,8 @@ services:
     ports:
       - "3001:3001"
     depends_on:
-      - server
+      server:
+        condition: service_healthy
     networks:
       - ims-net
 

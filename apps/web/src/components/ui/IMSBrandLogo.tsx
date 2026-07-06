@@ -13,64 +13,38 @@ export const IMSBrandLogo: React.FC<IMSBrandLogoProps> = ({
 }) => {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      {/* SVG Vector Logo */}
       <svg
         viewBox="0 0 120 120"
         width={size}
         height={size}
-        className="shrink-0"
+        className="shrink-0 text-foreground"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Top Chevron - Brand Orange */}
         <path
-          d="M 5 54 
-             L 60 5 
-             L 115 54 
-             H 93 
-             L 60 25 
-             L 27 54 
-             H 5 Z"
-          fill="#eb5a00"
-        />
-
-        {/* Bottom Chevron (G-Shape) - Brand Blue */}
-        {/* Matches the G shape: bottom chevron with a horizontal internal return on the right */}
-        <path
-          d="M 5 66 
-             L 60 115 
-             L 115 66 
-             H 93 
-             L 60 95 
-             L 27 66 
-             H 52 
-             L 63 76 
-             H 93 
-             V 66 
-             Z"
+          d="M 5 54 L 60 5 L 115 54 H 93 L 60 25 L 27 54 H 5 Z"
           fill="currentColor"
-          className="brand-logo-bottom text-[#00508a] dark:text-[#38bdf8]"
+          className="text-foreground"
         />
-
-        {/* Center Diagonal Slash - Brand Orange */}
         <path
-          d="M 50 76 
-             L 63 64 
-             H 78 
-             L 65 76 
-             H 50 Z"
-          fill="#eb5a00"
+          d="M 5 66 L 60 115 L 115 66 H 93 L 60 95 L 27 66 H 52 L 63 76 H 93 V 66 Z"
+          fill="currentColor"
+          className="text-muted-foreground"
+        />
+        <path
+          d="M 50 76 L 63 64 H 78 L 65 76 H 50 Z"
+          fill="currentColor"
+          className="text-foreground"
         />
       </svg>
 
-      {/* Brand Text */}
       {showText && (
         <div className="flex flex-col select-none">
-          <span className="text-base font-black tracking-tight leading-none text-foreground font-sans">
-            IMS <span className="text-[#eb5a00]">PRO</span>
+          <span className="font-serif text-base tracking-tight leading-none text-foreground">
+            IMS Pro
           </span>
-          <span className="text-[7.5px] font-mono text-muted-foreground uppercase tracking-[0.25em] mt-1 leading-none">
-            Asset Intelligence
+          <span className="text-[10px] text-muted-foreground mt-1 leading-none">
+            Asset intelligence
           </span>
         </div>
       )}

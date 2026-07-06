@@ -41,13 +41,13 @@ export const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
   }, []);
 
   return (
-    <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4 glass-panel rounded-xl">
+    <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4 surface-card rounded-xl">
       <div className="flex items-center gap-2 flex-1 max-w-sm">
         <Input 
           placeholder="Filter devices..." 
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="text-sm h-9 bg-primary/5 border border-primary/10 text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-primary/20"
+          className="text-sm h-9 bg-primary/5 border border-border text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-primary/20"
         />
       </div>
       
@@ -56,7 +56,7 @@ export const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
           value={statusFilter || "all"}
           onValueChange={(val) => setStatusFilter(val === "all" ? "" : val)}
         >
-          <SelectTrigger className="w-[140px] text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
+          <SelectTrigger className="w-[140px] text-xs h-9 bg-primary/5 border border-border rounded-lg text-foreground focus:ring-primary/20">
             <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -72,7 +72,7 @@ export const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
           value={modelFilter || "all"}
           onValueChange={(val) => setModelFilter(val === "all" ? "" : val)}
         >
-          <SelectTrigger className="w-[160px] text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
+          <SelectTrigger className="w-[160px] text-xs h-9 bg-primary/5 border border-border rounded-lg text-foreground focus:ring-primary/20">
             <SelectValue placeholder="All Models" />
           </SelectTrigger>
           <SelectContent>
@@ -87,7 +87,7 @@ export const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
           <button
             type="button"
             onClick={() => setIsColumnsDropdownOpen(!isColumnsDropdownOpen)}
-            className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground h-9 px-3 gap-1.5 cursor-pointer"
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-primary/15 text-foreground h-9 px-3 gap-1.5 cursor-pointer"
           >
             Columns <span className="material-symbols-outlined text-sm">filter_list</span>
           </button>

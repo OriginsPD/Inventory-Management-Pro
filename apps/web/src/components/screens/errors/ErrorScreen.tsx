@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router';
-import { Button } from '@ims_pro/ui/components/button';
+import { PortalButton } from '@/components/ui/portal';
 import { cn } from "@/lib/utils";
 import { FadeUp, Stagger, StaggerItem } from '@/components/ui/motion';
 
@@ -21,27 +21,23 @@ interface ErrorScreenProps {
 
 const severityStyles: Record<
   ErrorSeverity,
-  { iconBox: string; statusLabel: string; primaryButton: string }
+  { iconBox: string; statusLabel: string }
 > = {
   error: {
-    iconBox: "bg-destructive/5 border-destructive/10 text-destructive",
-    statusLabel: "text-destructive",
-    primaryButton: "bg-destructive hover:bg-destructive/90 text-destructive-foreground",
+    iconBox: "bg-[var(--status-danger-bg)] border-transparent text-[var(--status-danger-fg)]",
+    statusLabel: "text-[var(--status-danger-fg)]",
   },
   warning: {
-    iconBox: "bg-accent/5 border-accent/10 text-accent",
-    statusLabel: "text-accent",
-    primaryButton: "bg-accent hover:bg-accent/90 text-accent-foreground",
+    iconBox: "bg-[var(--status-warning-bg)] border-transparent text-[var(--status-warning-fg)]",
+    statusLabel: "text-[var(--status-warning-fg)]",
   },
   info: {
-    iconBox: "bg-accent/5 border-accent/10 text-accent",
-    statusLabel: "text-accent",
-    primaryButton: "bg-primary hover:bg-primary/90 text-primary-foreground",
+    iconBox: "bg-[var(--status-info-bg)] border-transparent text-[var(--status-info-fg)]",
+    statusLabel: "text-[var(--status-info-fg)]",
   },
   neutral: {
-    iconBox: "bg-primary/5 border-primary/10 text-primary",
+    iconBox: "bg-muted border-border text-muted-foreground",
     statusLabel: "text-muted-foreground",
-    primaryButton: "bg-primary hover:bg-primary/90 text-primary-foreground",
   },
 };
 
@@ -51,8 +47,8 @@ export const ErrorScreen = ({
   description,
   icon = 'warning',
   severity = "neutral",
-  primaryLabel = 'Return Dashboard',
-  secondaryLabel = 'Go Back',
+  primaryLabel = 'Return to dashboard',
+  secondaryLabel = 'Go back',
   onPrimary,
   onSecondary,
   compact = false,
@@ -75,7 +71,7 @@ export const ErrorScreen = ({
         <FadeUp>
         <div
           className={cn(
-            "mx-auto h-14 w-14 rounded-xl border flex items-center justify-center",
+            "mx-auto h-14 w-14 rounded-lg border flex items-center justify-center",
             styles.iconBox,
           )}
         >
@@ -84,15 +80,10 @@ export const ErrorScreen = ({
         </FadeUp>
 
         <StaggerItem className="space-y-2">
-          <p
-            className={cn(
-              "text-[10px] font-mono font-black uppercase tracking-[0.35em]",
-              styles.statusLabel,
-            )}
-          >
+          <p className={cn("text-xs font-mono uppercase tracking-wider", styles.statusLabel)}>
             {status}
           </p>
-          <h1 className={cn('font-black tracking-tight text-foreground uppercase', compact ? 'text-xl' : 'text-3xl')}>
+          <h1 className={cn('font-serif tracking-tight text-foreground', compact ? 'text-xl' : 'text-3xl')} style={{ letterSpacing: '-0.02em' }}>
             {title}
           </h1>
           <p className="text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">{description}</p>
@@ -100,7 +91,7 @@ export const ErrorScreen = ({
 
         {details && (
           <StaggerItem>
-            <pre className="text-left text-[10px] font-mono text-muted-foreground bg-card border border-border p-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-md">
+            <pre className="text-left text-xs font-mono text-muted-foreground bg-card border border-border p-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-md">
             {details}
           </pre>
           </StaggerItem>
@@ -108,22 +99,12 @@ export const ErrorScreen = ({
 
         <StaggerItem>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
-          <Button
-            onClick={handlePrimary}
-            className={cn(
-              "w-full sm:w-auto rounded-md h-10 px-5 text-[10px] font-black uppercase tracking-[0.2em]",
-              styles.primaryButton,
-            )}
-          >
+          <PortalButton onClick={handlePrimary} className="w-full sm:w-auto">
             {primaryLabel}
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={handleSecondary}
-              className="w-full sm:w-auto text-muted-foreground hover:text-foreground hover:bg-muted rounded-md h-10 px-5 text-[10px] font-black uppercase tracking-[0.2em]"
-          >
+          </PortalButton>
+          <PortalButton variant="ghost" onClick={handleSecondary} className="w-full sm:w-auto text-muted-foreground">
             {secondaryLabel}
-          </Button>
+          </PortalButton>
         </div>
         </StaggerItem>
       </Stagger>

@@ -39,7 +39,7 @@ export function AlertsScreen() {
         <Link
           to="/reports"
           search={{ tab: 'stock' }}
-          className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary hover:underline min-h-[44px]"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground hover:underline min-h-[44px]"
         >
           Export report
           <span className="material-symbols-outlined text-[16px]">open_in_new</span>
@@ -47,12 +47,12 @@ export function AlertsScreen() {
       }
     >
       {loading ? (
-        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Loading alerts…</p>
+        <p className="text-sm text-muted-foreground">Loading alerts…</p>
       ) : actionable.length === 0 ? (
         <DataPanel>
           <div className="flex flex-col items-center py-12 text-center">
-            <span className="material-symbols-outlined text-4xl text-emerald-500 mb-2">check_circle</span>
-            <p className="text-xs font-bold uppercase tracking-wider">All stock levels nominal</p>
+            <span className="material-symbols-outlined text-4xl text-[var(--status-success-fg)] mb-2">check_circle</span>
+            <p className="text-sm font-medium">All stock levels nominal</p>
           </div>
         </DataPanel>
       ) : (

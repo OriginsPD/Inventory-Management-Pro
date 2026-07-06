@@ -32,8 +32,8 @@ export function ShortcutHelpOverlay() {
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-      <div className="rounded-[2rem] p-1.5 ring-1 ring-primary/10 w-full max-w-md">
-        <div className="glass-panel rounded-[calc(2rem-0.375rem)] p-6">
+      <div className="rounded-[2rem] p-1.5 ring-1 border border-border w-full max-w-md">
+        <div className="surface-card rounded-[calc(2rem-0.375rem)] p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-black uppercase tracking-wider text-foreground">Keyboard Shortcuts</h2>
             <button

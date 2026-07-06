@@ -112,7 +112,7 @@ export function TableSkeleton({
   if (!wrapped) return <div className={className}>{table}</div>;
 
   return (
-    <div className={cn("glass-panel rounded-xl overflow-hidden", className)}>
+    <div className={cn("surface-card rounded-xl overflow-hidden", className)}>
       {table}
     </div>
   );

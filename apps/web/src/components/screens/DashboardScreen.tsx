@@ -4,7 +4,9 @@ import { Device, DeviceModel } from '@/lib/types/domain';
 
 import { ScrollArea } from '@ims_pro/ui/components/scroll-area';
 import { InlineErrorState } from '@/components/ui/inline-error-state';
-import { ScreenLayout, ScreenHeader, Stagger, StaggerItem } from '@/components/ui/motion';
+import { PortalPageShell } from '@/components/layout/PortalPageShell';
+import { BentoGrid, KpiTile, DataPanel } from '@/components/ui/portal';
+import { Stagger, StaggerItem } from '@/components/ui/motion';
 import { CardGridSkeleton, ChartSkeleton, SkeletonBlock } from '@/components/ui/loading';
 
 interface DashboardStats {
@@ -350,29 +352,28 @@ export const DashboardScreen = () => {
   const donutStroke = 14;
   const donutCircumference = 2 * Math.PI * donutRadius;
   const donutPalette = [
-    'var(--primary)',      // Active Orange
-    '#6366f1',             // Indigo
-    '#0d9488',             // Teal
-    '#ec4899',             // Pink
-    '#f59e0b',             // Amber
-    '#8b5cf6',             // Purple
-    '#10b981',             // Emerald
-    '#3b82f6',             // Blue
-    '#84cc16',             // Lime
-    '#a1a1aa',             // Zinc / Slate Gray
+    '#2f3437',
+    '#787774',
+    '#1f6c9f',
+    '#346538',
+    '#956400',
+    '#9f2f2d',
+    '#a8a29e',
+    '#57534e',
+    '#44403c',
+    '#d6d3d1',
   ];
 
   const [now] = useState(() => Date.now());
 
   return (
-    <ScreenLayout gap="gap-8">
-        <ScreenHeader
-          title="Warehouse Operations"
-          description="Real-time logistics and inventory health telemetry."
-        />
-
+    <PortalPageShell
+      eyebrow="Command Center"
+      title="Warehouse operations"
+      subtitle="Real-time logistics and inventory health."
+    >
         {loadError !== null && !isLoading && (
-          <div className="glass-panel rounded-xl overflow-hidden">
+          <div className="surface-card rounded-lg overflow-hidden mb-6">
             <InlineErrorState
               title="Dashboard data failed to load"
               description="One or more dashboard data sources failed. Retry to refresh the operations snapshot."
@@ -388,7 +389,7 @@ export const DashboardScreen = () => {
             <CardGridSkeleton count={5} columns={5} />
           ) : (
             <>
-                <StaggerItem className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
+                <StaggerItem className="surface-card p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Total Hardware</span>
                   <span className="material-symbols-outlined text-primary text-xl">inventory</span>
@@ -401,7 +402,7 @@ export const DashboardScreen = () => {
                 </div>
               </StaggerItem>
 
-                <StaggerItem className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
+                <StaggerItem className="surface-card p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Active Dispatched</span>
                   <span className="material-symbols-outlined text-secondary-foreground text-xl">local_shipping</span>
@@ -414,7 +415,7 @@ export const DashboardScreen = () => {
                 </div>
               </StaggerItem>
 
-                <StaggerItem className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
+                <StaggerItem className="surface-card p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Testing Bench</span>
                   <span className="material-symbols-outlined text-purple-300 text-xl">biotech</span>
@@ -427,7 +428,7 @@ export const DashboardScreen = () => {
                 </div>
               </StaggerItem>
 
-                <StaggerItem className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
+                <StaggerItem className="surface-card p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Ready Stock</span>
                   <span className="material-symbols-outlined text-primary text-xl">package_2</span>
@@ -440,7 +441,7 @@ export const DashboardScreen = () => {
                 </div>
               </StaggerItem>
 
-                <StaggerItem className="glass-panel p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
+                <StaggerItem className="surface-card p-5 rounded-xl flex flex-col justify-between hover:shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.08)] transition-all">
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">QC Pass Rate</span>
                   <span className="material-symbols-outlined text-primary text-xl">task_alt</span>
@@ -459,12 +460,12 @@ export const DashboardScreen = () => {
         {/* Analytics & Graphs row */}
         <Stagger className="grid gap-6 md:grid-cols-3">
           {/* Dispatch Trend SVG Chart */}
-          <StaggerItem className="glass-panel p-6 rounded-2xl flex flex-col justify-between md:col-span-2">
+          <StaggerItem className="surface-card p-6 rounded-2xl flex flex-col justify-between md:col-span-2">
             <div>
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
                   <h3 className="font-bold text-lg">Activity Velocity</h3>
-                  <div className="flex bg-primary/5 p-1 rounded-lg border border-primary/10">
+                  <div className="flex bg-primary/5 p-1 rounded-lg border border-border">
                     <button
                       onClick={() => setActiveTab('dispatches')}
                       className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
@@ -486,7 +487,7 @@ export const DashboardScreen = () => {
                       Ingestions
                     </button>
                   </div>
-                  <div className="flex bg-primary/5 p-1 rounded-lg border border-primary/10">
+                  <div className="flex bg-primary/5 p-1 rounded-lg border border-border">
                     {(['1d', '3m', '1y'] as TrendPeriod[]).map((period) => (
                       <button
                         key={period}
@@ -647,7 +648,7 @@ export const DashboardScreen = () => {
           </StaggerItem>
 
           {/* Hardware Breakdown Donut equivalent */}
-          <StaggerItem className="glass-panel p-6 rounded-2xl flex flex-col">
+          <StaggerItem className="surface-card p-6 rounded-2xl flex flex-col">
             <div>
               <div className="flex justify-between items-center mb-2">
                 <h3 className="font-bold text-lg">Asset Class Breakdown</h3>
@@ -735,14 +736,14 @@ export const DashboardScreen = () => {
         {/* Lower Layout Sections */}
         <Stagger className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Stock Health Table */}
-          <StaggerItem className="lg:col-span-3 glass-panel rounded-2xl overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-primary/10 flex justify-between items-center bg-primary/5">
+          <StaggerItem className="lg:col-span-3 surface-card rounded-2xl overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-border flex justify-between items-center bg-primary/5">
               <h3 className="font-bold text-lg">Model Stock Health Register</h3>
               <a href="/models" className="text-xs text-primary hover:underline">View All Models</a>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-card/40 text-[10px] uppercase tracking-widest text-muted-foreground/80 font-bold border-b border-primary/10">
+                <thead className="bg-card/40 text-[10px] uppercase tracking-widest text-muted-foreground/80 font-bold border-b border-border">
                   <tr>
                     <th className="px-6 py-4 font-bold">SKU / Model</th>
                     <th className="px-6 py-4 font-bold">Current Level</th>
@@ -831,11 +832,11 @@ export const DashboardScreen = () => {
           {/* Right layout Column */}
           <StaggerItem className="lg:col-span-1 flex flex-col gap-6">
             {/* Recent Operations Log */}
-            <div className="glass-panel p-6 rounded-2xl flex-1 flex flex-col">
+            <div className="surface-card p-6 rounded-2xl flex-1 flex flex-col">
               <h3 className="font-bold text-lg mb-4">Recent Operations</h3>
               <ScrollArea className="h-[280px] pr-2">
                 {recentLogs.length > 0 ? (
-                  <div className="relative border-l border-primary/10 ml-2 pl-4 space-y-5 py-2">
+                  <div className="relative border-l border-border ml-2 pl-4 space-y-5 py-2">
                     {recentLogs.map((log) => {
                       const dotColor = log.actionType === 'INGEST' ? 'bg-emerald-400 border-emerald-500/20' :
                                        log.actionType === 'DELETE' ? 'bg-red-400 border-red-500/20' :
@@ -865,22 +866,21 @@ export const DashboardScreen = () => {
               </ScrollArea>
             </div>
 
-            {/* Recommendations Insight card */}
-            <div className="glass-panel border-primary/20 bg-primary/5 rounded-2xl p-5 shadow-[0_0_20px_rgba(var(--color-primary-rgb),0.05)] transition-all">
+            <div className="surface-card border-border bg-[var(--status-warning-bg)] rounded-lg p-5">
               <div className="flex items-center gap-2.5 mb-2.5">
-                <span className="material-symbols-outlined text-primary text-xl">lightbulb</span>
-                <h4 className="font-bold text-sm text-primary uppercase tracking-wider text-[11px]">Warehouse Insight</h4>
+                <span className="material-symbols-outlined text-[var(--status-warning-fg)] text-xl">lightbulb</span>
+                <h4 className="font-medium text-sm text-[var(--status-warning-fg)]">Warehouse insight</h4>
               </div>
-              <p className="text-xs text-foreground leading-relaxed">
+              <p className="text-sm text-foreground leading-relaxed">
                 SIM card stock is low. Current remaining inventory is 200 units (minimum limit 500). Recommend scan-in box arrival.
               </p>
-              <a href="/inventory" className="mt-4 w-full block text-center py-2 bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest rounded-lg hover:brightness-110 active:scale-95 transition-all">
-                Ingest Inventory
+              <a href="/inventory" className="mt-4 w-full block text-center py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-[#333333] active:scale-[0.98] transition-all">
+                Ingest inventory
               </a>
             </div>
           </StaggerItem>
         </Stagger>
-      </ScreenLayout>
+    </PortalPageShell>
   );
 };
 

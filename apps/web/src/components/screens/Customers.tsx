@@ -9,7 +9,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { CreateCustomerSchema, CustomerType } from '@ims_pro/shared';
 import { useFeedback } from '@/components/ui/feedback-provider';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@ims_pro/ui/components/dialog';
-import { ScreenLayout, ScreenHeader, Stagger, StaggerItem } from '@/components/ui/motion';
+import { PortalPageShell } from '@/components/layout/PortalPageShell';
+import { PortalButton, PortalInput } from '@/components/ui/portal';
+import { Stagger, StaggerItem } from '@/components/ui/motion';
 import {
   Select,
   SelectContent,
@@ -70,7 +72,7 @@ const DeviceAuditTimelineModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="glass-panel-elevated p-6 rounded-2xl max-w-xl w-full max-h-[80vh] flex flex-col border-0 overflow-hidden" showCloseButton={true}>
+      <DialogContent className="surface-card p-6 rounded-2xl max-w-xl w-full max-h-[80vh] flex flex-col border-0 overflow-hidden" showCloseButton={true}>
         <DialogHeader className="text-left space-y-0.5 shrink-0">
           <DialogTitle className="text-sm font-extrabold tracking-tight text-foreground p-0 flex items-center gap-2 select-none">
             <span className="material-symbols-outlined text-primary text-base select-none">history</span>
@@ -85,7 +87,7 @@ const DeviceAuditTimelineModal = ({
           {isLoading ? (
             <ListSkeleton rows={3} />
           ) : logs.length > 0 ? (
-            <div className="relative border-l border-primary/10 ml-2.5 pl-4 space-y-4 py-1">
+            <div className="relative border-l border-border ml-2.5 pl-4 space-y-4 py-1">
               {logs.map((log) => (
                 <div key={log.id} className="relative flex flex-col gap-1 text-xs">
                   <span className="absolute -left-[21.5px] top-1 h-2.5 w-2.5 rounded-full border border-primary/20 bg-card flex items-center justify-center">
@@ -93,7 +95,7 @@ const DeviceAuditTimelineModal = ({
                   </span>
                   <div className="flex items-center justify-between gap-4">
                     <span className="font-bold text-foreground inline-flex items-center gap-1">
-                      <span className="px-1 py-0.5 rounded bg-primary/10 border border-primary/10 text-[9px] font-mono tracking-wider text-primary uppercase">{log.actionType}</span>
+                      <span className="px-1 py-0.5 rounded bg-primary/10 border border-border text-[9px] font-mono tracking-wider text-primary uppercase">{log.actionType}</span>
                     </span>
                     <span className="text-[10px] text-muted-foreground font-mono">
                       {new Date(log.createdAt).toLocaleDateString(undefined, {
@@ -292,7 +294,7 @@ export const Customers = () => {
             <div className="flex items-center gap-4">
               <button 
                 onClick={() => setSelectedCustomer(null)}
-                className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground h-9 w-9 cursor-pointer"
+                className="inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-primary/15 text-foreground h-9 w-9 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-sm">keyboard_arrow_left</span>
               </button>
@@ -313,7 +315,7 @@ export const Customers = () => {
             <div className="flex items-center gap-3 shrink-0">
               <button 
                 onClick={() => navigate({ to: "/dispatch", search: { customer: selectedCustomer.id } })}
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground h-9 px-4 gap-1.5 cursor-pointer"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-primary/15 text-foreground h-9 px-4 gap-1.5 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-sm">local_shipping</span> Allocate Devices
               </button>
@@ -328,7 +330,7 @@ export const Customers = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1 space-y-6">
-              <div className="glass-panel p-6 rounded-2xl space-y-4">
+              <div className="surface-card p-6 rounded-2xl space-y-4">
                 <h3 className="text-sm font-extrabold text-foreground flex items-center gap-2">
                   <span className="material-symbols-outlined text-sm text-primary">person</span>
                   Contact Information
@@ -360,8 +362,8 @@ export const Customers = () => {
             </div>
 
             <div className="md:col-span-2 space-y-6">
-              <div className="glass-panel rounded-2xl overflow-hidden shadow-sm">
-                <div className="bg-card/60 p-4 border-b border-primary/10 flex items-center justify-between">
+              <div className="surface-card rounded-2xl overflow-hidden shadow-sm">
+                <div className="bg-card/60 p-4 border-b border-border flex items-center justify-between">
                   <h3 className="text-sm font-extrabold text-foreground flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm text-primary">history</span>
                     Device Distribution History
@@ -369,7 +371,7 @@ export const Customers = () => {
                 </div>
                 
                 <div className="p-0">
-                  <div className="flex border-b border-primary/10 px-4">
+                  <div className="flex border-b border-border px-4">
                     <button
                       onClick={() => setActiveHistoryTab('dispatched')}
                       className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 cursor-pointer transition-all ${
@@ -469,7 +471,7 @@ export const Customers = () => {
                                         detailStr = `${childDev.type || 'Accessory'}`;
                                       }
                                       return (
-                                        <div key={rel.id} className="text-[9px] font-medium text-muted-foreground bg-primary/5 border border-primary/10 rounded-lg p-2 flex flex-col gap-0.5">
+                                        <div key={rel.id} className="text-[9px] font-medium text-muted-foreground bg-primary/5 border border-border rounded-lg p-2 flex flex-col gap-0.5">
                                           <div className="flex items-center justify-between">
                                             <span className="font-mono text-foreground font-bold">{childDev.identifier}</span>
                                             <span className="text-[8px] font-semibold text-primary uppercase">{childDev.type}</span>
@@ -502,7 +504,7 @@ export const Customers = () => {
                         history.returned.map((dev: Device) => (
                           <div key={dev.id} className="p-4 flex items-center justify-between hover:bg-primary/5 transition-colors border-b border-primary/5 last:border-0">
                             <div className="flex items-center gap-4">
-                              <div className="h-9 w-9 rounded-lg bg-primary/5 border border-primary/10 flex items-center justify-center shrink-0 text-muted-foreground">
+                              <div className="h-9 w-9 rounded-lg bg-primary/5 border border-border flex items-center justify-center shrink-0 text-muted-foreground">
                                 <span className="material-symbols-outlined text-sm">assignment_return</span>
                               </div>
                               <div className="space-y-0.5">
@@ -563,33 +565,32 @@ export const Customers = () => {
   }
 
   return (
-    <ScreenLayout className="max-w-6xl mx-auto">
-        <ScreenHeader
-          title="Customer Management"
-          description="Maintain a registry of corporate fleets and individual operators for hardware distribution."
-          actions={
-          <div className="flex items-center gap-3">
-            <div className="relative w-full md:w-64">
-              <span className="material-symbols-outlined text-sm text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
-              <input
-                placeholder="Search customers..."
-                className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <button 
-              onClick={() => handleOpenModal()} 
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all bg-primary text-primary-foreground shadow hover:brightness-110 h-9 px-4 gap-1.5 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-sm">add</span> Add Customer
-            </button>
+    <PortalPageShell
+      eyebrow="Registry"
+      title="Customer management"
+      subtitle="Corporate fleets and individual operators for hardware distribution."
+      className="max-w-6xl mx-auto"
+      actions={
+        <div className="flex items-center gap-3">
+          <div className="relative w-full md:w-64">
+            <span className="material-symbols-outlined text-sm text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
+            <PortalInput
+              placeholder="Search customers..."
+              className="pl-9"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
-          }
-        />
+          <PortalButton onClick={() => handleOpenModal()}>
+            <span className="material-symbols-outlined text-sm mr-1.5">add</span>
+            Add customer
+          </PortalButton>
+        </div>
+      }
+    >
 
         <Stagger className="grid grid-cols-1 md:grid-cols-3 gap-4 select-none">
-          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2 text-left">
+          <StaggerItem className="surface-card p-5 rounded-xl space-y-2 text-left">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Fleet Accounts</p>
             <p className="text-2xl font-black text-foreground">
               {customers.length}
@@ -598,14 +599,14 @@ export const Customers = () => {
               {customers.filter(c => c.type === 'COMPANY').length} Companies / {customers.filter(c => c.type === 'PERSON').length} Operators
             </p>
           </StaggerItem>
-          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2 text-left">
+          <StaggerItem className="surface-card p-5 rounded-xl space-y-2 text-left">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Active Deployed Assets</p>
-            <p className="text-2xl font-black text-[#00508a] dark:text-[#38bdf8]">
+            <p className="text-2xl font-serif text-[var(--status-info-fg)]">
               {devices.filter(d => d.status === 'DISPATCHED').length}
             </p>
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Units Deployed in Field</p>
           </StaggerItem>
-          <StaggerItem className="glass-panel p-5 rounded-xl space-y-2 text-left">
+          <StaggerItem className="surface-card p-5 rounded-xl space-y-2 text-left">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Fleet RMA Rate</p>
             <p className="text-2xl font-black text-red-400">
               {devices.filter(d => d.status === 'DISPATCHED').length > 0
@@ -619,7 +620,7 @@ export const Customers = () => {
         </Stagger>
 
         <StaggerItem>
-        <div className="glass-panel rounded-xl overflow-x-auto overflow-y-visible">
+        <div className="surface-card rounded-xl overflow-x-auto overflow-y-visible">
           <Table className="table-fixed w-full min-w-[800px]">
             <TableHeader>
               <TableRow>
@@ -753,7 +754,7 @@ export const Customers = () => {
             </TableBody>
           </Table>
           {filteredCustomers.length > 0 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-primary/10 bg-transparent">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-transparent">
               <div className="text-xs text-muted-foreground">
                 Showing <span className="font-semibold text-foreground">{startIndex + 1}</span> to{' '}
                 <span className="font-semibold text-foreground">{Math.min(endIndex, filteredCustomers.length)}</span> of{' '}
@@ -764,7 +765,7 @@ export const Customers = () => {
                   type="button"
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                 >
                   Previous
                 </button>
@@ -784,7 +785,7 @@ export const Customers = () => {
                         className={`inline-flex items-center justify-center rounded-lg text-xs font-bold h-8 w-8 transition-colors cursor-pointer ${
                           currentPage === pageNum
                             ? 'bg-primary text-primary-foreground'
-                            : 'border border-primary/10 bg-primary/5 text-foreground hover:bg-primary/15'
+                            : 'border border-border bg-primary/5 text-foreground hover:bg-primary/15'
                         }`}
                       >
                         {pageNum}
@@ -804,7 +805,7 @@ export const Customers = () => {
                   type="button"
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages || totalPages === 0}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-primary/5 hover:bg-primary/15 text-foreground disabled:opacity-30 disabled:pointer-events-none h-8 px-3 cursor-pointer"
                 >
                   Next
                 </button>
@@ -815,8 +816,8 @@ export const Customers = () => {
         </StaggerItem>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="glass-panel-elevated max-w-lg w-full overflow-hidden border-0 p-0" showCloseButton={true}>
-          <DialogHeader className="p-6 border-b border-primary/10 bg-card/60 text-left space-y-0.5">
+        <DialogContent className="surface-card max-w-lg w-full overflow-hidden border-0 p-0" showCloseButton={true}>
+          <DialogHeader className="p-6 border-b border-border bg-card/60 text-left space-y-0.5">
             <DialogTitle className="text-lg font-extrabold text-foreground p-0">{selectedCustomer ? 'Edit Customer Profile' : 'Register New Customer'}</DialogTitle>
             <DialogDescription className="text-xs text-muted mt-0.5">Capture essential details for device allocation and tracking.</DialogDescription>
           </DialogHeader>
@@ -828,7 +829,7 @@ export const Customers = () => {
                   <input 
                     {...register('name')} 
                     placeholder="e.g. Acme Corp or John Doe" 
-                    className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground"
+                    className="flex h-9 w-full rounded-lg border border-border bg-primary/5 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground"
                   />
                   {errors.name && <p className="text-[10px] text-red-400 font-bold">{errors.name.message as string}</p>}
                 </div>
@@ -840,7 +841,7 @@ export const Customers = () => {
                     name="type"
                     render={({ field }) => (
                       <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-primary/10 rounded-lg text-foreground focus:ring-primary/20">
+                        <SelectTrigger className="w-full text-xs h-9 bg-primary/5 border border-border rounded-lg text-foreground focus:ring-primary/20">
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -857,7 +858,7 @@ export const Customers = () => {
                   <input 
                     {...register('taxId')} 
                     placeholder="e.g. 12-3456789" 
-                    className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground"
+                    className="flex h-9 w-full rounded-lg border border-border bg-primary/5 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground"
                   />
                 </div>
 
@@ -866,7 +867,7 @@ export const Customers = () => {
                   <input 
                     {...register('email')} 
                     placeholder="contact@example.com" 
-                    className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground"
+                    className="flex h-9 w-full rounded-lg border border-border bg-primary/5 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground"
                   />
                   {errors.email && <p className="text-[10px] text-red-400 font-bold">{errors.email.message as string}</p>}
                 </div>
@@ -876,7 +877,7 @@ export const Customers = () => {
                   <input 
                     {...register('phone')} 
                     placeholder="+1 (555) 000-0000" 
-                    className="flex h-9 w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground"
+                    className="flex h-9 w-full rounded-lg border border-border bg-primary/5 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground"
                   />
                 </div>
 
@@ -884,17 +885,17 @@ export const Customers = () => {
                   <label className="text-xs font-semibold text-muted-foreground block">Physical Address</label>
                   <textarea 
                     {...register('address')}
-                    className="flex min-h-[80px] w-full rounded-lg border border-primary/10 bg-primary/5 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground"
+                    className="flex min-h-[80px] w-full rounded-lg border border-border bg-primary/5 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground"
                     placeholder="Street, City, Zip Code..."
                   />
                 </div>
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-primary/10">
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-border">
                 <button 
                   type="button" 
                   onClick={() => setIsModalOpen(false)}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-primary/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-bold transition-all border border-border bg-card/60 text-muted-foreground hover:text-foreground hover:bg-primary/5 h-9 px-4 cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -923,7 +924,7 @@ export const Customers = () => {
           onClose={() => setSelectedAuditDevice(null)}
         />
       )}
-    </ScreenLayout>
+    </PortalPageShell>
   );
 };
 

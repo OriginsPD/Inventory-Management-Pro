@@ -14,7 +14,7 @@ export function LandingNav() {
   return (
     <>
       <FadeUp className="relative z-30 px-4 sm:px-8 lg:px-12 pt-6">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4 rounded-full glass-panel-elevated px-4 py-2.5 sm:px-6">
+        <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4 rounded-full surface-card px-4 py-2.5 sm:px-6">
           <Link to="/" className="shrink-0 hover:opacity-90 transition-opacity">
             <IMSBrandLogo size={36} showText={true} />
           </Link>
